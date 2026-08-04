@@ -1,0 +1,51 @@
+---
+description: Svelte 5 runes and component conventions
+globs: "**/*.svelte"
+alwaysApply: false
+---
+
+# Svelte 5
+
+This project uses **Svelte 5** — use runes, not Svelte 4 patterns.
+
+## Runes
+
+- Props: `let { foo, children }: Props = $props()` — never `export let`
+- State: `$state()`, derived: `$derived()` / `$derived.by()`, effects: `$effect()`
+- Prefer `$derived` over `$effect` when computing from existing state
+- Snippets: `{@render children()}` — not `<slot />`
+
+```svelte
+<!-- ❌ BAD (Svelte 4) -->
+<script>
+  export let title;
+  $: upper = title.toUpperCase();
+</script>
+<slot />
+
+<!-- ✅ GOOD (Svelte 5) -->
+<script lang="ts">
+  let { title, children }: { title: string; children: import('svelte').Snippet } = $props();
+  const upper = $derived(title.toUpperCase());
+</script>
+{@render children()}
+```
+
+## Components
+
+- Use `<script lang="ts">` in all components
+- Prefer shadcn-svelte / bits-ui from `$lib/components/ui` over one-off primitives
+- Keep presentational components free of DB/secrets; data comes from `load` via props/`data`
+- Event handlers: `onclick={...}` (not `on:click` unless required by a library)
+
+## Reactivity
+
+- Prefer `$app/state` (`page`, `navigating`) over `$app/stores` when available
+- Use `navigating` to swap in skeleton UI immediately on client navigation (see `progressive-loading` rule)
+- Do not mirror URL/search params into local `$state` — derive from `page.url` / `data`
+
+## Async UI
+
+- Use `<svelte:boundary pending={...}>` + shadcn `Skeleton` for streamed/`{#await}` sections — never block the whole page waiting for all data
+---
+

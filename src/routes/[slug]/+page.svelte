@@ -1,0 +1,88 @@
+<script lang="ts">
+	import { navigating, page } from '$app/state';
+	import FilterPanelAsync from '$lib/components/jobs/filter-panel-async.svelte';
+	import JobList from '$lib/components/jobs/job-list.svelte';
+
+	let { data } = $props();
+
+	const isNavigating = $derived(
+		navigating.to !== null && navigating.to.route.id === '/[slug]'
+	);
+
+	function pageHref(pageNum: number) {
+		const base = `/${data.category.slug}`;
+		const params = new URLSearchParams();
+		if (data.filters.place_of_posting) params.set('place_of_posting', data.filters.place_of_posting);
+		if (data.filters.domicile) params.set('domicile', data.filters.domicile);
+		if (data.filters.q) params.set('q', data.filters.q);
+		if (data.filters.age != null) params.set('age', String(data.filters.age));
+		if (data.filters.show_expired) params.set('show_expired', '1');
+		if (data.filters.sort !== 'newest') params.set('sort', data.filters.sort);
+		if (pageNum > 1) params.set('page', String(pageNum));
+		const s = params.toString();
+		return s ? `${base}?${s}` : base;
+	}
+
+	const breadcrumbLd = $derived({
+		'@context': 'https://schema.org',
+		'@type': 'BreadcrumbList',
+		itemListElement: [
+			{
+				'@type': 'ListItem',
+				position: 1,
+				name: 'Home',
+				item: new URL('/', page.url.origin).href
+			},
+			{
+				'@type': 'ListItem',
+				position: 2,
+				name: data.category.h1,
+				item: page.url.href
+			}
+		]
+	});
+</script>
+
+<svelte:head>
+	<title>{data.category.title}</title>
+	<meta name="description" content={data.category.meta_description} />
+	<link rel="canonical" href={new URL(`/${data.category.slug}`, page.url.origin).href} />
+	{#if data.filtered}
+		<meta name="robots" content="noindex, follow" />
+	{/if}
+	<meta property="og:title" content={data.category.title} />
+	<meta property="og:description" content={data.category.meta_description} />
+	<meta property="og:type" content="website" />
+	{@html `<script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>`}
+</svelte:head>
+
+<div class="space-y-6">
+	<div class="space-y-3">
+		<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
+		<h1>{data.category.h1}</h1>
+		<p class="max-w-2xl text-muted-foreground leading-relaxed">{data.category.intro_content}</p>
+	</div>
+
+	<div class="grid gap-8 lg:grid-cols-[280px_1fr]">
+		<aside class="hidden lg:block">
+			<div class="sticky top-20">
+				<FilterPanelAsync
+					filters={data.filters}
+					options={data.options}
+					resultCount={isNavigating ? 0 : data.total}
+				/>
+			</div>
+		</aside>
+
+		<JobList
+			jobs={data.jobs}
+			total={data.total}
+			totalPages={data.totalPages}
+			filters={data.filters}
+			filtered={data.filtered}
+			error={data.error}
+			loading={isNavigating}
+			{pageHref}
+		/>
+	</div>
+</div>

@@ -1,0 +1,61 @@
+---
+description: Stream data from load, use boundaries/skeletons, never block the whole page
+globs: "src/**/*.{ts,svelte}"
+alwaysApply: false
+---
+
+# Progressive loading (Suspense-style)
+
+Show layout immediately. Load sections independently. Use skeletons until each resolves.
+
+## Server `load` — do not block on independent fetches
+
+- **Await only critical data** that must be in initial HTML (job list/count, detail body — SEO)
+- **Return unresolved promises** for non-critical data (`getFilterOptions`, `listSavedSearches`, category slug map)
+- **Never** `await Promise.all([listJobs(), getFilterOptions(), ...])` — slowest query gates the entire page
+
+```ts
+// ❌ BAD — everything waits for the slowest query
+const [result, options, saved] = await Promise.all([
+  listJobs(filters),
+  getFilterOptions(),
+  listSavedSearches(id)
+]);
+
+// ✅ GOOD — only block on jobs; stream the rest
+const result = await listJobs(filters);
+return {
+  ...result,
+  options: getFilterOptions(),
+  savedSearches: listSavedSearches(id)
+};
+```
+
+`Promise.all` inside a single logical unit (e.g. `findMany` + `count` in `listJobs`) is fine.
+
+## UI — boundaries, skeletons, navigating
+
+- Wrap each independently-loading section in `<svelte:boundary pending={skeleton}>`
+- Use shadcn `Skeleton` shaped like real content — not spinners or plain "Loading…"
+- On filter/pagination navigation, show skeletons when `$app/state` `navigating` is set (instant feedback on click)
+- `{#await promise}` inside boundaries for explicit loading/error branches
+
+```svelte
+{#snippet filterSkeleton()}
+  <FilterPanelSkeleton />
+{/snippet}
+
+<svelte:boundary pending={filterSkeleton}>
+  {#await data.options}
+    <FilterPanelSkeleton />
+  {:then options}
+    <FilterPanel {options} />
+  {/await}
+</svelte:boundary>
+```
+
+## Split components
+
+- Extract `JobList`, `FilterPanel`, `*Skeleton` child components — one boundary per section
+- No client `fetch` / `/api` for page data that `load` can stream
+- Fire-and-forget side effects (`logSearch`) — never `await` in `load`

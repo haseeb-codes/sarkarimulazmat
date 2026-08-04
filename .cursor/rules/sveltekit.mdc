@@ -1,0 +1,43 @@
+---
+description: SvelteKit routing, load functions, and server/client boundary
+globs: "src/**/*.{ts,js,svelte}"
+alwaysApply: false
+---
+
+# SvelteKit
+
+SvelteKit 2 + SSR. Keep secrets and Prisma on the server.
+
+## Server / client boundary
+
+- Put Prisma, env secrets, and DB helpers under `$lib/server/` only
+- Never import `$lib/server/*` from `+page.svelte`, client components, or shared `$lib` modules
+- Read secrets via `$env/static/private` or `$env/dynamic/private` — never `$env/*/public` for `DATABASE_URL`
+- Prefer `+page.server.ts` `load` over client `fetch` / `/api` for page data
+
+```ts
+// ❌ BAD — DB in a universal module
+// src/lib/jobs.ts imported from +page.svelte
+
+// ✅ GOOD
+// src/lib/server/jobs.ts — imported only from +page.server.ts / +layout.server.ts / +server.ts
+```
+
+## Load & routing
+
+- Use `+page.server.ts` when the page needs the DB; return plain serializable data
+- Stream independent data — await only SEO-critical results; return other fetches as promises (see `progressive-loading` rule). Do not `Promise.all` unrelated page sections
+- Validate route params (`Number(params.id)`, `Number.isInteger`) before querying
+- Use `error(404, '...')` / `redirect(...)` from `@sveltejs/kit` — do not fake 404s with HTTP 200
+- Keep SSR on (`ssr = false` is wrong for public list/detail pages)
+
+## Forms & mutations
+
+- Writes go through form `actions` + `use:enhance`, not ad-hoc client POST, unless there is a strong reason
+- Prefer progressive enhancement: filters via GET/`goto` URL params so links stay shareable
+
+## Errors & UI shell
+
+- Handle missing entities with `error(404)` so `+error.svelte` and correct status codes apply
+- Page titles/meta via `<svelte:head>` in the page that owns the content
+---

@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/lib/server/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Job Postings model matching the zero-inference extraction schema
+model JobPosting {
+  id                       String          @id @default(uuid())
+  slug                     String          @unique
+  active                   Boolean         @default(true)
+  title                    String
+  description              String?
+  department               String
+  projectProgramName       String?         @map("project_program_name")
+  postedBy                 String?         @map("posted_by")
+  employmentType           EmploymentType? @map("employment_type")
+  grade                    String?
+  equivalentGrade          Int?            @map("equivalent_grade")
+  qualificationLevel       Int             @map("qualification_level")
+  degrees                  String[]        @default([])
+  degreeArea               String[]        @default([]) @map("degree_area")
+  educationLevel           String          @map("education_level")
+  educationYears           Int?            @map("education_years")
+  certifications           String[]        @default([])
+  donorName                String?         @map("donor_name")
+  vacancies                Int?
+  placeOfPosting           String[]        @default([]) @map("place_of_posting")
+  domicile                 String?
+  experience               String?
+  preferredExperience      String?         @map("preferred_experience")
+  minAge                   Int?            @map("min_age")
+  maxAge                   Int?            @map("max_age")
+  ageRelaxation            String?         @map("age_relaxation")
+  gender                   String[]        @default([])
+  isQuotaBasis             Boolean         @default(false) @map("is_quota_basis")
+  maleQuota                String?         @map("male_quota")
+  maleHeadcount            Int?            @map("male_headcount")
+  femaleQuota              Boolean         @default(false) @map("female_quota")
+  femaleHeadcount          Int?            @map("female_headcount")
+  disabilityQuota          Boolean         @default(false) @map("disability_quota")
+  minorityQuota            Boolean         @default(false) @map("minority_quota")
+  nocRequired              Boolean         @default(false) @map("noc_required")
+  applicationFee           String?         @map("application_fee")
+  salary                   String?
+  lastDateToApply          String?         @map("last_date_to_apply")
+  daysToApply              Int?            @map("days_to_apply")
+  applicationPostalAddress String?         @map("application_postal_address")
+  applicationOnlineAddress String?         @map("application_online_address")
+  newsSource               String?         @map("news_source")
+  adCode                   String?         @map("ad_code")
+  adDate                   String?         @map("ad_date")
+  url                      String?
+  email                    String?
+  phone                    String?
+  rawText                  String          @map("raw_text")
+  notes                    String?
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@index([department])
+  @@index([postedBy])
+  @@index([qualificationLevel])
+  @@index([equivalentGrade])
+  @@map("job_postings")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model jobs {
+  row_id                     Int?
+  slug                       String?
+  active                     Boolean?
+  title                      String?
+  department                 String?
+  project_program_name       String?
+  posted_by                  String?
+  employment_type            String?
+  grade                      String?
+  equivalent_grade           Int?
+  qualification_level        Int?
+  degrees                    String?
+  degree_area                String?
+  education_level            String?
+  education_years            Int?
+  certifications             String?
+  donor_name                 String?
+  vacancies                  Int?
+  place_of_posting           String?
+  domicile                   String?
+  preferred_experience       String?
+  min_age                    Int?
+  max_age                    Int?
+  age_relaxation             String?
+  gender                     String?
+  is_quota_basis             Boolean?
+  male_quota                 Boolean?
+  male_headcount             Int?
+  female_quota               Boolean?
+  female_headcount           Int?
+  disability_quota           Boolean?
+  minority_quota             Boolean?
+  noc_required               Boolean?
+  application_fee            String?
+  salary                     Int?
+  days_to_apply              Int?
+  last_date_to_apply         String?
+  application_postal_address String?
+  application_online_address String?
+  news_source                String?
+  ad_code                    String?
+  ad_date                    DateTime? @db.Date
+  url                        String?
+  email                      String?
+  phone                      String?
+  notes                      String?
+  source_file                String?
+  province                   String?
+  description                String?
+  raw_text                   String?
+
+  @@ignore
+}
+
+model JobPostings {
+  row_id                     Int       @id
+  slug                       String?
+  active                     Boolean?
+  title                      String?
+  department                 String?
+  project_program_name       String?
+  posted_by                  String?
+  employment_type            String?
+  grade                      String?
+  equivalent_grade           Int?
+  qualification_level        Int?
+  degrees                    String?
+  degree_area                String?
+  education_level            String?
+  education_years            Int?
+  certifications             String?
+  donor_name                 String?
+  vacancies                  Int?
+  place_of_posting           String?
+  domicile                   String?
+  preferred_experience       String?
+  min_age                    Int?
+  max_age                    Int?
+  age_relaxation             String?
+  gender                     String?
+  is_quota_basis             Boolean?
+  male_quota                 Boolean?
+  male_headcount             Int?
+  female_quota               Boolean?
+  female_headcount           Int?
+  disability_quota           Boolean?
+  minority_quota             Boolean?
+  noc_required               Boolean?
+  application_fee            String?
+  salary                     Int?
+  days_to_apply              Int?
+  last_date_to_apply         String?
+  application_postal_address String?
+  application_online_address String?
+  news_source                String?
+  ad_code                    String?
+  ad_date                    DateTime? @db.Date
+  url                        String?
+  email                      String?
+  phone                      String?
+  notes                      String?
+  source_file                String?
+  province                   String?
+  description                String?
+  raw_text                   String?
+}
+
+/// Enum for standardized employment terms
+enum EmploymentType {
+  Permanent
+  Contract
+}
+
+/// Curated SEO landing pages with preset filters (e.g. /engineering-jobs, /bs-cs)
+model CategoryPage {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  h1               String
+  meta_description String
+  intro_content    String
+  filters          Json
+  is_indexed       Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("category_pages")
+}
+
+/// Anonymous visitor identity (cookie-linked)
+model Visitor {
+  id          String        @id @default(uuid())
+  first_seen  DateTime      @default(now()) @map("first_seen_at")
+  last_seen   DateTime      @default(now()) @map("last_seen_at")
+  visit_count Int           @default(1)
+  user_id     String?       @map("user_id")
+  search_logs SearchLog[]
+  saved       SavedSearch[]
+
+  @@map("visitors")
+}
+
+/// Filter usage log for aggregate analysis
+model SearchLog {
+  id           String   @id @default(cuid())
+  visitor_id   String?  @map("visitor_id")
+  user_id      String?  @map("user_id")
+  filters      Json
+  result_count Int      @map("result_count")
+  created_at   DateTime @default(now()) @map("created_at")
+  visitor      Visitor? @relation(fields: [visitor_id], references: [id], onDelete: SetNull)
+
+  @@index([created_at])
+  @@index([visitor_id])
+  @@map("search_logs")
+}
+
+/// Saved filter sets for anonymous visitors and signed-in users
+model SavedSearch {
+  id               String   @id @default(cuid())
+  visitor_id       String?  @map("visitor_id")
+  user_id          String?  @map("user_id")
+  label            String?
+  filters          Json
+  email_subscribed Boolean  @default(false) @map("email_subscribed")
+  created_at       DateTime @default(now()) @map("created_at")
+  visitor          Visitor? @relation(fields: [visitor_id], references: [id], onDelete: SetNull)
+
+  @@index([visitor_id])
+  @@index([user_id])
+  @@map("saved_searches")
+}
