@@ -9,7 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // url: env("DIRECT_URL") || env("DATABASE_URL"),
-	url: env("DIRECT_URL"),
+    // Prefer DIRECT_URL for migrations; fall back so `prisma generate` works
+    // on Vercel when only DATABASE_URL is configured.
+    url: process.env.DIRECT_URL ?? env("DATABASE_URL"),
   },
 });
