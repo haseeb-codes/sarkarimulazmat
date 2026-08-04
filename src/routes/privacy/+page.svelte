@@ -2,8 +2,8 @@
 </script>
 
 <svelte:head>
-	<title>Privacy Policy — Sarkari Nokri</title>
-	<meta name="description" content="How Sarkari Nokri collects, uses, and retains data." />
+	<title>Privacy Policy — Sarkari Mulazmat</title>
+	<meta name="description" content="How Sarkari Mulazmat collects, uses, and retains data." />
 </svelte:head>
 
 <article class="prose prose-neutral dark:prose-invert mx-auto max-w-2xl space-y-4">
@@ -11,7 +11,7 @@
 	<p class="text-muted-foreground">Last updated: August 2026</p>
 
 	<p>
-		Sarkari Nokri helps you find government job postings in Pakistan. This page explains what we
+		Sarkari Mulazmat helps you find government job postings in Pakistan. This page explains what we
 		collect and why.
 	</p>
 

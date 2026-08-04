@@ -2,8 +2,10 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
+	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import {
 		formatAgeRange,
+		formatDateLabel,
 		isClosingSoon,
 		isJobExpired,
 		type JobSort
@@ -19,6 +21,7 @@
 		grade: string | null;
 		place_of_posting: string | null;
 		domicile: string | null;
+		gender: string | null;
 		min_age: number | null;
 		max_age: number | null;
 		last_date_to_apply: string | null;
@@ -35,6 +38,14 @@
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
 	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
+	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
+	const applyByClass = $derived(
+		expired
+			? 'bg-status-closed-bg text-status-closed'
+			: closingSoon
+				? 'bg-status-closing-bg text-status-closing'
+				: 'bg-status-open-bg text-status-open'
+	);
 	const href = $derived(`/jobs/${job.row_id}`);
 </script>
 
@@ -44,8 +55,9 @@
 	<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
 		<Card.Header class="gap-2 pb-3">
 			<div class="flex flex-wrap items-start justify-between gap-2">
-				<Card.Title class="text-base leading-snug md:text-lg">
-					{job.title ?? 'Untitled posting'}
+				<Card.Title class="flex items-start gap-1.5 text-base leading-snug md:text-lg">
+					<span>{job.title ?? 'Untitled posting'}</span>
+					<GenderIcons gender={job.gender} class="mt-0.5" />
 				</Card.Title>
 				<div class="flex flex-wrap gap-1.5">
 					{#if expired}
@@ -88,19 +100,26 @@
 					{/if}
 				</div>
 			{/if}
+			{#if job.domicile}
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">Domicile</p>
+					<MultiValueBadges value={job.domicile} {sort} param="domicile" />
+				</div>
+			{/if}
 		</div>
-		<div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
 			{#if job.place_of_posting}
 				<span>{job.place_of_posting}</span>
-			{/if}
-			{#if job.domicile}
-				<span>Domicile: {job.domicile}</span>
 			{/if}
 			{#if ageLabel}
 				<span>Age: {ageLabel}</span>
 			{/if}
-			{#if job.last_date_to_apply}
-				<span>Apply by {job.last_date_to_apply}</span>
+			{#if applyByLabel}
+				<span
+					class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
+				>
+					Apply by {applyByLabel}
+				</span>
 			{/if}
 		</div>
 	</Card.Content>

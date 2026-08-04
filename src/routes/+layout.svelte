@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.ico';
+	import logo from '$lib/assets/logo.png';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
 
@@ -17,8 +18,12 @@
 <div class="flex min-h-svh flex-col">
 	<header class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
 		<div class="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-			<a href="/" class="text-lg font-semibold tracking-tight text-primary">
-				Sarkari Nokri
+			<a
+				href="/"
+				class="flex items-center gap-2 text-lg font-semibold tracking-tight text-primary"
+			>
+				<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
+				<span>Sarkari Mulazmat</span>
 			</a>
 			<nav class="flex items-center gap-1" aria-label="Site">
 				<ThemeToggle />

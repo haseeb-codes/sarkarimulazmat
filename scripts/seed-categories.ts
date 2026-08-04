@@ -9,7 +9,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const categories = [
 	{
 		slug: 'medical-jobs',
-		title: 'Medical & Healthcare Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Medical & Healthcare Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Medical & healthcare government jobs',
 		meta_description:
 			'Browse government medical jobs in Pakistan — doctors, specialists, and healthcare roles with eligibility filters.',
@@ -19,7 +19,7 @@ const categories = [
 	},
 	{
 		slug: 'engineering-jobs',
-		title: 'Engineering Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Engineering Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Engineering government jobs',
 		meta_description:
 			'Find government engineering jobs in Pakistan across civil, electrical, and related disciplines.',
@@ -29,7 +29,7 @@ const categories = [
 	},
 	{
 		slug: 'mba',
-		title: 'MBA & Business Administration Government Jobs — Sarkari Nokri',
+		title: 'MBA & Business Administration Government Jobs — Sarkari Mulazmat',
 		h1: 'MBA & business administration jobs',
 		meta_description:
 			'Government jobs seeking MBA or business administration qualifications in Pakistan.',
@@ -39,7 +39,7 @@ const categories = [
 	},
 	{
 		slug: 'law-jobs',
-		title: 'Law & Legal Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Law & Legal Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Law & legal government jobs',
 		meta_description:
 			'Browse government legal and law-related job postings in Pakistan.',
@@ -49,7 +49,7 @@ const categories = [
 	},
 	{
 		slug: 'teaching-jobs',
-		title: 'Teaching & Education Government Jobs — Sarkari Nokri',
+		title: 'Teaching & Education Government Jobs — Sarkari Mulazmat',
 		h1: 'Teaching & education government jobs',
 		meta_description:
 			'Find government teaching and education jobs in Pakistan, including school and college posts.',
@@ -59,7 +59,7 @@ const categories = [
 	},
 	{
 		slug: 'bs-cs',
-		title: 'BS Computer Science & IT Government Jobs — Sarkari Nokri',
+		title: 'BS Computer Science & IT Government Jobs — Sarkari Mulazmat',
 		h1: 'Computer science & IT government jobs',
 		meta_description:
 			'Government IT and computer science jobs in Pakistan for BCS, BIT, and related graduates.',
@@ -69,7 +69,7 @@ const categories = [
 	},
 	{
 		slug: 'intermediate-jobs',
-		title: 'Intermediate-Level Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Intermediate-Level Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Intermediate-level government jobs',
 		meta_description:
 			'Government jobs in Pakistan open to Intermediate / FA / FSc qualified candidates.',
@@ -79,7 +79,7 @@ const categories = [
 	},
 	{
 		slug: 'matric-jobs',
-		title: 'Matric-Level Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Matric-Level Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Matric-level government jobs',
 		meta_description:
 			'Government jobs in Pakistan open to Matric qualified candidates.',
@@ -89,7 +89,7 @@ const categories = [
 	},
 	{
 		slug: 'graduate-jobs',
-		title: 'Graduate Government Jobs in Pakistan — Sarkari Nokri',
+		title: 'Graduate Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Graduate government jobs',
 		meta_description:
 			'Browse government jobs in Pakistan that require a Bachelor’s or graduate-level qualification.',
@@ -99,7 +99,7 @@ const categories = [
 	},
 	{
 		slug: 'balochistan-jobs',
-		title: 'Government Jobs in Balochistan — Sarkari Nokri',
+		title: 'Government Jobs in Balochistan — Sarkari Mulazmat',
 		h1: 'Government jobs in Balochistan',
 		meta_description:
 			'Find government job postings with Balochistan domicile or posting locations.',

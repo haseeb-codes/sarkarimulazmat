@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
+	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import JobDetailSkeleton from '$lib/components/jobs/job-detail-skeleton.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
-	import { formatAgeRange, isJobExpired } from '$lib/jobs-utils';
+	import {
+		formatAgeRange,
+		formatDateLabel,
+		isClosingSoon,
+		isJobExpired
+	} from '$lib/jobs-utils';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
@@ -16,16 +22,25 @@
 	);
 	const job = $derived(data.job);
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
+	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
+	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
+	const applyByClass = $derived(
+		expired
+			? 'bg-status-closed-bg text-status-closed'
+			: closingSoon
+				? 'bg-status-closing-bg text-status-closing'
+				: 'bg-status-open-bg text-status-open'
+	);
 
 	const title = $derived(
-		`${job.title ?? 'Job'} — ${job.department ?? 'Government'} — Sarkari Nokri`
+		`${job.title ?? 'Job'} — ${job.department ?? 'Government'} — Sarkari Mulazmat`
 	);
 	const description = $derived(
 		[
 			job.title,
 			job.department,
-			job.last_date_to_apply ? `Apply by ${job.last_date_to_apply}` : null,
+			applyByLabel ? `Apply by ${applyByLabel}` : null,
 			job.place_of_posting
 		]
 			.filter(Boolean)
@@ -110,8 +125,9 @@
 			All jobs
 		</a>
 		<div class="flex flex-wrap items-start justify-between gap-3">
-			<h1 class="text-2xl font-semibold tracking-tight md:text-3xl">
-				{job.title ?? 'Untitled posting'}
+			<h1 class="flex items-start gap-2 text-2xl font-semibold tracking-tight md:text-3xl">
+				<span>{job.title ?? 'Untitled posting'}</span>
+				<GenderIcons gender={job.gender} class="mt-1.5 md:mt-2 md:[&_svg]:size-5" />
 			</h1>
 			{#if expired}
 				<span
@@ -138,8 +154,8 @@
 			role="status"
 		>
 			The application deadline
-			{#if job.last_date_to_apply}
-				({job.last_date_to_apply})
+			{#if applyByLabel}
+				({applyByLabel})
 			{/if}
 			has passed. This posting is shown for reference only.
 		</div>
@@ -173,11 +189,13 @@
 				</div>
 			{/if}
 			{#if job.domicile}
-				<div>
+				<div class="sm:col-span-2">
 					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Domicile
 					</dt>
-					<dd class="mt-1 text-sm">{job.domicile}</dd>
+					<dd class="mt-1">
+						<MultiValueBadges value={job.domicile} param="domicile" />
+					</dd>
 				</div>
 			{/if}
 			{#if job.place_of_posting}
@@ -204,12 +222,18 @@
 					<dd class="mt-1 text-sm">{job.employment_type}</dd>
 				</div>
 			{/if}
-			{#if job.last_date_to_apply}
+			{#if applyByLabel}
 				<div>
 					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Last date to apply
 					</dt>
-					<dd class="mt-1 text-sm">{job.last_date_to_apply}</dd>
+					<dd class="mt-1">
+						<span
+							class="inline-flex items-center rounded-md px-2.5 py-1 text-sm font-semibold tracking-wide {applyByClass}"
+						>
+							{applyByLabel}
+						</span>
+					</dd>
 				</div>
 			{/if}
 		</dl>

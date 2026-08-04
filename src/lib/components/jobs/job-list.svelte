@@ -14,6 +14,7 @@
 		grade: string | null;
 		place_of_posting: string | null;
 		domicile: string | null;
+		gender: string | null;
 		min_age: number | null;
 		max_age: number | null;
 		last_date_to_apply: string | null;

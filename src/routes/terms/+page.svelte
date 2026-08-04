@@ -2,8 +2,8 @@
 </script>
 
 <svelte:head>
-	<title>Terms of Service — Sarkari Nokri</title>
-	<meta name="description" content="Terms for using Sarkari Nokri." />
+	<title>Terms of Service — Sarkari Mulazmat</title>
+	<meta name="description" content="Terms for using Sarkari Mulazmat." />
 </svelte:head>
 
 <article class="mx-auto max-w-2xl space-y-4">
@@ -11,7 +11,7 @@
 	<p class="text-muted-foreground">Last updated: August 2026</p>
 
 	<p class="text-sm leading-relaxed">
-		Sarkari Nokri is an informational portal that lists government job postings sourced from public
+		Sarkari Mulazmat is an informational portal that lists government job postings sourced from public
 		advertisements. We do not hire for these roles and are not affiliated with every recruiting
 		body listed.
 	</p>

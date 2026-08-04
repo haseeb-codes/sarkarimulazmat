@@ -5,11 +5,13 @@
 	let {
 		value,
 		sort = 'newest',
-		clickable = true
+		clickable = true,
+		param = 'degree_areas'
 	}: {
 		value: string | null | undefined;
 		sort?: JobSort;
 		clickable?: boolean;
+		param?: 'degree_areas' | 'domicile';
 	} = $props();
 
 	const parts = $derived(
@@ -23,7 +25,7 @@
 			{#if clickable}
 				<Badge
 					variant="outline"
-					href={badgeFilterHref(part, sort)}
+					href={badgeFilterHref(part, sort, param)}
 					aria-label="Filter by {part}"
 					class="underline-offset-2 hover:underline"
 				>

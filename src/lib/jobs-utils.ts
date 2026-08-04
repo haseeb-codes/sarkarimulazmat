@@ -40,9 +40,13 @@ export function formatAgeRange(minAge: number | null, maxAge: number | null): st
 }
 
 /** Link for clicking an eligibility badge — resets other filters, preserves sort. */
-export function badgeFilterHref(value: string, sort?: JobSort): string {
+export function badgeFilterHref(
+	value: string,
+	sort?: JobSort,
+	param: 'degree_areas' | 'domicile' = 'degree_areas'
+): string {
 	const params = new URLSearchParams();
-	params.set('degree_areas', value);
+	params.set(param, value);
 	if (sort && sort !== 'newest') params.set('sort', sort);
 	const qs = params.toString();
 	return qs ? `/?${qs}` : '/';
@@ -102,10 +106,41 @@ export function eligibilityFiltersActive(filters: FilterParams): boolean {
 	);
 }
 
+/** Format YYYY-MM-DD (or Date) as dd-MMM-yyyy, e.g. 04-Aug-2026. */
 export function formatDateLabel(value: string | Date | null | undefined): string | null {
 	if (!value) return null;
+	const months = [
+		'Jan',
+		'Feb',
+		'Mar',
+		'Apr',
+		'May',
+		'Jun',
+		'Jul',
+		'Aug',
+		'Sep',
+		'Oct',
+		'Nov',
+		'Dec'
+	] as const;
+
+	let year: number;
+	let monthIndex: number;
+	let day: number;
+
 	if (value instanceof Date) {
-		return value.toISOString().slice(0, 10);
+		if (Number.isNaN(value.getTime())) return null;
+		year = value.getUTCFullYear();
+		monthIndex = value.getUTCMonth();
+		day = value.getUTCDate();
+	} else {
+		const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+		if (!match) return value;
+		year = Number(match[1]);
+		monthIndex = Number(match[2]) - 1;
+		day = Number(match[3]);
+		if (monthIndex < 0 || monthIndex > 11 || day < 1 || day > 31) return value;
 	}
-	return value;
+
+	return `${String(day).padStart(2, '0')}-${months[monthIndex]}-${year}`;
 }

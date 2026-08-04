@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>{status === 404 ? 'Not found' : 'Error'} — Sarkari Nokri</title>
+	<title>{status === 404 ? 'Not found' : 'Error'} — Sarkari Mulazmat</title>
 	<meta name="robots" content="noindex" />
 </svelte:head>
 

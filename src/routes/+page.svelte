@@ -28,13 +28,13 @@
 
 	const title = $derived(
 		data.filtered
-			? `Filtered Government Jobs — Sarkari Nokri`
-			: `Government Jobs in Pakistan — Sarkari Nokri`
+			? `Filtered Government Jobs — Sarkari Mulazmat`
+			: `Government Jobs in Pakistan — Sarkari Mulazmat`
 	);
 
 	const description = $derived(
 		data.filtered
-			? `Browse ${data.total} government job postings matching your filters on Sarkari Nokri.`
+			? `Browse ${data.total} government job postings matching your filters on Sarkari Mulazmat.`
 			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`
 	);
 
