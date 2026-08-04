@@ -1,13 +1,7 @@
-import adapter from '@sveltejs/adapter-vercel';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import adapter from '@sveltejs/adapter-auto';
 
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
-  preprocess: vitePreprocess(),
+export default {
   kit: {
-    // adapter-vercel outputs directly into .vercel/output for Vercel
     adapter: adapter()
   }
 };
-
-export default config;
