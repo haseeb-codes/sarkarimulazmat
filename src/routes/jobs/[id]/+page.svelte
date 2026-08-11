@@ -8,8 +8,11 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import {
+		badgeFilterHref,
+		filtersToHref,
 		formatAgeRange,
 		formatDateLabel,
+		formatSalary,
 		getJobAdUrl,
 		isClosingSoon,
 		isJobExpired
@@ -27,6 +30,8 @@
 	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
+	const salaryLabel = $derived(formatSalary(job.salary));
+	const hasSalaryHref = $derived(filtersToHref({ has_salary: true }));
 	const applyByClass = $derived(
 		expired
 			? 'bg-status-closed-bg text-status-closed'
@@ -35,6 +40,9 @@
 				: 'bg-status-open-bg text-status-open'
 	);
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	const departmentHref = $derived(
+		job.department ? badgeFilterHref(job.department, undefined, 'department') : null
+	);
 
 	let adOpen = $state(false);
 
@@ -57,9 +65,9 @@
 		'@context': 'https://schema.org',
 		'@type': 'JobPosting',
 		title: job.title,
-		description: job.description ?? job.notes ?? job.title,
-		datePosted: job.ad_date
-			? new Date(job.ad_date).toISOString().slice(0, 10)
+		description: job.notes ?? job.title,
+		datePosted: job.file_creation_date
+			? new Date(job.file_creation_date).toISOString().slice(0, 10)
 			: undefined,
 		validThrough: job.last_date_to_apply
 			? new Date(job.last_date_to_apply).toISOString().slice(0, 10)
@@ -74,8 +82,7 @@
 					address: {
 						'@type': 'PostalAddress',
 						addressLocality: job.place_of_posting,
-						addressCountry: 'PK',
-						addressRegion: job.province ?? undefined
+						addressCountry: 'PK'
 					}
 				}
 			: undefined,
@@ -160,7 +167,22 @@
 				</span>
 			{/if}
 		</div>
-		{#if job.department}
+		{#if job.donor_name}
+			<p class="mt-1.5 text-sm font-semibold tracking-wide text-primary md:text-base">
+				{job.donor_name}
+			</p>
+		{/if}
+		{#if job.department && departmentHref}
+			<p class="mt-2">
+				<a
+					href={departmentHref}
+					class="text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+					aria-label="Filter by department {job.department}"
+				>
+					{job.department}
+				</a>
+			</p>
+		{:else if job.department}
 			<p class="mt-2 text-muted-foreground">{job.department}</p>
 		{/if}
 	</div>
@@ -186,11 +208,13 @@
 		<h2 id="eligibility-heading" class="text-lg font-semibold">Eligibility</h2>
 		<dl class="grid gap-4 sm:grid-cols-2">
 			{#if job.education_level}
-				<div>
+				<div class="sm:col-span-2">
 					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Education
 					</dt>
-					<dd class="mt-1 text-sm">{job.education_level}</dd>
+					<dd class="mt-1">
+						<MultiValueBadges value={job.education_level} param="education_level" />
+					</dd>
 				</div>
 			{/if}
 			{#if job.grade}
@@ -230,6 +254,23 @@
 							param="place_of_posting"
 							class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
 						/>
+					</dd>
+				</div>
+			{/if}
+			{#if salaryLabel}
+				<div>
+					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+						Salary
+					</dt>
+					<dd class="mt-1">
+						<Badge
+							variant="outline"
+							href={hasSalaryHref}
+							aria-label="Show jobs with salary listed"
+							class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
+						>
+							Rs. {salaryLabel}
+						</Badge>
 					</dd>
 				</div>
 			{/if}
@@ -324,18 +365,13 @@
 		{/if}
 	</section>
 
-	{#if job.description || job.notes}
+	{#if job.notes}
 		<Separator />
 		<section class="space-y-3" aria-labelledby="details-heading">
 			<h2 id="details-heading" class="text-lg font-semibold">Details</h2>
-			{#if job.description}
-				<p class="whitespace-pre-wrap text-sm leading-relaxed">{job.description}</p>
-			{/if}
-			{#if job.notes}
-				<p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-					{job.notes}
-				</p>
-			{/if}
+			<p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+				{job.notes}
+			</p>
 		</section>
 	{/if}
 </article>

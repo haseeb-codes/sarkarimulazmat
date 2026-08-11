@@ -18,6 +18,9 @@
 		place_of_posting: string | null;
 		domicile: string | null;
 		gender: string | null;
+		collar: string | null;
+		donor_name: string | null;
+		salary: number | null;
 		min_age: number | null;
 		max_age: number | null;
 		last_date_to_apply: string | Date | null;
@@ -31,6 +34,9 @@
 		age: number | null;
 		place_of_posting: string | null;
 		domicile: string | null;
+		department?: string | null;
+		collar?: string | null;
+		has_salary?: boolean;
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;
@@ -61,6 +67,11 @@
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
+	/** row_ids just appended via infinite scroll — highlighted briefly */
+	let freshIds = $state<Set<number>>(new Set());
+	let freshClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const HIGHLIGHT_MS = 2800;
 
 	const hasMore = $derived(loadedPage < totalPages && items.length < total);
 
@@ -73,6 +84,9 @@
 			filters.age ?? '',
 			filters.place_of_posting ?? '',
 			filters.domicile ?? '',
+			filters.department ?? '',
+			filters.collar ?? '',
+			filters.has_salary ? '1' : '0',
 			filters.q ?? '',
 			filters.show_expired ? '1' : '0',
 			filters.sort,
@@ -81,12 +95,37 @@
 		].join('|')
 	);
 
+	function clearFreshHighlight() {
+		if (freshClearTimer) {
+			clearTimeout(freshClearTimer);
+			freshClearTimer = null;
+		}
+		freshIds = new Set();
+	}
+
+	function markFresh(ids: number[]) {
+		if (!ids.length) return;
+		if (freshClearTimer) clearTimeout(freshClearTimer);
+		freshIds = new Set(ids);
+		freshClearTimer = setTimeout(() => {
+			freshIds = new Set();
+			freshClearTimer = null;
+		}, HIGHLIGHT_MS);
+	}
+
+	$effect(() => {
+		return () => {
+			if (freshClearTimer) clearTimeout(freshClearTimer);
+		};
+	});
+
 	/** Reset accumulated list when filters / totals change (not when appending pages). */
 	$effect(() => {
 		void resultKey;
 		items = untrack(() => jobs);
 		loadedPage = untrack(() => filters.page);
 		loadMoreError = null;
+		clearFreshHighlight();
 	});
 
 	async function loadMore() {
@@ -117,6 +156,7 @@
 			const appended = data.jobs.filter((j) => !seen.has(j.row_id));
 			items = [...items, ...appended];
 			loadedPage = data.page;
+			markFresh(appended.map((j) => j.row_id));
 		} catch (err) {
 			console.error('Failed to load more jobs', err);
 			loadMoreError = 'Could not load more jobs. Tap to retry.';
@@ -187,7 +227,7 @@
 			<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
 				{#each items as job (job.row_id)}
 					<li class="mb-3 break-inside-avoid">
-						<JobCard {job} sort={filters.sort} />
+						<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.row_id)} />
 					</li>
 				{/each}
 			</ul>

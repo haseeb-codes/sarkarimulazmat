@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
+	import BrowseByCategoryAsync from '$lib/components/jobs/browse-by-category-async.svelte';
 	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 	import SavedSearchesAsync from '$lib/components/jobs/saved-searches-async.svelte';
@@ -20,6 +21,9 @@
 			(data.filters.age ? 1 : 0) +
 			(data.filters.place_of_posting ? 1 : 0) +
 			(data.filters.domicile ? 1 : 0) +
+			(data.filters.department ? 1 : 0) +
+			(data.filters.collar ? 1 : 0) +
+			(data.filters.has_salary ? 1 : 0) +
 			(data.filters.q ? 1 : 0) +
 			(data.filters.show_expired ? 1 : 0)
 	);
@@ -85,6 +89,8 @@
 		</FiltersDrawer>
 	</div>
 
+	<BrowseByCategoryAsync browse={data.browse} />
+
 	<JobList
 		jobs={data.jobs}
 		total={data.total}
@@ -94,31 +100,4 @@
 		error={data.error}
 		loading={isNavigating}
 	/>
-
-	<section class="space-y-3">
-		<h2 class="text-base font-semibold">Browse by category</h2>
-		<ul class="flex flex-wrap gap-2">
-			{#each [
-				['medical-jobs', 'Medical'],
-				['engineering-jobs', 'Engineering'],
-				['mba', 'MBA / Business'],
-				['law-jobs', 'Law'],
-				['teaching-jobs', 'Teaching'],
-				['bs-cs', 'CS / IT'],
-				['graduate-jobs', 'Graduate'],
-				['intermediate-jobs', 'Intermediate'],
-				['matric-jobs', 'Matric'],
-				['balochistan-jobs', 'Balochistan']
-			] as [slug, label]}
-				<li>
-					<a
-						href="/{slug}"
-						class="inline-flex h-9 items-center rounded-md border border-border bg-card px-3 text-sm hover:bg-muted"
-					>
-						{label}
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</section>
 </div>

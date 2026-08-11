@@ -19,8 +19,13 @@ export type JobFilters = FilterParams & {
 	place_of_posting: string | null;
 	domicile: string | null;
 	department: string | null;
-	province: string | null;
+	/** White / Blue / Grey collar */
+	collar: string | null;
+	/** Provincial posting flag (DB column is boolean). */
+	province: boolean | null;
 	q: string | null;
+	/** Only include postings that have a salary value */
+	has_salary: boolean;
 	show_expired: boolean;
 	sort: JobSort;
 	page: number;
@@ -36,10 +41,27 @@ export type FilterOptions = {
 	domiciles: string[];
 };
 
+export type BrowseCategoryLink = {
+	slug: string;
+	label: string;
+	count: number;
+};
+
+export type BrowseEducationLink = {
+	label: string;
+	count: number;
+};
+
+export type BrowseByCategoryData = {
+	categories: BrowseCategoryLink[];
+	educationLevels: BrowseEducationLink[];
+};
+
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_CAP = 50;
+const BROWSE_COUNTS_TTL_MS = 5 * 60 * 1000;
 const SIMILARITY_THRESHOLD = 0.25;
 const SIMILARITY_LIMIT = 800;
 
@@ -49,21 +71,18 @@ const SEARCHABLE_TEXT_FIELDS = [
 	'department',
 	'project_program_name',
 	'employment_type',
+	'collar',
 	'degrees',
 	'degree_area',
 	'education_level',
 	'certifications',
 	'place_of_posting',
 	'domicile',
-	'experience',
-	'preferred_experience',
 	'gender',
 	'application_postal_address',
 	'application_online_address',
 	'email',
-	'phone',
 	'notes',
-	'province',
 	'ad_code',
 	'url',
 	'grade',
@@ -76,6 +95,7 @@ const SEARCHABLE_TEXT_FIELDS = [
 ] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
+let browseCountsCache: { data: BrowseByCategoryData; expiresAt: number } | null = null;
 let pgTrgmReady: boolean | null = null;
 
 function parsePositiveInt(value: string | null, fallback: number, max?: number): number {
@@ -91,6 +111,14 @@ function parseOptionalPositiveInt(value: string | null): number | null {
 	const n = Number.parseInt(value, 10);
 	if (!Number.isFinite(n) || n < 1) return null;
 	return n;
+}
+
+function parseOptionalBoolean(value: string | null): boolean | null {
+	if (!value) return null;
+	const key = value.trim().toLowerCase();
+	if (key === '1' || key === 'true' || key === 'yes') return true;
+	if (key === '0' || key === 'false' || key === 'no') return false;
+	return null;
 }
 
 function firstParam(url: URL, key: string): string | null {
@@ -121,8 +149,10 @@ export function parseJobFilters(url: URL): JobFilters {
 		place_of_posting: firstParam(url, 'place_of_posting'),
 		domicile: firstParam(url, 'domicile'),
 		department: firstParam(url, 'department'),
-		province: firstParam(url, 'province'),
+		collar: firstParam(url, 'collar'),
+		province: parseOptionalBoolean(firstParam(url, 'province')),
 		q: firstParam(url, 'q'),
+		has_salary: url.searchParams.get('has_salary') === '1',
 		show_expired: url.searchParams.get('show_expired') === '1',
 		sort,
 		page: parsePositiveInt(firstParam(url, 'page'), 1),
@@ -140,8 +170,10 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.place_of_posting ||
 			filters.domicile ||
 			filters.department ||
-			filters.province ||
+			filters.collar ||
+			filters.province != null ||
 			filters.q ||
+			filters.has_salary ||
 			filters.show_expired
 	);
 }
@@ -174,13 +206,13 @@ function buildKeywordWhere(
 		or.push(...containsAnyField(tokens[0]));
 	}
 
-	// Numeric queries also match age / grade / vacancy fields
+	// Numeric queries also match age / experience / vacancy fields
 	const asInt = Number.parseInt(phrase, 10);
 	if (Number.isFinite(asInt) && String(asInt) === phrase) {
 		or.push(
 			{ max_age: asInt },
 			{ min_age: asInt },
-			{ equivalent_grade: asInt },
+			{ experience: asInt },
 			{ vacancies: asInt },
 			{ salary: asInt },
 			{ qualification_level: asInt }
@@ -229,7 +261,7 @@ async function findSimilarJobIds(q: string): Promise<number[]> {
 				OR similarity(coalesce(notes, ''), $1) > $2
 				OR similarity(coalesce(posted_by, ''), $1) > $2
 				OR similarity(coalesce(project_program_name, ''), $1) > $2
-				OR similarity(coalesce(province, ''), $1) > $2
+				OR similarity(coalesce(collar, ''), $1) > $2
 				OR word_similarity($1, coalesce(title, '')) > $2
 				OR word_similarity($1, coalesce(department, '')) > $2
 				OR word_similarity($1, coalesce(degree_area, '')) > $2
@@ -313,15 +345,23 @@ export function buildJobWhere(
 	}
 
 	if (filters.department) {
-		and.push({ department: { contains: filters.department, mode: 'insensitive' } });
+		and.push({ department: { equals: filters.department, mode: 'insensitive' } });
 	}
 
-	if (filters.province) {
-		and.push({ province: { contains: filters.province, mode: 'insensitive' } });
+	if (filters.collar) {
+		and.push({ collar: { equals: filters.collar, mode: 'insensitive' } });
+	}
+
+	if (filters.province != null) {
+		and.push({ province: filters.province });
 	}
 
 	if (filters.q) {
 		and.push(buildKeywordWhere(filters.q, similarRowIds));
+	}
+
+	if (filters.has_salary) {
+		and.push({ salary: { not: null } });
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -340,8 +380,8 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 	if (sort === 'closing_soon') {
 		return [{ last_date_to_apply: { sort: 'asc', nulls: 'last' } }, { row_id: 'desc' }];
 	}
-	// ad_date is often null in current data — fall back to row_id
-	return [{ ad_date: { sort: 'desc', nulls: 'last' } }, { row_id: 'desc' }];
+	// Prefer file_creation_date when present; fall back to row_id
+	return [{ file_creation_date: { sort: 'desc', nulls: 'last' } }, { row_id: 'desc' }];
 }
 
 export async function listJobs(filters: JobFilters) {
@@ -428,13 +468,119 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 	const data: FilterOptions = {
 		degree_areas: frequencyRank(rows.map((r) => r.degree_area ?? '')),
 		degrees: frequencyRank(rows.map((r) => r.degrees ?? '')),
-		education_levels: distinctStrings(rows.map((r) => r.education_level)),
+		education_levels: frequencyRank(rows.map((r) => r.education_level ?? '')),
 		grades: distinctStrings(rows.map((r) => r.grade)),
 		places: frequencyRank(rows.map((r) => r.place_of_posting ?? '')),
 		domiciles: distinctStrings(rows.map((r) => r.domicile))
 	};
 
 	filterOptionsCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
+	return data;
+}
+
+/** Baseline filters for browse counts — active, non-expired postings only. */
+function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
+	return {
+		degree_areas: [],
+		education_level: null,
+		qualification_level: null,
+		grade: null,
+		age: null,
+		place_of_posting: null,
+		domicile: null,
+		department: null,
+		collar: null,
+		province: null,
+		q: null,
+		has_salary: false,
+		show_expired: false,
+		sort: 'newest',
+		page: 1,
+		pageSize: DEFAULT_PAGE_SIZE,
+		...partial
+	};
+}
+
+async function countJobsMatching(partial: Partial<JobFilters>): Promise<number> {
+	return db.jobPostings.count({ where: buildJobWhere(browseBaseFilters(partial)) });
+}
+
+/** Short chip labels for known category slugs; otherwise trim the h1. */
+function categoryChipLabel(slug: string, h1: string): string {
+	const known: Record<string, string> = {
+		'medical-jobs': 'Medical',
+		'engineering-jobs': 'Engineering',
+		mba: 'MBA / Business',
+		'law-jobs': 'Law',
+		'teaching-jobs': 'Teaching',
+		'bs-cs': 'CS / IT',
+		'graduate-jobs': 'Graduate',
+		'intermediate-jobs': 'Intermediate',
+		'matric-jobs': 'Matric',
+		'balochistan-jobs': 'Balochistan'
+	};
+	if (known[slug]) return known[slug];
+	return (
+		h1
+			.replace(/\s+government jobs.*$/i, '')
+			.replace(/\s+jobs.*$/i, '')
+			.trim() || slug
+	);
+}
+
+/**
+ * Topic + education chips for the home “Browse by category” section,
+ * each with an active (non-expired) job count. Cached briefly.
+ */
+export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
+	const now = Date.now();
+	if (browseCountsCache && browseCountsCache.expiresAt > now) {
+		return browseCountsCache.data;
+	}
+
+	const [options, categoryRows] = await Promise.all([
+		getFilterOptions(),
+		db.categoryPage
+			.findMany({
+				where: { is_indexed: true },
+				select: { slug: true, h1: true, filters: true },
+				orderBy: { title: 'asc' }
+			})
+			.catch(() => [] as { slug: string; h1: string; filters: unknown }[])
+	]);
+
+	const [categories, educationLevels] = await Promise.all([
+		Promise.all(
+			categoryRows.map(async (row) => {
+				const preset = (row.filters ?? {}) as Partial<JobFilters>;
+				const count = await countJobsMatching({
+					degree_areas: preset.degree_areas?.length ? preset.degree_areas : [],
+					education_level: preset.education_level ?? null,
+					qualification_level: preset.qualification_level ?? null,
+					grade: preset.grade ?? null,
+					domicile: preset.domicile ?? null,
+					place_of_posting: preset.place_of_posting ?? null,
+					department: preset.department ?? null,
+					collar: preset.collar ?? null,
+					province: preset.province ?? null
+				});
+				return {
+					slug: row.slug,
+					label: categoryChipLabel(row.slug, row.h1),
+					count
+				};
+			})
+		),
+		Promise.all(
+			options.education_levels.map(async (level) => ({
+				label: level,
+				count: await countJobsMatching({ education_level: level })
+			}))
+		)
+	]);
+
+	const data: BrowseByCategoryData = { categories, educationLevels };
+	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
 	return data;
 }
 

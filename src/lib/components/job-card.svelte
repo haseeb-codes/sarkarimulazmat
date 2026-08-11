@@ -6,8 +6,11 @@
 	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
 	import {
+		badgeFilterHref,
+		filtersToHref,
 		formatAgeRange,
 		formatDateLabel,
+		formatSalary,
 		getJobAdUrl,
 		isClosingSoon,
 		isJobExpired,
@@ -27,6 +30,9 @@
 		place_of_posting: string | null;
 		domicile: string | null;
 		gender: string | null;
+		collar?: string | null;
+		donor_name?: string | null;
+		salary?: number | null;
 		min_age: number | null;
 		max_age: number | null;
 		last_date_to_apply: string | Date | null;
@@ -35,16 +41,20 @@
 
 	let {
 		job,
-		sort = 'newest'
+		sort = 'newest',
+		fresh = false
 	}: {
 		job: JobCardJob;
 		sort?: JobSort;
+		/** Briefly highlight cards appended by infinite scroll */
+		fresh?: boolean;
 	} = $props();
 
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
 	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
+	const salaryLabel = $derived(formatSalary(job.salary));
 	const applyByClass = $derived(
 		expired
 			? 'bg-status-closed-bg text-status-closed'
@@ -53,20 +63,33 @@
 				: 'bg-status-open-bg text-status-open'
 	);
 	const href = $derived(`/jobs/${job.row_id}`);
+	const departmentHref = $derived(
+		job.department ? badgeFilterHref(job.department, sort, 'department') : null
+	);
+	const hasSalaryHref = $derived(filtersToHref({ has_salary: true, sort }));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
+	const whiteCollar = $derived(job.collar?.trim().toLowerCase() === 'white');
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	const cardAccentClass = $derived(
+		fresh
+			? 'job-card-fresh ring-2 ring-primary/70'
+			: womenOrTransOnly
+				? 'ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400'
+				: whiteCollar
+					? 'ring-2 ring-primary/55 hover:ring-primary/75 dark:ring-primary/50 dark:hover:ring-primary/70'
+					: 'hover:border-primary/40'
+	);
 
 	let adOpen = $state(false);
 </script>
 
 <Card.Root
 	size="sm"
-	class="h-full transition-colors {womenOrTransOnly
-		? 'ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400'
-		: 'hover:border-primary/40'} {expired ? 'opacity-70' : ''}"
+	class="h-full transition-colors {cardAccentClass} {expired ? 'opacity-70' : ''}"
+	data-fresh={fresh ? 'true' : undefined}
 >
-	<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
-		<Card.Header class="gap-1.5 pb-2">
+	<Card.Header class="gap-1.5 pb-2">
+		<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
 					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
@@ -93,11 +116,22 @@
 					{/if}
 				</div>
 			</div>
-			{#if job.department}
-				<Card.Description class="line-clamp-2 text-xs md:text-sm">{job.department}</Card.Description>
+			{#if job.donor_name}
+				<p class="mt-1.5 text-xs font-semibold tracking-wide text-primary md:text-sm">
+					{job.donor_name}
+				</p>
 			{/if}
-		</Card.Header>
-	</a>
+		</a>
+		{#if job.department && departmentHref}
+			<a
+				href={departmentHref}
+				class="line-clamp-2 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline md:text-sm"
+				aria-label="Filter by department {job.department}"
+			>
+				{job.department}
+			</a>
+		{/if}
+	</Card.Header>
 
 	{#if adUrl}
 		<JobAdModal
@@ -110,10 +144,10 @@
 	<Card.Content class="space-y-2.5 pt-0">
 		<div class="space-y-2">
 			{#if job.education_level}
-				<p class="text-xs md:text-sm">
-					<span class="text-muted-foreground">Education:</span>
-					{job.education_level}
-				</p>
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">Education</p>
+					<MultiValueBadges value={job.education_level} {sort} param="education_level" />
+				</div>
 			{/if}
 			{#if job.degree_area || job.degrees}
 				<div class="space-y-1">
@@ -142,22 +176,44 @@
 				</div>
 			{/if}
 		</div>
-		<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground md:text-sm">
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs md:text-sm">
+			{#if salaryLabel}
+				<span class="inline-flex items-center gap-1.5">
+					<span class="font-medium text-muted-foreground">Salary</span>
+					<Badge
+						variant="outline"
+						href={hasSalaryHref}
+						aria-label="Show jobs with salary listed"
+						class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
+					>
+						Rs. {salaryLabel}
+					</Badge>
+				</span>
+			{/if}
 			{#if job.max_age != null}
-				<Badge
-					variant="outline"
-					class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
-				>
-					Max Age: {job.max_age}y
-				</Badge>
+				<span class="inline-flex items-center gap-1.5">
+					<span class="font-medium text-muted-foreground">Max Age</span>
+					<Badge
+						variant="outline"
+						class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+					>
+						{job.max_age}y
+					</Badge>
+				</span>
 			{:else if ageLabel}
-				<span>Age: {ageLabel}</span>
+				<span class="inline-flex items-center gap-1.5">
+					<span class="font-medium text-muted-foreground">Age</span>
+					<span class="text-foreground">{ageLabel}</span>
+				</span>
 			{/if}
 			{#if applyByLabel}
-				<span
-					class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
-				>
-					Deadline: {applyByLabel}
+				<span class="inline-flex items-center gap-1.5">
+					<span class="font-medium text-muted-foreground">Deadline</span>
+					<span
+						class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
+					>
+						{applyByLabel}
+					</span>
 				</span>
 			{/if}
 		</div>

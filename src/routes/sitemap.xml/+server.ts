@@ -16,7 +16,7 @@ export const GET: RequestHandler = async ({ url }) => {
 					}
 				]
 			},
-			select: { row_id: true, ad_date: true },
+			select: { row_id: true, file_creation_date: true },
 			orderBy: { row_id: 'desc' },
 			take: 5000
 		}),
@@ -37,7 +37,9 @@ export const GET: RequestHandler = async ({ url }) => {
 		})),
 		...activeJobs.map((j) => ({
 			loc: `${base}/jobs/${j.row_id}`,
-			lastmod: j.ad_date ? new Date(j.ad_date).toISOString().slice(0, 10) : undefined,
+			lastmod: j.file_creation_date
+				? new Date(j.file_creation_date).toISOString().slice(0, 10)
+				: undefined,
 			priority: '0.8'
 		}))
 	];

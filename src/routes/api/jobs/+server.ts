@@ -15,6 +15,9 @@ function toListJob(job: Awaited<ReturnType<typeof listJobs>>['jobs'][number]) {
 		place_of_posting: job.place_of_posting,
 		domicile: job.domicile,
 		gender: job.gender,
+		collar: job.collar,
+		donor_name: job.donor_name,
+		salary: job.salary,
 		min_age: job.min_age,
 		max_age: job.max_age,
 		last_date_to_apply: job.last_date_to_apply

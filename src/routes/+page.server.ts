@@ -3,9 +3,11 @@ import type { Actions, PageServerLoad } from './$types';
 import {
 	filtersAreActive,
 	eligibilityFiltersActive,
+	getBrowseByCategoryData,
 	getFilterOptions,
 	listJobs,
 	parseJobFilters,
+	type BrowseByCategoryData,
 	type JobFilters
 } from '$lib/server/jobs';
 import { logSearch } from '$lib/server/search-log';
@@ -23,7 +25,10 @@ function filtersSnapshot(filters: JobFilters) {
 		age: filters.age,
 		place_of_posting: filters.place_of_posting,
 		domicile: filters.domicile,
+		department: filters.department,
+		collar: filters.collar,
 		q: filters.q,
+		has_salary: filters.has_salary,
 		show_expired: filters.show_expired,
 		sort: filters.sort,
 		page: filters.page,
@@ -31,11 +36,18 @@ function filtersSnapshot(filters: JobFilters) {
 	};
 }
 
+const emptyBrowse: BrowseByCategoryData = {
+	categories: [],
+	educationLevels: []
+};
+
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const filters = parseJobFilters(url);
 	const snapshot = filtersSnapshot(filters);
 
+	// Stream non-critical sections — do not block the job list on these.
 	const options = getFilterOptions();
+	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
 	const savedSearches = locals.visitorId
 		? listSavedSearches(locals.visitorId).catch(() => [])
 		: Promise.resolve([]);
@@ -53,6 +65,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			total: result.total,
 			totalPages: result.totalPages,
 			options,
+			browse,
 			filtered: filtersAreActive(filters),
 			canSave: eligibilityFiltersActive(filters),
 			savedSearches,
@@ -66,6 +79,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			total: 0,
 			totalPages: 1,
 			options,
+			browse,
 			filtered: filtersAreActive(filters),
 			canSave: eligibilityFiltersActive(filters),
 			savedSearches,

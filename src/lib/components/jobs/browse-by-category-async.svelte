@@ -1,0 +1,42 @@
+<script lang="ts">
+	import BrowseByCategory from '$lib/components/jobs/browse-by-category.svelte';
+	import BrowseByCategorySkeleton from '$lib/components/jobs/browse-by-category-skeleton.svelte';
+
+	type BrowseByCategoryData = {
+		categories: { slug: string; label: string; count: number }[];
+		educationLevels: { label: string; count: number }[];
+	};
+
+	let {
+		browse
+	}: {
+		browse: Promise<BrowseByCategoryData>;
+	} = $props();
+</script>
+
+{#snippet pending()}
+	<BrowseByCategorySkeleton />
+{/snippet}
+
+{#snippet failed(error: unknown)}
+	<div
+		class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+		role="alert"
+	>
+		Could not load categories.
+		<span class="sr-only">{String(error)}</span>
+	</div>
+{/snippet}
+
+<svelte:boundary {pending} {failed}>
+	{#await browse}
+		<BrowseByCategorySkeleton />
+	{:then data}
+		<BrowseByCategory
+			categories={data.categories}
+			educationLevels={data.educationLevels}
+		/>
+	{:catch error}
+		{@render failed(error)}
+	{/await}
+</svelte:boundary>

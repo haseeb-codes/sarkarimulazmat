@@ -14,6 +14,9 @@
 	const activeFilterCount = $derived(
 		(data.filters.place_of_posting ? 1 : 0) +
 			(data.filters.domicile ? 1 : 0) +
+			(data.filters.department ? 1 : 0) +
+			(data.filters.collar ? 1 : 0) +
+			(data.filters.has_salary ? 1 : 0) +
 			(data.filters.q ? 1 : 0) +
 			(data.filters.age ? 1 : 0) +
 			(data.filters.show_expired ? 1 : 0) +
@@ -66,6 +69,7 @@
 			options={data.options}
 			resultCount={isNavigating ? 0 : data.total}
 			{activeFilterCount}
+			clearHref="/{data.category.slug}"
 		/>
 	</div>
 

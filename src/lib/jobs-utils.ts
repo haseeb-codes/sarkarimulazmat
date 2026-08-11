@@ -73,11 +73,22 @@ export function formatAgeRange(minAge: number | null, maxAge: number | null): st
 	return `Up to ${maxAge} yrs`;
 }
 
+/** Format salary integer with thousand separators, e.g. 50000 → "50,000". */
+export function formatSalary(value: number | null | undefined): string | null {
+	if (value == null || !Number.isFinite(value)) return null;
+	return Math.round(value).toLocaleString('en-PK');
+}
+
 /** Link for clicking an eligibility badge — resets other filters, preserves sort. */
 export function badgeFilterHref(
 	value: string,
 	sort?: JobSort,
-	param: 'degree_areas' | 'domicile' | 'place_of_posting' = 'degree_areas'
+	param:
+		| 'degree_areas'
+		| 'domicile'
+		| 'place_of_posting'
+		| 'education_level'
+		| 'department' = 'degree_areas'
 ): string {
 	const params = new URLSearchParams();
 	params.set(param, value);
@@ -95,8 +106,11 @@ export type FilterParams = {
 	place_of_posting?: string | null;
 	domicile?: string | null;
 	department?: string | null;
-	province?: string | null;
+	collar?: string | null;
+	province?: boolean | null;
 	q?: string | null;
+	/** Only jobs with a non-null salary */
+	has_salary?: boolean;
 	show_expired?: boolean;
 	sort?: JobSort;
 	page?: number;
@@ -117,8 +131,10 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.place_of_posting) params.set('place_of_posting', filters.place_of_posting);
 	if (filters.domicile) params.set('domicile', filters.domicile);
 	if (filters.department) params.set('department', filters.department);
-	if (filters.province) params.set('province', filters.province);
+	if (filters.collar) params.set('collar', filters.collar);
+	if (filters.province != null) params.set('province', filters.province ? '1' : '0');
 	if (filters.q) params.set('q', filters.q);
+	if (filters.has_salary) params.set('has_salary', '1');
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));

@@ -9,7 +9,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const total = await prisma.jobPostings.count();
 const sample = await prisma.jobPostings.findMany({
 	take: 10,
-	orderBy: { ad_date: 'desc' },
+	orderBy: { file_creation_date: 'desc' },
 	select: {
 		row_id: true,
 		title: true,
@@ -24,7 +24,7 @@ const sample = await prisma.jobPostings.findMany({
 		domicile: true,
 		active: true,
 		last_date_to_apply: true,
-		ad_date: true,
+		file_creation_date: true,
 		department: true
 	}
 });

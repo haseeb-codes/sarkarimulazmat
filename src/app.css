@@ -159,3 +159,31 @@
 		@apply text-lg font-semibold tracking-tight;
 	}
 }
+
+/* Temporary highlight when infinite-scroll appends new job cards */
+@keyframes job-card-fresh {
+	0%,
+	55% {
+		box-shadow:
+			0 0 0 2px color-mix(in oklch, var(--primary) 75%, transparent),
+			0 0 0 5px color-mix(in oklch, var(--primary) 18%, transparent);
+	}
+	100% {
+		box-shadow:
+			0 0 0 0 transparent,
+			0 0 0 0 transparent;
+	}
+}
+
+.job-card-fresh {
+	animation: job-card-fresh 2.8s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.job-card-fresh {
+		animation: none;
+		box-shadow:
+			0 0 0 2px color-mix(in oklch, var(--primary) 75%, transparent),
+			0 0 0 5px color-mix(in oklch, var(--primary) 18%, transparent);
+	}
+}

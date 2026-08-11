@@ -30,7 +30,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		show_expired: urlFilters.show_expired,
 		age: urlFilters.age,
 		department: urlFilters.department,
-		province: urlFilters.province
+		collar: urlFilters.collar,
+		province: urlFilters.province,
+		has_salary: urlFilters.has_salary
 	};
 
 	const options = getFilterOptions();
@@ -51,7 +53,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			age: filters.age,
 			place_of_posting: filters.place_of_posting,
 			domicile: filters.domicile,
+			department: filters.department,
+			collar: filters.collar,
 			q: filters.q,
+			has_salary: filters.has_salary,
 			show_expired: filters.show_expired,
 			sort: filters.sort,
 			page: filters.page,
@@ -64,6 +69,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		filtered: Boolean(
 			urlFilters.place_of_posting ||
 				urlFilters.domicile ||
+				urlFilters.department ||
+				urlFilters.collar ||
+				urlFilters.has_salary ||
 				urlFilters.q ||
 				urlFilters.age ||
 				urlFilters.show_expired

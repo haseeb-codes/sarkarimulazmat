@@ -20,6 +20,7 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 	if (filters.age) parts.push(`age ${filters.age}`);
 	if (filters.place_of_posting) parts.push(filters.place_of_posting);
 	if (filters.domicile) parts.push(filters.domicile);
+	if (filters.has_salary) parts.push('with salary');
 	if (filters.q) parts.push(`"${filters.q}"`);
 	return parts.length ? parts.join(' · ') : 'Saved search';
 }
@@ -34,7 +35,9 @@ function filtersToStored(filters: JobFilters): Prisma.InputJsonValue {
 		place_of_posting: filters.place_of_posting,
 		domicile: filters.domicile,
 		department: filters.department,
+		collar: filters.collar,
 		province: filters.province,
+		has_salary: filters.has_salary,
 		q: filters.q,
 		show_expired: filters.show_expired,
 		sort: filters.sort
@@ -59,7 +62,9 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 			place_of_posting: filters.place_of_posting,
 			domicile: filters.domicile,
 			department: filters.department,
+			collar: filters.collar,
 			province: filters.province,
+			has_salary: filters.has_salary,
 			q: filters.q,
 			show_expired: filters.show_expired,
 			sort: filters.sort

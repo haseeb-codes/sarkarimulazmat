@@ -22,6 +22,9 @@
 		age: number | null;
 		place_of_posting: string | null;
 		domicile: string | null;
+		department?: string | null;
+		collar?: string | null;
+		has_salary?: boolean;
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;
@@ -57,6 +60,9 @@
 			place_of_posting:
 				next.place_of_posting !== undefined ? next.place_of_posting : filters.place_of_posting,
 			domicile: next.domicile !== undefined ? next.domicile : filters.domicile,
+			department: next.department !== undefined ? next.department : filters.department,
+			collar: next.collar !== undefined ? next.collar : filters.collar,
+			has_salary: next.has_salary !== undefined ? next.has_salary : filters.has_salary,
 			q: next.q !== undefined ? next.q : filters.q,
 			show_expired:
 				next.show_expired !== undefined ? next.show_expired : filters.show_expired,

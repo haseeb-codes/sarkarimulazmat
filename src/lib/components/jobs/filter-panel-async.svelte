@@ -19,6 +19,9 @@
 		age: number | null;
 		place_of_posting: string | null;
 		domicile: string | null;
+		department?: string | null;
+		collar?: string | null;
+		has_salary?: boolean;
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;

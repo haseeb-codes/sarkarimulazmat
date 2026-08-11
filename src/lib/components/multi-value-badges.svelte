@@ -12,7 +12,7 @@
 		value: string | null | undefined;
 		sort?: JobSort;
 		clickable?: boolean;
-		param?: 'degree_areas' | 'domicile' | 'place_of_posting';
+		param?: 'degree_areas' | 'domicile' | 'place_of_posting' | 'education_level';
 		class?: string;
 	} = $props();
 
