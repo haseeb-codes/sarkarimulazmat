@@ -16,33 +16,38 @@
 </svelte:head>
 
 <div class="flex min-h-svh flex-col">
-	<header class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-		<div class="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-			<a
-				href="/"
-				class="flex items-center gap-2 text-lg font-semibold tracking-tight text-primary"
-			>
-				<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
-				<span>Sarkari Mulazmat</span>
-			</a>
-			<nav class="flex items-center gap-1" aria-label="Site">
-				<ThemeToggle />
-			</nav>
-		</div>
-	</header>
+	<!-- One shared width shell so header / main / footer edges always match. -->
+	<div class="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4">
+		<header
+			class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80"
+		>
+			<div class="flex h-14 w-full items-center justify-between gap-4">
+				<a
+					href="/"
+					class="flex items-center gap-2 text-lg font-semibold tracking-tight text-primary"
+				>
+					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
+					<span>Sarkari Mulazmat</span>
+				</a>
+				<nav class="flex items-center gap-1" aria-label="Site">
+					<ThemeToggle />
+				</nav>
+			</div>
+		</header>
 
-	<main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:py-8">
-		{@render children()}
-	</main>
+		<main class="w-full flex-1 py-6 md:py-8">
+			{@render children()}
+		</main>
 
-	<footer class="border-t border-border py-6">
-		<div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-			<p>Government jobs in Pakistan — filter by your background.</p>
-			<p>
-				<a href="/privacy" class="hover:text-foreground hover:underline">Privacy</a>
-				<span class="mx-2">·</span>
-				<a href="/terms" class="hover:text-foreground hover:underline">Terms</a>
-			</p>
-		</div>
-	</footer>
+		<footer class="border-t border-border py-6 text-sm text-muted-foreground">
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+				<p>Government jobs in Pakistan — filter by your background.</p>
+				<p>
+					<a href="/privacy" class="hover:text-foreground hover:underline">Privacy</a>
+					<span class="mx-2">·</span>
+					<a href="/terms" class="hover:text-foreground hover:underline">Terms</a>
+				</p>
+			</div>
+		</footer>
+	</div>
 </div>

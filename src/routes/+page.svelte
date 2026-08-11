@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
-	import FilterPanelAsync from '$lib/components/jobs/filter-panel-async.svelte';
+	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 	import SavedSearchesAsync from '$lib/components/jobs/saved-searches-async.svelte';
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import FilterIcon from '@lucide/svelte/icons/sliders-horizontal';
 
 	let { data, form } = $props();
 
@@ -40,13 +38,13 @@
 
 	const canonical = $derived(new URL('/', page.url.origin).href);
 
-	function pageHref(pageNum: number) {
-		const params = new URLSearchParams(page.url.searchParams);
-		if (pageNum > 1) params.set('page', String(pageNum));
-		else params.delete('page');
-		const qs = params.toString();
-		return qs ? `/?${qs}` : '/';
-	}
+	// Keep the drawer open while tweaking filters (URL updates), but close after leaving listing routes.
+	$effect(() => {
+		const to = navigating.to;
+		if (to && to.route.id !== '/' && to.route.id !== '/[slug]') {
+			filtersOpen = false;
+		}
+	});
 </script>
 
 <svelte:head>
@@ -64,74 +62,38 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="space-y-2">
-		<h1>Government jobs in Pakistan</h1>
-		<p class="max-w-2xl text-muted-foreground">
-			Filter postings by your degree area, education, grade, and age to see what you're
-			eligible for.
-		</p>
-	</div>
-
-	<!-- Mobile filter trigger -->
-	<div class="lg:hidden">
-		<Dialog.Root bind:open={filtersOpen}>
-			<Dialog.Trigger
-				class="inline-flex h-9 w-full items-center justify-between rounded-md border border-border bg-background px-3 text-sm shadow-xs hover:bg-muted"
-			>
-				<span class="inline-flex items-center gap-2">
-					<FilterIcon class="size-4" />
-					Filters{activeFilterCount ? ` (${activeFilterCount})` : ''}
-				</span>
-			</Dialog.Trigger>
-			<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-md">
-				<Dialog.Header>
-					<Dialog.Title>Filters</Dialog.Title>
-					<Dialog.Description>Narrow jobs by eligibility and location.</Dialog.Description>
-				</Dialog.Header>
-				<FilterPanelAsync
-					filters={data.filters}
-					options={data.options}
-					resultCount={isNavigating ? 0 : data.total}
-				/>
-			</Dialog.Content>
-		</Dialog.Root>
-	</div>
-
-	<div class="grid gap-8 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr]">
-		<aside class="hidden lg:block">
-			<div class="sticky top-20 space-y-6">
-				<FilterPanelAsync
-					filters={data.filters}
-					options={data.options}
-					resultCount={isNavigating ? 0 : data.total}
-				/>
-				<SavedSearchesAsync
-					savedSearches={data.savedSearches}
-					canSave={data.canSave}
-					saveMessage={form?.saveMessage}
-				/>
-			</div>
-		</aside>
-
-		<JobList
-			jobs={data.jobs}
-			total={data.total}
-			totalPages={data.totalPages}
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+		<div class="space-y-2">
+			<h1>Government jobs in Pakistan</h1>
+			<p class="max-w-2xl text-muted-foreground">
+				Filter postings by your degree area, education, grade, and age to see what you're
+				eligible for.
+			</p>
+		</div>
+		<FiltersDrawer
+			bind:open={filtersOpen}
 			filters={data.filters}
-			filtered={data.filtered}
-			error={data.error}
-			loading={isNavigating}
-			{pageHref}
-		/>
+			options={data.options}
+			resultCount={isNavigating ? 0 : data.total}
+			{activeFilterCount}
+		>
+			<SavedSearchesAsync
+				savedSearches={data.savedSearches}
+				canSave={data.canSave}
+				saveMessage={form?.saveMessage}
+			/>
+		</FiltersDrawer>
 	</div>
 
-	<section class="space-y-6 lg:hidden">
-		<SavedSearchesAsync
-			savedSearches={data.savedSearches}
-			canSave={data.canSave}
-			saveMessage={form?.saveMessage}
-		/>
-	</section>
+	<JobList
+		jobs={data.jobs}
+		total={data.total}
+		totalPages={data.totalPages}
+		filters={data.filters}
+		filtered={data.filtered}
+		error={data.error}
+		loading={isNavigating}
+	/>
 
 	<section class="space-y-3">
 		<h2 class="text-base font-semibold">Browse by category</h2>

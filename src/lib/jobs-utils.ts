@@ -18,18 +18,52 @@ export function splitMultiValue(raw: string | null | undefined): string[] {
 	return result;
 }
 
-export function isJobExpired(lastDate: string | null | undefined): boolean {
-	if (!lastDate) return false;
-	const today = new Date().toISOString().slice(0, 10);
-	return lastDate < today;
+/** Normalize Date or YYYY-MM-DD string to a calendar date key. */
+export function toDateKey(value: string | Date | null | undefined): string | null {
+	if (!value) return null;
+	if (value instanceof Date) {
+		if (Number.isNaN(value.getTime())) return null;
+		return value.toISOString().slice(0, 10);
+	}
+	const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+	return match ? match[1] : null;
 }
 
-export function isClosingSoon(lastDate: string | null | undefined, withinDays = 7): boolean {
-	if (!lastDate || isJobExpired(lastDate)) return false;
+export function isJobExpired(lastDate: string | Date | null | undefined): boolean {
+	const dateKey = toDateKey(lastDate);
+	if (!dateKey) return false;
+	const today = new Date().toISOString().slice(0, 10);
+	return dateKey < today;
+}
+
+export function isClosingSoon(lastDate: string | Date | null | undefined, withinDays = 7): boolean {
+	const dateKey = toDateKey(lastDate);
+	if (!dateKey || isJobExpired(dateKey)) return false;
 	const today = new Date();
-	const deadline = new Date(lastDate + 'T23:59:59');
+	const deadline = new Date(dateKey + 'T23:59:59');
 	const diff = (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
 	return diff >= 0 && diff <= withinDays;
+}
+
+export type GenderKind = 'male' | 'female' | 'transgender';
+
+/** Normalize raw gender field values into known kinds. */
+export function parseGenderKinds(gender: string | null | undefined): GenderKind[] {
+	const kinds = new Set<GenderKind>();
+	for (const part of splitMultiValue(gender)) {
+		const key = part.toLowerCase();
+		if (key === 'male' || key === 'm') kinds.add('male');
+		else if (key === 'female' || key === 'f') kinds.add('female');
+		else if (key.includes('trans')) kinds.add('transgender');
+	}
+	return [...kinds];
+}
+
+/** True when the posting is open only to females and/or transgenders (no males). */
+export function isWomenOrTransOnly(gender: string | null | undefined): boolean {
+	const kinds = parseGenderKinds(gender);
+	if (kinds.length === 0) return false;
+	return !kinds.includes('male');
 }
 
 export function formatAgeRange(minAge: number | null, maxAge: number | null): string | null {
@@ -43,7 +77,7 @@ export function formatAgeRange(minAge: number | null, maxAge: number | null): st
 export function badgeFilterHref(
 	value: string,
 	sort?: JobSort,
-	param: 'degree_areas' | 'domicile' = 'degree_areas'
+	param: 'degree_areas' | 'domicile' | 'place_of_posting' = 'degree_areas'
 ): string {
 	const params = new URLSearchParams();
 	params.set(param, value);
@@ -66,6 +100,7 @@ export type FilterParams = {
 	show_expired?: boolean;
 	sort?: JobSort;
 	page?: number;
+	pageSize?: number;
 };
 
 export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
@@ -87,6 +122,9 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+	if (filters.pageSize && filters.pageSize !== 20) {
+		params.set('pageSize', String(filters.pageSize));
+	}
 	return params;
 }
 
@@ -143,4 +181,28 @@ export function formatDateLabel(value: string | Date | null | undefined): string
 	}
 
 	return `${String(day).padStart(2, '0')}-${months[monthIndex]}-${year}`;
+}
+
+const AD_IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
+const AD_PDF_EXT = /\.pdf$/i;
+
+/** Public ad URL from `supabase_file_path` (jpg/png/webp/gif/pdf). */
+export function getJobAdUrl(supabaseFilePath: string | null | undefined): string | null {
+	const trimmed = supabaseFilePath?.trim();
+	return trimmed || null;
+}
+
+export function getJobAdKind(
+	supabaseFilePath: string | null | undefined
+): 'image' | 'pdf' | 'other' | null {
+	const url = getJobAdUrl(supabaseFilePath);
+	if (!url) return null;
+	if (AD_IMAGE_EXT.test(url)) return 'image';
+	if (AD_PDF_EXT.test(url)) return 'pdf';
+	return 'other';
+}
+
+/** @deprecated Prefer getJobAdUrl */
+export function getJobAdImageUrl(supabaseFilePath: string | null | undefined): string | null {
+	return getJobAdUrl(supabaseFilePath);
 }

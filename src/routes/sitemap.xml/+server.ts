@@ -3,7 +3,8 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const base = url.origin;
-	const today = new Date().toISOString().slice(0, 10);
+	const startOfToday = new Date();
+	startOfToday.setUTCHours(0, 0, 0, 0);
 
 	const [activeJobs, categories] = await Promise.all([
 		db.jobPostings.findMany({
@@ -11,7 +12,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				AND: [
 					{ OR: [{ active: true }, { active: null }] },
 					{
-						OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: today } }]
+						OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
 					}
 				]
 			},

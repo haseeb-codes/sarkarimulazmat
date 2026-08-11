@@ -1,15 +1,20 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
 	import GenderIcons from '$lib/components/gender-icons.svelte';
+	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
 	import {
 		formatAgeRange,
 		formatDateLabel,
+		getJobAdUrl,
 		isClosingSoon,
 		isJobExpired,
+		isWomenOrTransOnly,
 		type JobSort
 	} from '$lib/jobs-utils';
+	import ImageIcon from '@lucide/svelte/icons/image';
 
 	type JobCardJob = {
 		row_id: number;
@@ -24,7 +29,8 @@
 		gender: string | null;
 		min_age: number | null;
 		max_age: number | null;
-		last_date_to_apply: string | null;
+		last_date_to_apply: string | Date | null;
+		supabase_file_path?: string | null;
 	};
 
 	let {
@@ -47,15 +53,24 @@
 				: 'bg-status-open-bg text-status-open'
 	);
 	const href = $derived(`/jobs/${job.row_id}`);
+	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
+	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+
+	let adOpen = $state(false);
 </script>
 
 <Card.Root
-	class="transition-colors hover:border-primary/40 {expired ? 'opacity-70' : ''}"
+	size="sm"
+	class="h-full transition-colors {womenOrTransOnly
+		? 'ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400'
+		: 'hover:border-primary/40'} {expired ? 'opacity-70' : ''}"
 >
 	<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
-		<Card.Header class="gap-2 pb-3">
+		<Card.Header class="gap-1.5 pb-2">
 			<div class="flex flex-wrap items-start justify-between gap-2">
-				<Card.Title class="flex items-start gap-1.5 text-base leading-snug md:text-lg">
+				<Card.Title
+					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+				>
 					<span>{job.title ?? 'Untitled posting'}</span>
 					<GenderIcons gender={job.gender} class="mt-0.5" />
 				</Card.Title>
@@ -79,14 +94,19 @@
 				</div>
 			</div>
 			{#if job.department}
-				<Card.Description class="text-sm">{job.department}</Card.Description>
+				<Card.Description class="line-clamp-2 text-xs md:text-sm">{job.department}</Card.Description>
 			{/if}
 		</Card.Header>
 	</a>
-	<Card.Content class="space-y-3 pt-0">
+
+	{#if adUrl}
+		<JobAdModal bind:open={adOpen} title={job.title} supabaseFilePath={job.supabase_file_path} />
+	{/if}
+
+	<Card.Content class="space-y-2.5 pt-0">
 		<div class="space-y-2">
 			{#if job.education_level}
-				<p class="text-sm">
+				<p class="text-xs md:text-sm">
 					<span class="text-muted-foreground">Education:</span>
 					{job.education_level}
 				</p>
@@ -106,21 +126,48 @@
 					<MultiValueBadges value={job.domicile} {sort} param="domicile" />
 				</div>
 			{/if}
-		</div>
-		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
 			{#if job.place_of_posting}
-				<span>{job.place_of_posting}</span>
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">Location</p>
+					<MultiValueBadges
+						value={job.place_of_posting}
+						{sort}
+						param="place_of_posting"
+						class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
+					/>
+				</div>
 			{/if}
-			{#if ageLabel}
+		</div>
+		<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground md:text-sm">
+			{#if job.max_age != null}
+				<Badge
+					variant="outline"
+					class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+				>
+					Max Age: {job.max_age}y
+				</Badge>
+			{:else if ageLabel}
 				<span>Age: {ageLabel}</span>
 			{/if}
 			{#if applyByLabel}
 				<span
 					class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
 				>
-					Apply by {applyByLabel}
+					Deadline: {applyByLabel}
 				</span>
 			{/if}
 		</div>
+		{#if adUrl}
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				class="w-full"
+				onclick={() => (adOpen = true)}
+			>
+				<ImageIcon data-icon="inline-start" />
+				View Ad
+			</Button>
+		{/if}
 	</Card.Content>
 </Card.Root>

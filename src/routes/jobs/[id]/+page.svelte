@@ -3,12 +3,14 @@
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
 	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import JobDetailSkeleton from '$lib/components/jobs/job-detail-skeleton.svelte';
+	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import {
 		formatAgeRange,
 		formatDateLabel,
+		getJobAdUrl,
 		isClosingSoon,
 		isJobExpired
 	} from '$lib/jobs-utils';
@@ -32,6 +34,9 @@
 				? 'bg-status-closing-bg text-status-closing'
 				: 'bg-status-open-bg text-status-open'
 	);
+	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+
+	let adOpen = $state(false);
 
 	const title = $derived(
 		`${job.title ?? 'Job'} — ${job.department ?? 'Government'} — Sarkari Mulazmat`
@@ -56,7 +61,9 @@
 		datePosted: job.ad_date
 			? new Date(job.ad_date).toISOString().slice(0, 10)
 			: undefined,
-		validThrough: job.last_date_to_apply ?? undefined,
+		validThrough: job.last_date_to_apply
+			? new Date(job.last_date_to_apply).toISOString().slice(0, 10)
+			: undefined,
 		hiringOrganization: {
 			'@type': 'Organization',
 			name: job.department ?? 'Government of Pakistan'
@@ -126,7 +133,17 @@
 		</a>
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<h1 class="flex items-start gap-2 text-2xl font-semibold tracking-tight md:text-3xl">
-				<span>{job.title ?? 'Untitled posting'}</span>
+				{#if adUrl}
+					<button
+						type="button"
+						class="text-left underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						onclick={() => (adOpen = true)}
+					>
+						{job.title ?? 'Untitled posting'}
+					</button>
+				{:else}
+					<span>{job.title ?? 'Untitled posting'}</span>
+				{/if}
 				<GenderIcons gender={job.gender} class="mt-1.5 md:mt-2 md:[&_svg]:size-5" />
 			</h1>
 			{#if expired}
@@ -147,6 +164,10 @@
 			<p class="mt-2 text-muted-foreground">{job.department}</p>
 		{/if}
 	</div>
+
+	{#if adUrl}
+		<JobAdModal bind:open={adOpen} title={job.title} supabaseFilePath={job.supabase_file_path} />
+	{/if}
 
 	{#if expired}
 		<div
@@ -199,11 +220,17 @@
 				</div>
 			{/if}
 			{#if job.place_of_posting}
-				<div>
+				<div class="sm:col-span-2">
 					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-						Place of posting
+						Location
 					</dt>
-					<dd class="mt-1 text-sm">{job.place_of_posting}</dd>
+					<dd class="mt-1">
+						<MultiValueBadges
+							value={job.place_of_posting}
+							param="place_of_posting"
+							class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
+						/>
+					</dd>
 				</div>
 			{/if}
 			{#if job.vacancies != null}

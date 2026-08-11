@@ -2,7 +2,7 @@
 	import MarsIcon from '@lucide/svelte/icons/mars';
 	import VenusIcon from '@lucide/svelte/icons/venus';
 	import TransgenderIcon from '@lucide/svelte/icons/transgender';
-	import { splitMultiValue } from '$lib/jobs-utils';
+	import { parseGenderKinds, type GenderKind } from '$lib/jobs-utils';
 
 	let {
 		gender,
@@ -12,12 +12,7 @@
 		class?: string;
 	} = $props();
 
-	type GenderKind = 'male' | 'female' | 'transgender';
-
-	const GENDER_META: Record<
-		GenderKind,
-		{ label: string; iconClass: string }
-	> = {
+	const GENDER_META: Record<GenderKind, { label: string; iconClass: string }> = {
 		male: { label: 'Male', iconClass: 'text-sky-600 dark:text-sky-400' },
 		female: { label: 'Female', iconClass: 'text-rose-600 dark:text-rose-400' },
 		transgender: {
@@ -26,20 +21,9 @@
 		}
 	};
 
-	const icons = $derived.by(() => {
-		const kinds = new Set<GenderKind>();
-		for (const part of splitMultiValue(gender)) {
-			const key = part.toLowerCase();
-			if (key === 'male' || key === 'm') kinds.add('male');
-			else if (key === 'female' || key === 'f') kinds.add('female');
-			else if (key.includes('trans')) kinds.add('transgender');
-		}
-		return [...kinds];
-	});
+	const icons = $derived(parseGenderKinds(gender));
 
-	const groupLabel = $derived(
-		icons.map((k) => GENDER_META[k].label).join(', ')
-	);
+	const groupLabel = $derived(icons.map((k) => GENDER_META[k].label).join(', '));
 </script>
 
 {#if icons.length}

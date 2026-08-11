@@ -1,27 +1,24 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
-	import FilterPanelAsync from '$lib/components/jobs/filter-panel-async.svelte';
+	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 
 	let { data } = $props();
+
+	let filtersOpen = $state(false);
 
 	const isNavigating = $derived(
 		navigating.to !== null && navigating.to.route.id === '/[slug]'
 	);
 
-	function pageHref(pageNum: number) {
-		const base = `/${data.category.slug}`;
-		const params = new URLSearchParams();
-		if (data.filters.place_of_posting) params.set('place_of_posting', data.filters.place_of_posting);
-		if (data.filters.domicile) params.set('domicile', data.filters.domicile);
-		if (data.filters.q) params.set('q', data.filters.q);
-		if (data.filters.age != null) params.set('age', String(data.filters.age));
-		if (data.filters.show_expired) params.set('show_expired', '1');
-		if (data.filters.sort !== 'newest') params.set('sort', data.filters.sort);
-		if (pageNum > 1) params.set('page', String(pageNum));
-		const s = params.toString();
-		return s ? `${base}?${s}` : base;
-	}
+	const activeFilterCount = $derived(
+		(data.filters.place_of_posting ? 1 : 0) +
+			(data.filters.domicile ? 1 : 0) +
+			(data.filters.q ? 1 : 0) +
+			(data.filters.age ? 1 : 0) +
+			(data.filters.show_expired ? 1 : 0) +
+			(data.filters.sort !== 'newest' ? 1 : 0)
+	);
 
 	const breadcrumbLd = $derived({
 		'@context': 'https://schema.org',
@@ -57,32 +54,28 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="space-y-3">
-		<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
-		<h1>{data.category.h1}</h1>
-		<p class="max-w-2xl text-muted-foreground leading-relaxed">{data.category.intro_content}</p>
-	</div>
-
-	<div class="grid gap-8 lg:grid-cols-[280px_1fr]">
-		<aside class="hidden lg:block">
-			<div class="sticky top-20">
-				<FilterPanelAsync
-					filters={data.filters}
-					options={data.options}
-					resultCount={isNavigating ? 0 : data.total}
-				/>
-			</div>
-		</aside>
-
-		<JobList
-			jobs={data.jobs}
-			total={data.total}
-			totalPages={data.totalPages}
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+		<div class="space-y-3">
+			<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
+			<h1>{data.category.h1}</h1>
+			<p class="max-w-2xl text-muted-foreground leading-relaxed">{data.category.intro_content}</p>
+		</div>
+		<FiltersDrawer
+			bind:open={filtersOpen}
 			filters={data.filters}
-			filtered={data.filtered}
-			error={data.error}
-			loading={isNavigating}
-			{pageHref}
+			options={data.options}
+			resultCount={isNavigating ? 0 : data.total}
+			{activeFilterCount}
 		/>
 	</div>
+
+	<JobList
+		jobs={data.jobs}
+		total={data.total}
+		totalPages={data.totalPages}
+		filters={data.filters}
+		filtered={data.filtered}
+		error={data.error}
+		loading={isNavigating}
+	/>
 </div>

@@ -6,12 +6,14 @@
 		value,
 		sort = 'newest',
 		clickable = true,
-		param = 'degree_areas'
+		param = 'degree_areas',
+		class: className = ''
 	}: {
 		value: string | null | undefined;
 		sort?: JobSort;
 		clickable?: boolean;
-		param?: 'degree_areas' | 'domicile';
+		param?: 'degree_areas' | 'domicile' | 'place_of_posting';
+		class?: string;
 	} = $props();
 
 	const parts = $derived(
@@ -27,12 +29,12 @@
 					variant="outline"
 					href={badgeFilterHref(part, sort, param)}
 					aria-label="Filter by {part}"
-					class="underline-offset-2 hover:underline"
+					class="underline-offset-2 hover:underline {className}"
 				>
 					{part}
 				</Badge>
 			{:else}
-				<Badge variant="secondary">{part}</Badge>
+				<Badge variant="secondary" class={className}>{part}</Badge>
 			{/if}
 		{/each}
 	</div>

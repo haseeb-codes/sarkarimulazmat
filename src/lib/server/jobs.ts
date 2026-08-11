@@ -178,16 +178,17 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 			OR: [
 				{ title: { contains: filters.q, mode: 'insensitive' } },
 				{ department: { contains: filters.q, mode: 'insensitive' } },
-				{ description: { contains: filters.q, mode: 'insensitive' } }
+				{ notes: { contains: filters.q, mode: 'insensitive' } }
 			]
 		});
 	}
 
-	// last_date_to_apply is stored as YYYY-MM-DD string — lexicographic compare works
+	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
 	if (!filters.show_expired) {
-		const today = new Date().toISOString().slice(0, 10);
+		const startOfToday = new Date();
+		startOfToday.setUTCHours(0, 0, 0, 0);
 		and.push({
-			OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: today } }]
+			OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
 		});
 	}
 
