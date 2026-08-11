@@ -70,57 +70,53 @@ model JobPosting {
 }
 
 model JobPostings {
-  row_id                                                 Int       @id
-  slug                                                   String?
-  active                                                 Boolean?
-  title                                                  String?
-  department                                             String?
-  project_program_name                                   String?
-  employment_type                                        String?
-  qualification_level                                    Int?
-  degrees                                                String?
-  degree_area                                            String?
-  education_level                                        String?
-  education_years                                        Int?
-  certifications                                         String?
-  vacancies                                              Int?
-  place_of_posting                                       String?
-  domicile                                               String?
-  experience                                             String?
-  preferred_experience                                   String?
-  max_age                                                Int?
-  gender                                                 String?
-  is_quota_basis                                         Boolean?
-  female_quota                                           Boolean?
-  disability_quota                                       Boolean?
-  minority_quota                                         Boolean?
-  noc_required                                           Boolean?
-  salary                                                 Int?
-  last_date_to_apply                                     DateTime? @db.Date
-  application_postal_address                             String?
-  application_online_address                             String?
-  email                                                  String?
-  phone                                                  String?
-  notes                                                  String?
-  file_path                                              String?
-  min_age                                                Int?
-  female_headcount                                       Int?
-  source_file                                            String?
-  file_creation_date                                     DateTime? @db.Date
-  province                                               String?
-  days_to_apply                                          Int?
-  ad_code                                                String?
-  ad_date                                                DateTime? @db.Date
-  url                                                    String?
-  grade                                                  String?
-  equivalent_grade                                       Int?
-  age_relaxation                                         String?
-  application_fee                                        String?
-  news_source                                            String?
-  posted_by                                              String?
-  donor_name                                             String?
-  noc____proper_channel_applying_is_explicitly_required_ Boolean?  @map("noc_ / proper channel applying is explicitly required.")
-  supabase_file_path                                     String?
+  row_id                     Int       @id
+  slug                       String?
+  active                     Boolean?
+  title                      String?
+  department                 String?
+  project_program_name       String?
+  posted_by                  String?
+  employment_type            String?
+  collar                     String?
+  qualification_level        Int?
+  degrees                    String?
+  degree_area                String?
+  education_level            String?
+  education_years            Int?
+  certifications             String?
+  vacancies                  Int?
+  place_of_posting           String?
+  domicile                   String?
+  experience                 Int?
+  max_age                    Int?
+  gender                     String?
+  is_quota_basis             Boolean?
+  female_quota               Boolean?
+  disability_quota           Boolean?
+  minority_quota             Boolean?
+  salary                     Int?
+  last_date_to_apply         DateTime? @db.Date
+  application_online_address String?
+  email                      String?
+  file_path                  String?
+  min_age                    Int?
+  female_headcount           Int?
+  source_file                String?
+  file_creation_date         DateTime? @db.Date
+  province                   Boolean?
+  grade                      String?
+  application_postal_address String?
+  notes                      String?
+  ad_code                    String?
+  url                        String?
+  age_relaxation             String?
+  application_fee            String?
+  male_headcount             Int?
+  news_source                String?
+  disactivity_quota          Boolean?
+  donor_name                 String?
+  supabase_file_path         String?
 }
 
 /// Curated SEO landing pages with preset filters (e.g. /engineering-jobs, /bs-cs)

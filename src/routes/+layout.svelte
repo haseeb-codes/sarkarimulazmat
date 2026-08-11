@@ -4,6 +4,7 @@
 	import logo from '$lib/assets/logo.png';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
+	import NavSearch from '$lib/components/nav-search.svelte';
 
 	let { children } = $props();
 </script>
@@ -21,15 +22,16 @@
 		<header
 			class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80"
 		>
-			<div class="flex h-14 w-full items-center justify-between gap-4">
+			<div class="flex h-14 w-full items-center gap-3">
 				<a
 					href="/"
-					class="flex items-center gap-2 text-lg font-semibold tracking-tight text-primary"
+					class="flex shrink-0 items-center gap-2 text-lg font-semibold tracking-tight text-primary"
 				>
 					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
-					<span>Sarkari Mulazmat</span>
+					<span class="hidden sm:inline">Sarkari Mulazmat</span>
 				</a>
-				<nav class="flex items-center gap-1" aria-label="Site">
+				<NavSearch />
+				<nav class="flex shrink-0 items-center gap-1" aria-label="Site">
 					<ThemeToggle />
 				</nav>
 			</div>

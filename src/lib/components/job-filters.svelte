@@ -202,7 +202,7 @@
 			<Input
 				id="q"
 				type="search"
-				placeholder="Title, department…"
+				placeholder="Search all fields…"
 				value={qDraft}
 				oninput={(e) => onQInput(e.currentTarget.value)}
 			/>

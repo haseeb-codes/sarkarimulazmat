@@ -100,7 +100,11 @@
 	</a>
 
 	{#if adUrl}
-		<JobAdModal bind:open={adOpen} title={job.title} supabaseFilePath={job.supabase_file_path} />
+		<JobAdModal
+			bind:open={adOpen}
+			title={job.title}
+			supabaseFilePath={job.supabase_file_path ?? null}
+		/>
 	{/if}
 
 	<Card.Content class="space-y-2.5 pt-0">

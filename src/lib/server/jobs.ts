@@ -40,8 +40,43 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_CAP = 50;
+const SIMILARITY_THRESHOLD = 0.25;
+const SIMILARITY_LIMIT = 800;
+
+/** Text columns searched by the global `q` keyword (substring + similarity). */
+const SEARCHABLE_TEXT_FIELDS = [
+	'title',
+	'department',
+	'project_program_name',
+	'employment_type',
+	'degrees',
+	'degree_area',
+	'education_level',
+	'certifications',
+	'place_of_posting',
+	'domicile',
+	'experience',
+	'preferred_experience',
+	'gender',
+	'application_postal_address',
+	'application_online_address',
+	'email',
+	'phone',
+	'notes',
+	'province',
+	'ad_code',
+	'url',
+	'grade',
+	'age_relaxation',
+	'application_fee',
+	'news_source',
+	'posted_by',
+	'donor_name',
+	'slug'
+] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
+let pgTrgmReady: boolean | null = null;
 
 function parsePositiveInt(value: string | null, fallback: number, max?: number): number {
 	if (!value) return fallback;
@@ -111,7 +146,119 @@ export function filtersAreActive(filters: JobFilters): boolean {
 	);
 }
 
-export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput {
+function containsAnyField(term: string): Prisma.JobPostingsWhereInput[] {
+	return SEARCHABLE_TEXT_FIELDS.map((field) => ({
+		[field]: { contains: term, mode: 'insensitive' as const }
+	})) as Prisma.JobPostingsWhereInput[];
+}
+
+function buildKeywordWhere(
+	q: string,
+	similarRowIds: number[] = []
+): Prisma.JobPostingsWhereInput {
+	const phrase = q.trim();
+	const tokens = phrase
+		.split(/\s+/)
+		.map((t) => t.trim())
+		.filter((t) => t.length >= 2)
+		.slice(0, 8);
+
+	const or: Prisma.JobPostingsWhereInput[] = [...containsAnyField(phrase)];
+
+	// Multi-word: every token must appear somewhere across searchable fields
+	if (tokens.length > 1) {
+		or.push({
+			AND: tokens.map((token) => ({ OR: containsAnyField(token) }))
+		});
+	} else if (tokens.length === 1 && tokens[0] !== phrase) {
+		or.push(...containsAnyField(tokens[0]));
+	}
+
+	// Numeric queries also match age / grade / vacancy fields
+	const asInt = Number.parseInt(phrase, 10);
+	if (Number.isFinite(asInt) && String(asInt) === phrase) {
+		or.push(
+			{ max_age: asInt },
+			{ min_age: asInt },
+			{ equivalent_grade: asInt },
+			{ vacancies: asInt },
+			{ salary: asInt },
+			{ qualification_level: asInt }
+		);
+	}
+
+	if (similarRowIds.length) {
+		or.push({ row_id: { in: similarRowIds } });
+	}
+
+	return { OR: or };
+}
+
+async function ensurePgTrgm(): Promise<boolean> {
+	if (pgTrgmReady != null) return pgTrgmReady;
+	try {
+		await db.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+		pgTrgmReady = true;
+	} catch (err) {
+		console.warn('pg_trgm unavailable; falling back to substring search', err);
+		pgTrgmReady = false;
+	}
+	return pgTrgmReady;
+}
+
+/** Fuzzy matches via pg_trgm similarity across key text columns. */
+async function findSimilarJobIds(q: string): Promise<number[]> {
+	const phrase = q.trim();
+	if (phrase.length < 2) return [];
+	if (!(await ensurePgTrgm())) return [];
+
+	try {
+		const rows = await db.$queryRawUnsafe<{ row_id: number }[]>(
+			`
+			SELECT row_id
+			FROM "JobPostings"
+			WHERE
+				similarity(coalesce(title, ''), $1) > $2
+				OR similarity(coalesce(department, ''), $1) > $2
+				OR similarity(coalesce(degree_area, ''), $1) > $2
+				OR similarity(coalesce(degrees, ''), $1) > $2
+				OR similarity(coalesce(place_of_posting, ''), $1) > $2
+				OR similarity(coalesce(domicile, ''), $1) > $2
+				OR similarity(coalesce(education_level, ''), $1) > $2
+				OR similarity(coalesce(grade, ''), $1) > $2
+				OR similarity(coalesce(notes, ''), $1) > $2
+				OR similarity(coalesce(posted_by, ''), $1) > $2
+				OR similarity(coalesce(project_program_name, ''), $1) > $2
+				OR similarity(coalesce(province, ''), $1) > $2
+				OR word_similarity($1, coalesce(title, '')) > $2
+				OR word_similarity($1, coalesce(department, '')) > $2
+				OR word_similarity($1, coalesce(degree_area, '')) > $2
+				OR word_similarity($1, coalesce(degrees, '')) > $2
+			ORDER BY GREATEST(
+				similarity(coalesce(title, ''), $1),
+				similarity(coalesce(department, ''), $1),
+				similarity(coalesce(degree_area, ''), $1),
+				similarity(coalesce(degrees, ''), $1),
+				word_similarity($1, coalesce(title, '')),
+				word_similarity($1, coalesce(department, ''))
+			) DESC
+			LIMIT $3
+			`,
+			phrase,
+			SIMILARITY_THRESHOLD,
+			SIMILARITY_LIMIT
+		);
+		return rows.map((r) => r.row_id);
+	} catch (err) {
+		console.warn('Similarity search failed', err);
+		return [];
+	}
+}
+
+export function buildJobWhere(
+	filters: JobFilters,
+	similarRowIds: number[] = []
+): Prisma.JobPostingsWhereInput {
 	const and: Prisma.JobPostingsWhereInput[] = [];
 
 	// Skip inactive when active is set
@@ -174,13 +321,7 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 	}
 
 	if (filters.q) {
-		and.push({
-			OR: [
-				{ title: { contains: filters.q, mode: 'insensitive' } },
-				{ department: { contains: filters.q, mode: 'insensitive' } },
-				{ notes: { contains: filters.q, mode: 'insensitive' } }
-			]
-		});
+		and.push(buildKeywordWhere(filters.q, similarRowIds));
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -204,7 +345,8 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 }
 
 export async function listJobs(filters: JobFilters) {
-	const where = buildJobWhere(filters);
+	const similarRowIds = filters.q ? await findSimilarJobIds(filters.q) : [];
+	const where = buildJobWhere(filters, similarRowIds);
 	const skip = (filters.page - 1) * filters.pageSize;
 
 	const [jobs, total] = await Promise.all([
