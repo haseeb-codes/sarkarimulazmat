@@ -34,7 +34,7 @@
 	--chart-3: oklch(0.45 0.06 250);
 	--chart-4: oklch(0.7 0.12 85);
 	--chart-5: oklch(0.6 0.14 40);
-	--sidebar: oklch(0.985 0.002 247);
+	--sidebar: oklch(0.955 0.012 247);
 	--sidebar-foreground: oklch(0.22 0.02 250);
 	--sidebar-primary: oklch(0.4 0.085 245);
 	--sidebar-primary-foreground: oklch(0.985 0 0);
@@ -77,7 +77,7 @@
 	--chart-3: oklch(0.7 0.08 250);
 	--chart-4: oklch(0.75 0.12 85);
 	--chart-5: oklch(0.7 0.14 40);
-	--sidebar: oklch(0.2 0.02 250);
+	--sidebar: oklch(0.19 0.022 250);
 	--sidebar-foreground: oklch(0.95 0.005 247);
 	--sidebar-primary: oklch(0.72 0.09 245);
 	--sidebar-primary-foreground: oklch(0.18 0.03 250);

@@ -17,6 +17,10 @@
 	const activeFilterCount = $derived(
 		data.filters.degree_areas.length +
 			(data.filters.education_level ? 1 : 0) +
+			(data.filters.ad_date ? 1 : 0) +
+			(data.filters.posted_by ? 1 : 0) +
+			(data.filters.donor_name ? 1 : 0) +
+			(data.filters.gender ? 1 : 0) +
 			(data.filters.grade ? 1 : 0) +
 			(data.filters.age ? 1 : 0) +
 			(data.filters.place_of_posting ? 1 : 0) +
@@ -65,39 +69,43 @@
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<div class="space-y-6">
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-		<div class="space-y-2">
-			<h1>Government jobs in Pakistan</h1>
-			<p class="max-w-2xl text-muted-foreground">
-				Filter postings by your degree area, education, grade, and age to see what you're
-				eligible for.
-			</p>
+<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+	<div class="min-w-0 space-y-6">
+		<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+			<div class="space-y-2">
+				<h1>Government jobs in Pakistan</h1>
+				<p class="max-w-2xl text-muted-foreground">
+					Filter postings by your degree area, education, grade, and age to see what you're
+					eligible for.
+				</p>
+			</div>
+			<FiltersDrawer
+				bind:open={filtersOpen}
+				filters={data.filters}
+				options={data.options}
+				resultCount={isNavigating ? 0 : data.total}
+				{activeFilterCount}
+			>
+				<SavedSearchesAsync
+					savedSearches={data.savedSearches}
+					canSave={data.canSave}
+					saveMessage={form?.saveMessage}
+				/>
+			</FiltersDrawer>
 		</div>
-		<FiltersDrawer
-			bind:open={filtersOpen}
+
+		<JobList
+			jobs={data.jobs}
+			total={data.total}
+			totalPages={data.totalPages}
 			filters={data.filters}
-			options={data.options}
-			resultCount={isNavigating ? 0 : data.total}
-			{activeFilterCount}
-		>
-			<SavedSearchesAsync
-				savedSearches={data.savedSearches}
-				canSave={data.canSave}
-				saveMessage={form?.saveMessage}
-			/>
-		</FiltersDrawer>
+			filtered={data.filtered}
+			error={data.error}
+			loading={isNavigating}
+		/>
 	</div>
 
-	<BrowseByCategoryAsync browse={data.browse} />
-
-	<JobList
-		jobs={data.jobs}
-		total={data.total}
-		totalPages={data.totalPages}
-		filters={data.filters}
-		filtered={data.filtered}
-		error={data.error}
-		loading={isNavigating}
-	/>
+	<div class="lg:sticky lg:top-16 lg:h-[calc(100svh-5rem)] lg:overflow-hidden">
+		<BrowseByCategoryAsync browse={data.browse} />
+	</div>
 </div>

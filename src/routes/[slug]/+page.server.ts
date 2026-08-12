@@ -1,7 +1,23 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import db from '$lib/server/db';
-import { getFilterOptions, listJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
+import {
+	getBrowseByCategoryData,
+	getFilterOptions,
+	listJobs,
+	parseJobFilters,
+	type BrowseByCategoryData,
+	type JobFilters
+} from '$lib/server/jobs';
+
+const emptyBrowse: BrowseByCategoryData = {
+	adDates: [],
+	postedBy: [],
+	donors: [],
+	genders: [],
+	categories: [],
+	educationLevels: []
+};
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const category = await db.categoryPage.findUnique({
@@ -19,6 +35,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		...urlFilters,
 		degree_areas: preset.degree_areas?.length ? preset.degree_areas : urlFilters.degree_areas,
 		education_level: preset.education_level ?? urlFilters.education_level,
+		ad_date: urlFilters.ad_date,
+		posted_by: urlFilters.posted_by,
+		donor_name: urlFilters.donor_name,
 		grade: preset.grade ?? urlFilters.grade,
 		qualification_level: preset.qualification_level ?? urlFilters.qualification_level,
 		domicile: urlFilters.domicile ?? preset.domicile ?? null,
@@ -36,6 +55,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	};
 
 	const options = getFilterOptions();
+	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
 	const result = await listJobs(filters);
 
 	return {
@@ -49,6 +69,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		filters: {
 			degree_areas: filters.degree_areas,
 			education_level: filters.education_level,
+			ad_date: filters.ad_date,
+			posted_by: filters.posted_by,
+			donor_name: filters.donor_name,
+			gender: filters.gender,
 			grade: filters.grade,
 			age: filters.age,
 			place_of_posting: filters.place_of_posting,
@@ -66,8 +90,13 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		total: result.total,
 		totalPages: result.totalPages,
 		options,
+		browse,
 		filtered: Boolean(
-			urlFilters.place_of_posting ||
+			urlFilters.ad_date ||
+				urlFilters.posted_by ||
+				urlFilters.donor_name ||
+				urlFilters.gender ||
+				urlFilters.place_of_posting ||
 				urlFilters.domicile ||
 				urlFilters.department ||
 				urlFilters.collar ||

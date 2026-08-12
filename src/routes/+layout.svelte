@@ -18,7 +18,7 @@
 
 <div class="flex min-h-svh flex-col">
 	<!-- One shared width shell so header / main / footer edges always match. -->
-	<div class="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4">
+	<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4">
 		<header
 			class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80"
 		>
@@ -30,10 +30,12 @@
 					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
 					<span class="hidden sm:inline">Sarkari Mulazmat</span>
 				</a>
-				<NavSearch />
-				<nav class="flex shrink-0 items-center gap-1" aria-label="Site">
-					<ThemeToggle />
-				</nav>
+				<div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
+					<NavSearch />
+					<nav class="flex shrink-0 items-center gap-1" aria-label="Site">
+						<ThemeToggle />
+					</nav>
+				</div>
 			</div>
 		</header>
 

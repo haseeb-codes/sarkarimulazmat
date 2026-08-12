@@ -2,8 +2,13 @@ import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
 import {
 	splitMultiValue,
+	toDateKey,
+	formatDateLabel,
+	parseGenderFilter,
+	GENDER_BROWSE_LINKS,
 	type JobSort,
-	type FilterParams
+	type FilterParams,
+	type GenderKind
 } from '$lib/jobs-utils';
 
 export type { JobSort };
@@ -12,6 +17,10 @@ export { splitMultiValue } from '$lib/jobs-utils';
 export type JobFilters = FilterParams & {
 	degree_areas: string[];
 	education_level: string | null;
+	ad_date: string | null;
+	posted_by: string | null;
+	donor_name: string | null;
+	gender: GenderKind | null;
 	qualification_level: number | null;
 	grade: string | null;
 	/** User's age — matched two-sided against job min_age/max_age */
@@ -52,7 +61,33 @@ export type BrowseEducationLink = {
 	count: number;
 };
 
+export type BrowseAdDateLink = {
+	value: string;
+	label: string;
+	count: number;
+};
+
+export type BrowsePostedByLink = {
+	label: string;
+	count: number;
+};
+
+export type BrowseDonorLink = {
+	label: string;
+	count: number;
+};
+
+export type BrowseGenderLink = {
+	value: GenderKind;
+	label: string;
+	count: number;
+};
+
 export type BrowseByCategoryData = {
+	adDates: BrowseAdDateLink[];
+	postedBy: BrowsePostedByLink[];
+	donors: BrowseDonorLink[];
+	genders: BrowseGenderLink[];
 	categories: BrowseCategoryLink[];
 	educationLevels: BrowseEducationLink[];
 };
@@ -143,6 +178,10 @@ export function parseJobFilters(url: URL): JobFilters {
 	return {
 		degree_areas: parseDegreeAreas(url),
 		education_level: firstParam(url, 'education_level'),
+		ad_date: toDateKey(firstParam(url, 'ad_date')),
+		posted_by: firstParam(url, 'posted_by'),
+		donor_name: firstParam(url, 'donor_name'),
+		gender: parseGenderFilter(firstParam(url, 'gender')),
 		qualification_level: parseOptionalPositiveInt(firstParam(url, 'qualification_level')),
 		grade: firstParam(url, 'grade'),
 		age: parseOptionalPositiveInt(firstParam(url, 'age')),
@@ -164,6 +203,10 @@ export function filtersAreActive(filters: JobFilters): boolean {
 	return Boolean(
 		filters.degree_areas.length ||
 			filters.education_level ||
+			filters.ad_date ||
+			filters.posted_by ||
+			filters.donor_name ||
+			filters.gender ||
 			filters.qualification_level ||
 			filters.grade ||
 			filters.age ||
@@ -287,6 +330,32 @@ async function findSimilarJobIds(q: string): Promise<number[]> {
 	}
 }
 
+/** Match a gender kind without treating "female" as "male". */
+function genderMatchWhere(kind: GenderKind): Prisma.JobPostingsWhereInput {
+	if (kind === 'male') {
+		return {
+			OR: [
+				{ gender: { equals: 'male', mode: 'insensitive' } },
+				{ gender: { equals: 'm', mode: 'insensitive' } },
+				{ gender: { startsWith: 'male,', mode: 'insensitive' } },
+				{ gender: { contains: ', male', mode: 'insensitive' } },
+				{ gender: { contains: ',male', mode: 'insensitive' } }
+			]
+		};
+	}
+	if (kind === 'female') {
+		return {
+			OR: [
+				{ gender: { contains: 'female', mode: 'insensitive' } },
+				{ gender: { equals: 'f', mode: 'insensitive' } },
+				{ gender: { startsWith: 'f,', mode: 'insensitive' } },
+				{ gender: { contains: ', f', mode: 'insensitive' } }
+			]
+		};
+	}
+	return { gender: { contains: 'trans', mode: 'insensitive' } };
+}
+
 export function buildJobWhere(
 	filters: JobFilters,
 	similarRowIds: number[] = []
@@ -295,6 +364,7 @@ export function buildJobWhere(
 
 	// Skip inactive when active is set
 	and.push({ OR: [{ active: true }, { active: null }] });
+	and.push({ row_id: { not: null } });
 
 	// Degree areas / degrees — comma-delimited strings; match any selected value
 	if (filters.degree_areas.length) {
@@ -317,6 +387,22 @@ export function buildJobWhere(
 
 	if (filters.qualification_level != null) {
 		and.push({ qualification_level: filters.qualification_level });
+	}
+
+	if (filters.ad_date) {
+		and.push({ ad_date: new Date(`${filters.ad_date}T00:00:00.000Z`) });
+	}
+
+	if (filters.posted_by) {
+		and.push({ posted_by: { equals: filters.posted_by, mode: 'insensitive' } });
+	}
+
+	if (filters.donor_name) {
+		and.push({ donor_name: { equals: filters.donor_name, mode: 'insensitive' } });
+	}
+
+	if (filters.gender) {
+		and.push(genderMatchWhere(filters.gender));
 	}
 
 	// Grade — exact match against distinct values
@@ -380,8 +466,11 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 	if (sort === 'closing_soon') {
 		return [{ last_date_to_apply: { sort: 'asc', nulls: 'last' } }, { row_id: 'desc' }];
 	}
-	// Prefer file_creation_date when present; fall back to row_id
-	return [{ file_creation_date: { sort: 'desc', nulls: 'last' } }, { row_id: 'desc' }];
+	return [
+		{ ad_date: { sort: 'desc', nulls: 'last' } },
+		{ file_creation_date: { sort: 'desc', nulls: 'last' } },
+		{ row_id: 'desc' }
+	];
 }
 
 export async function listJobs(filters: JobFilters) {
@@ -389,7 +478,7 @@ export async function listJobs(filters: JobFilters) {
 	const where = buildJobWhere(filters, similarRowIds);
 	const skip = (filters.page - 1) * filters.pageSize;
 
-	const [jobs, total] = await Promise.all([
+	const [rawJobs, total] = await Promise.all([
 		db.jobPostings.findMany({
 			where,
 			orderBy: buildOrderBy(filters.sort),
@@ -398,6 +487,10 @@ export async function listJobs(filters: JobFilters) {
 		}),
 		db.jobPostings.count({ where })
 	]);
+
+	const jobs = rawJobs.filter(
+		(job): job is (typeof rawJobs)[number] & { row_id: number } => job.row_id != null
+	);
 
 	return {
 		jobs,
@@ -408,9 +501,15 @@ export async function listJobs(filters: JobFilters) {
 	};
 }
 
+export async function getJobBySlug(slug: string) {
+	const key = slug.trim();
+	if (!key) return null;
+	return db.jobPostings.findUnique({ where: { slug: key } });
+}
+
 export async function getJobById(rowId: number) {
 	if (!Number.isInteger(rowId) || rowId < 1) return null;
-	return db.jobPostings.findUnique({ where: { row_id: rowId } });
+	return db.jobPostings.findFirst({ where: { row_id: rowId } });
 }
 
 function frequencyRank(values: string[], cap = FILTER_OPTIONS_CAP): string[] {
@@ -483,6 +582,10 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 	return {
 		degree_areas: [],
 		education_level: null,
+		ad_date: null,
+		posted_by: null,
+		donor_name: null,
+		gender: null,
 		qualification_level: null,
 		grade: null,
 		age: null,
@@ -529,7 +632,7 @@ function categoryChipLabel(slug: string, h1: string): string {
 }
 
 /**
- * Topic + education chips for the home “Browse by category” section,
+ * Education, gender, topics, posted-by, ad-date, and donor links for the browse sidebar,
  * each with an active (non-expired) job count. Cached briefly.
  */
 export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
@@ -538,7 +641,9 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		return browseCountsCache.data;
 	}
 
-	const [options, categoryRows] = await Promise.all([
+	const browseWhere = buildJobWhere(browseBaseFilters());
+
+	const [options, categoryRows, adDateGroups, postedByGroups, donorGroups] = await Promise.all([
 		getFilterOptions(),
 		db.categoryPage
 			.findMany({
@@ -546,10 +651,40 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 				select: { slug: true, h1: true, filters: true },
 				orderBy: { title: 'asc' }
 			})
-			.catch(() => [] as { slug: string; h1: string; filters: unknown }[])
+			.catch(() => [] as { slug: string; h1: string; filters: unknown }[]),
+		db.jobPostings
+			.groupBy({
+				by: ['ad_date'],
+				where: {
+					AND: [browseWhere, { ad_date: { not: null } }]
+				},
+				_count: { _all: true },
+				orderBy: { ad_date: 'desc' }
+			})
+			.catch(() => [] as { ad_date: Date | null; _count: { _all: number } }[]),
+		db.jobPostings
+			.groupBy({
+				by: ['posted_by'],
+				where: {
+					AND: [browseWhere, { posted_by: { not: null } }]
+				},
+				_count: { _all: true },
+				orderBy: { _count: { posted_by: 'desc' } }
+			})
+			.catch(() => [] as { posted_by: string | null; _count: { _all: number } }[]),
+		db.jobPostings
+			.groupBy({
+				by: ['donor_name'],
+				where: {
+					AND: [browseWhere, { donor_name: { not: null } }]
+				},
+				_count: { _all: true },
+				orderBy: { _count: { donor_name: 'desc' } }
+			})
+			.catch(() => [] as { donor_name: string | null; _count: { _all: number } }[])
 	]);
 
-	const [categories, educationLevels] = await Promise.all([
+	const [categories, educationLevels, genders] = await Promise.all([
 		Promise.all(
 			categoryRows.map(async (row) => {
 				const preset = (row.filters ?? {}) as Partial<JobFilters>;
@@ -576,10 +711,52 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 				label: level,
 				count: await countJobsMatching({ education_level: level })
 			}))
+		),
+		Promise.all(
+			GENDER_BROWSE_LINKS.map(async (item) => ({
+				value: item.value,
+				label: item.label,
+				count: await countJobsMatching({ gender: item.value })
+			}))
 		)
 	]);
 
-	const data: BrowseByCategoryData = { categories, educationLevels };
+	const adDates = adDateGroups
+		.map((row) => {
+			const value = toDateKey(row.ad_date);
+			if (!value) return null;
+			return {
+				value,
+				label: formatDateLabel(value) ?? value,
+				count: row._count._all
+			};
+		})
+		.filter((row): row is BrowseAdDateLink => Boolean(row));
+
+	const postedBy = postedByGroups
+		.map((row) => {
+			const label = row.posted_by?.trim();
+			if (!label) return null;
+			return { label, count: row._count._all };
+		})
+		.filter((row): row is BrowsePostedByLink => Boolean(row));
+
+	const donors = donorGroups
+		.map((row) => {
+			const label = row.donor_name?.trim();
+			if (!label || label.toUpperCase() === 'NA' || label === '-') return null;
+			return { label, count: row._count._all };
+		})
+		.filter((row): row is BrowseDonorLink => Boolean(row));
+
+	const data: BrowseByCategoryData = {
+		adDates,
+		postedBy,
+		donors,
+		genders,
+		categories,
+		educationLevels
+	};
 	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
 	return data;
 }

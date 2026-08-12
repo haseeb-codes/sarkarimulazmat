@@ -29,10 +29,30 @@ export function toDateKey(value: string | Date | null | undefined): string | nul
 	return match ? match[1] : null;
 }
 
+function startOfTodayUtc(): Date {
+	const today = new Date();
+	today.setUTCHours(0, 0, 0, 0);
+	return today;
+}
+
+export function daysSinceDate(value: string | Date | null | undefined): number | null {
+	const dateKey = toDateKey(value);
+	if (!dateKey) return null;
+	const postedAt = new Date(`${dateKey}T00:00:00.000Z`);
+	if (Number.isNaN(postedAt.getTime())) return null;
+	const diffMs = startOfTodayUtc().getTime() - postedAt.getTime();
+	return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+export function isRecentAd(adDate: string | Date | null | undefined, withinDays = 2): boolean {
+	const days = daysSinceDate(adDate);
+	return days != null && days >= 0 && days <= withinDays;
+}
+
 export function isJobExpired(lastDate: string | Date | null | undefined): boolean {
 	const dateKey = toDateKey(lastDate);
 	if (!dateKey) return false;
-	const today = new Date().toISOString().slice(0, 10);
+	const today = startOfTodayUtc().toISOString().slice(0, 10);
 	return dateKey < today;
 }
 
@@ -57,6 +77,21 @@ export function parseGenderKinds(gender: string | null | undefined): GenderKind[
 		else if (key.includes('trans')) kinds.add('transgender');
 	}
 	return [...kinds];
+}
+
+export const GENDER_BROWSE_LINKS: { value: GenderKind; label: string }[] = [
+	{ value: 'male', label: 'Male' },
+	{ value: 'female', label: 'Female' },
+	{ value: 'transgender', label: 'Transgender' }
+];
+
+/** Parse a `gender` query param into a known kind. */
+export function parseGenderFilter(value: string | null | undefined): GenderKind | null {
+	const key = value?.trim().toLowerCase();
+	if (key === 'male' || key === 'm') return 'male';
+	if (key === 'female' || key === 'f') return 'female';
+	if (key === 'transgender' || key === 'trans') return 'transgender';
+	return null;
 }
 
 /** True when the posting is open only to females and/or transgenders (no males). */
@@ -100,6 +135,10 @@ export function badgeFilterHref(
 export type FilterParams = {
 	degree_areas?: string[];
 	education_level?: string | null;
+	ad_date?: string | null;
+	posted_by?: string | null;
+	donor_name?: string | null;
+	gender?: GenderKind | null;
 	qualification_level?: number | null;
 	grade?: string | null;
 	age?: number | null;
@@ -123,6 +162,10 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 		params.append('degree_areas', area);
 	}
 	if (filters.education_level) params.set('education_level', filters.education_level);
+	if (filters.ad_date) params.set('ad_date', filters.ad_date);
+	if (filters.posted_by) params.set('posted_by', filters.posted_by);
+	if (filters.donor_name) params.set('donor_name', filters.donor_name);
+	if (filters.gender) params.set('gender', filters.gender);
 	if (filters.qualification_level != null) {
 		params.set('qualification_level', String(filters.qualification_level));
 	}
@@ -147,6 +190,11 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 export function filtersToHref(filters: FilterParams): string {
 	const qs = filtersToSearchParams(filters).toString();
 	return qs ? `/?${qs}` : '/';
+}
+
+/** Public job detail path — jobs are addressed by slug, not row id. */
+export function jobDetailHref(slug: string): string {
+	return `/jobs/${encodeURIComponent(slug)}`;
 }
 
 /** True when at least one primary eligibility filter is set (not keyword/location alone). */

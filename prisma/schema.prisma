@@ -70,8 +70,8 @@ model JobPosting {
 }
 
 model JobPostings {
-  row_id                     Int       @id
-  slug                       String?
+  row_id                     Int?
+  slug                       String    @id
   active                     Boolean?
   title                      String?
   department                 String?
@@ -108,15 +108,16 @@ model JobPostings {
   grade                      String?
   application_postal_address String?
   notes                      String?
-  ad_code                    String?
-  url                        String?
   age_relaxation             String?
+  url                        String?
+  ad_code                    String?
   application_fee            String?
   male_headcount             Int?
   news_source                String?
-  disactivity_quota          Boolean?
   donor_name                 String?
+  male_quota                 String?
   supabase_file_path         String?
+  ad_date                    DateTime? @db.Date
 }
 
 /// Curated SEO landing pages with preset filters (e.g. /engineering-jobs, /bs-cs)

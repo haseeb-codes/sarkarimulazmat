@@ -35,7 +35,7 @@
 </script>
 
 <form
-	class="flex min-w-0 flex-1 items-center gap-1.5 md:max-w-md md:flex-none"
+	class="flex min-w-0 flex-1 items-center gap-1.5 md:w-80 md:flex-none"
 	role="search"
 	aria-label="Search jobs"
 	onsubmit={submit}

@@ -1,4 +1,5 @@
 import db from '$lib/server/db';
+import { jobDetailHref } from '$lib/jobs-utils';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -16,7 +17,7 @@ export const GET: RequestHandler = async ({ url }) => {
 					}
 				]
 			},
-			select: { row_id: true, file_creation_date: true },
+			select: { slug: true, file_creation_date: true },
 			orderBy: { row_id: 'desc' },
 			take: 5000
 		}),
@@ -36,7 +37,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			priority: '0.9'
 		})),
 		...activeJobs.map((j) => ({
-			loc: `${base}/jobs/${j.row_id}`,
+			loc: `${base}${jobDetailHref(j.slug)}`,
 			lastmod: j.file_creation_date
 				? new Date(j.file_creation_date).toISOString().slice(0, 10)
 				: undefined,

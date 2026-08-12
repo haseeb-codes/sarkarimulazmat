@@ -3,6 +3,10 @@
 	import BrowseByCategorySkeleton from '$lib/components/jobs/browse-by-category-skeleton.svelte';
 
 	type BrowseByCategoryData = {
+		adDates: { value: string; label: string; count: number }[];
+		postedBy: { label: string; count: number }[];
+		donors: { label: string; count: number }[];
+		genders: { value: string; label: string; count: number }[];
 		categories: { slug: string; label: string; count: number }[];
 		educationLevels: { label: string; count: number }[];
 	};
@@ -29,14 +33,20 @@
 {/snippet}
 
 <svelte:boundary {pending} {failed}>
-	{#await browse}
-		<BrowseByCategorySkeleton />
-	{:then data}
-		<BrowseByCategory
-			categories={data.categories}
-			educationLevels={data.educationLevels}
-		/>
-	{:catch error}
-		{@render failed(error)}
-	{/await}
+	<div class="lg:h-full">
+		{#await browse}
+			<BrowseByCategorySkeleton />
+		{:then data}
+			<BrowseByCategory
+				adDates={data.adDates}
+				postedBy={data.postedBy}
+				donors={data.donors}
+				genders={data.genders}
+				categories={data.categories}
+				educationLevels={data.educationLevels}
+			/>
+		{:catch error}
+			{@render failed(error)}
+		{/await}
+	</div>
 </svelte:boundary>

@@ -9,9 +9,11 @@
 
 	type Job = {
 		row_id: number;
+		slug: string;
 		title: string | null;
 		department: string | null;
 		education_level: string | null;
+		ad_date: string | Date | null;
 		degree_area: string | null;
 		degrees: string | null;
 		grade: string | null;
@@ -30,6 +32,10 @@
 	type Filters = {
 		degree_areas: string[];
 		education_level: string | null;
+		ad_date?: string | null;
+		posted_by?: string | null;
+		donor_name?: string | null;
+		gender?: string | null;
 		grade: string | null;
 		age: number | null;
 		place_of_posting: string | null;
@@ -67,8 +73,8 @@
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
-	/** row_ids just appended via infinite scroll — highlighted briefly */
-	let freshIds = $state<Set<number>>(new Set());
+	/** slugs just appended via infinite scroll — highlighted briefly */
+	let freshIds = $state<Set<string>>(new Set());
 	let freshClearTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const HIGHLIGHT_MS = 2800;
@@ -80,6 +86,10 @@
 		[
 			filters.degree_areas.join('\0'),
 			filters.education_level ?? '',
+			filters.ad_date ?? '',
+			filters.posted_by ?? '',
+			filters.donor_name ?? '',
+			filters.gender ?? '',
 			filters.grade ?? '',
 			filters.age ?? '',
 			filters.place_of_posting ?? '',
@@ -103,7 +113,7 @@
 		freshIds = new Set();
 	}
 
-	function markFresh(ids: number[]) {
+	function markFresh(ids: string[]) {
 		if (!ids.length) return;
 		if (freshClearTimer) clearTimeout(freshClearTimer);
 		freshIds = new Set(ids);
@@ -152,11 +162,11 @@
 				totalPages: number;
 			};
 
-			const seen = new Set(items.map((j) => j.row_id));
-			const appended = data.jobs.filter((j) => !seen.has(j.row_id));
+			const seen = new Set(items.map((j) => j.slug));
+			const appended = data.jobs.filter((j) => !seen.has(j.slug));
 			items = [...items, ...appended];
 			loadedPage = data.page;
-			markFresh(appended.map((j) => j.row_id));
+			markFresh(appended.map((j) => j.slug));
 		} catch (err) {
 			console.error('Failed to load more jobs', err);
 			loadMoreError = 'Could not load more jobs. Tap to retry.';
@@ -225,9 +235,9 @@
 			</div>
 		{:else}
 			<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
-				{#each items as job (job.row_id)}
+				{#each items as job (job.slug)}
 					<li class="mb-3 break-inside-avoid">
-						<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.row_id)} />
+						<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.slug)} />
 					</li>
 				{/each}
 			</ul>

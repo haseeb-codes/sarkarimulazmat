@@ -6,6 +6,7 @@ import { listJobs, parseJobFilters } from '$lib/server/jobs';
 function toListJob(job: Awaited<ReturnType<typeof listJobs>>['jobs'][number]) {
 	return {
 		row_id: job.row_id,
+		slug: job.slug,
 		title: job.title,
 		department: job.department,
 		education_level: job.education_level,
@@ -20,6 +21,7 @@ function toListJob(job: Awaited<ReturnType<typeof listJobs>>['jobs'][number]) {
 		salary: job.salary,
 		min_age: job.min_age,
 		max_age: job.max_age,
+		ad_date: job.ad_date ? job.ad_date.toISOString().slice(0, 10) : null,
 		last_date_to_apply: job.last_date_to_apply
 			? job.last_date_to_apply.toISOString().slice(0, 10)
 			: null,

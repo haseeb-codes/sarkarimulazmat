@@ -12,18 +12,22 @@
 		formatDateLabel,
 		formatSalary,
 		getJobAdUrl,
+		isRecentAd,
 		isClosingSoon,
 		isJobExpired,
 		isWomenOrTransOnly,
+		jobDetailHref,
 		type JobSort
 	} from '$lib/jobs-utils';
 	import ImageIcon from '@lucide/svelte/icons/image';
 
 	type JobCardJob = {
 		row_id: number;
+		slug: string;
 		title: string | null;
 		department: string | null;
 		education_level: string | null;
+		ad_date?: string | Date | null;
 		degree_area: string | null;
 		degrees: string | null;
 		grade: string | null;
@@ -52,6 +56,7 @@
 
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
 	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
+	const recentAd = $derived(isRecentAd(job.ad_date));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
 	const salaryLabel = $derived(formatSalary(job.salary));
@@ -62,7 +67,7 @@
 				? 'bg-status-closing-bg text-status-closing'
 				: 'bg-status-open-bg text-status-open'
 	);
-	const href = $derived(`/jobs/${job.row_id}`);
+	const href = $derived(jobDetailHref(job.slug));
 	const departmentHref = $derived(
 		job.department ? badgeFilterHref(job.department, sort, 'department') : null
 	);
@@ -90,6 +95,24 @@
 >
 	<Card.Header class="gap-1.5 pb-2">
 		<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
+			{#if recentAd || job.donor_name}
+				<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+					{#if recentAd}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-red-100 px-2 text-xs font-semibold text-red-700 animate-pulse dark:bg-red-950/70 dark:text-red-300"
+						>
+							New
+						</span>
+					{/if}
+					{#if job.donor_name}
+						<span
+							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 animate-pulse dark:bg-blue-950/70 dark:text-blue-300"
+						>
+							{job.donor_name}
+						</span>
+					{/if}
+				</div>
+			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
 					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
@@ -116,11 +139,6 @@
 					{/if}
 				</div>
 			</div>
-			{#if job.donor_name}
-				<p class="mt-1.5 text-xs font-semibold tracking-wide text-primary md:text-sm">
-					{job.donor_name}
-				</p>
-			{/if}
 		</a>
 		{#if job.department && departmentHref}
 			<a

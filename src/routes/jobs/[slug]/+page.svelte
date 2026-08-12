@@ -15,7 +15,8 @@
 		formatSalary,
 		getJobAdUrl,
 		isClosingSoon,
-		isJobExpired
+		isJobExpired,
+		jobDetailHref
 	} from '$lib/jobs-utils';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import MailIcon from '@lucide/svelte/icons/mail';
@@ -23,7 +24,7 @@
 
 	let { data } = $props();
 	const isNavigating = $derived(
-		navigating.to !== null && navigating.to.route.id === '/jobs/[id]'
+		navigating.to !== null && navigating.to.route.id === '/jobs/[slug]'
 	);
 	const job = $derived(data.job);
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
@@ -61,6 +62,8 @@
 			.slice(0, 160)
 	);
 
+	const canonical = $derived(new URL(jobDetailHref(job.slug), page.url.origin).href);
+
 	const jsonLd = $derived({
 		'@context': 'https://schema.org',
 		'@type': 'JobPosting',
@@ -87,7 +90,7 @@
 				}
 			: undefined,
 		employmentType: job.employment_type ?? undefined,
-		url: page.url.href
+		url: canonical
 	});
 
 	const breadcrumbLd = $derived({
@@ -104,7 +107,7 @@
 				'@type': 'ListItem',
 				position: 2,
 				name: job.title ?? 'Job',
-				item: page.url.href
+				item: canonical
 			}
 		]
 	});
@@ -113,11 +116,11 @@
 <svelte:head>
 	<title>{title}</title>
 	<meta name="description" content={description} />
-	<link rel="canonical" href={page.url.href} />
+	<link rel="canonical" href={canonical} />
 	<meta property="og:title" content={title} />
 	<meta property="og:description" content={description} />
 	<meta property="og:type" content="article" />
-	<meta property="og:url" content={page.url.href} />
+	<meta property="og:url" content={canonical} />
 	<meta name="twitter:card" content="summary" />
 	{#if expired}
 		<meta name="robots" content="noindex, follow" />
@@ -168,9 +171,11 @@
 			{/if}
 		</div>
 		{#if job.donor_name}
-			<p class="mt-1.5 text-sm font-semibold tracking-wide text-primary md:text-base">
+			<span
+				class="mt-2 inline-flex h-6 max-w-full items-center truncate rounded-full bg-blue-100 px-2.5 text-xs font-semibold text-blue-800 animate-pulse dark:bg-blue-950/70 dark:text-blue-300"
+			>
 				{job.donor_name}
-			</p>
+			</span>
 		{/if}
 		{#if job.department && departmentHref}
 			<p class="mt-2">

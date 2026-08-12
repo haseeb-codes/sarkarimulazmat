@@ -21,6 +21,10 @@ function filtersSnapshot(filters: JobFilters) {
 	return {
 		degree_areas: filters.degree_areas,
 		education_level: filters.education_level,
+		ad_date: filters.ad_date,
+		posted_by: filters.posted_by,
+		donor_name: filters.donor_name,
+		gender: filters.gender,
 		grade: filters.grade,
 		age: filters.age,
 		place_of_posting: filters.place_of_posting,
@@ -37,6 +41,10 @@ function filtersSnapshot(filters: JobFilters) {
 }
 
 const emptyBrowse: BrowseByCategoryData = {
+	adDates: [],
+	postedBy: [],
+	donors: [],
+	genders: [],
 	categories: [],
 	educationLevels: []
 };
