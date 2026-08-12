@@ -176,13 +176,13 @@
 					{/if}
 				</div>
 			{/if}
-			{#if job.domicile}
+			{#if job.domicile?.trim()}
 				<div class="space-y-1">
 					<p class="text-xs font-medium text-muted-foreground">Domicile</p>
 					<MultiValueBadges value={job.domicile} {sort} param="domicile" />
 				</div>
 			{/if}
-			{#if job.place_of_posting}
+			{#if job.place_of_posting && !job.domicile?.trim()}
 				<div class="space-y-1">
 					<p class="text-xs font-medium text-muted-foreground">Location</p>
 					<MultiValueBadges
