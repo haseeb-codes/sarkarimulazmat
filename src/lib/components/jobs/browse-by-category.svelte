@@ -2,12 +2,6 @@
 	import { page } from '$app/state';
 	import { filtersToHref, type GenderKind } from '$lib/jobs-utils';
 
-	type CategoryLink = {
-		slug: string;
-		label: string;
-		count: number;
-	};
-
 	type AdDateLink = {
 		value: string;
 		label: string;
@@ -30,23 +24,25 @@
 		postedBy,
 		donors,
 		genders,
-		categories,
-		educationLevels
+		degreeAreas
 	}: {
 		adDates: AdDateLink[];
 		postedBy: CountLink[];
 		donors: CountLink[];
 		genders: GenderLink[];
-		categories: CategoryLink[];
-		educationLevels: CountLink[];
+		degreeAreas: CountLink[];
 	} = $props();
 
-	const activeEducation = $derived(page.url.searchParams.get('education_level'));
 	const activeAdDate = $derived(page.url.searchParams.get('ad_date'));
 	const activePostedBy = $derived(page.url.searchParams.get('posted_by'));
 	const activeDonor = $derived(page.url.searchParams.get('donor_name'));
 	const activeGender = $derived(page.url.searchParams.get('gender'));
-	const path = $derived(page.url.pathname);
+	const activeDegreeAreas = $derived(
+		page.url.searchParams
+			.getAll('degree_areas')
+			.flatMap((value) => value.split(',').map((part) => part.trim().toLowerCase()))
+			.filter(Boolean)
+	);
 
 	const groupClass =
 		'rounded-xl bg-sidebar p-3 text-sidebar-foreground shadow-xs ring-1 ring-sidebar-border lg:flex lg:min-h-0 lg:flex-1 lg:flex-col';
@@ -62,6 +58,18 @@
 	function formatCount(n: number): string {
 		return n.toLocaleString('en-PK');
 	}
+
+	function byLabel<T extends { label: string }>(items: T[]): T[] {
+		return [...items].sort((a, b) =>
+			a.label.localeCompare(b.label, 'en', { sensitivity: 'base' })
+		);
+	}
+
+	const sortedGenders = $derived(byLabel(genders));
+	const sortedDegreeAreas = $derived(byLabel(degreeAreas));
+	const sortedPostedBy = $derived(byLabel(postedBy));
+	const sortedAdDates = $derived(byLabel(adDates));
+	const sortedDonors = $derived(byLabel(donors));
 </script>
 
 {#snippet navLink(href: string, label: string, count: number, active: boolean)}
@@ -76,29 +84,11 @@
 {/snippet}
 
 <div class="space-y-3 lg:flex lg:h-full lg:flex-col lg:gap-3 lg:space-y-0">
-	{#if educationLevels.length}
-		<section class={groupClass} aria-labelledby="browse-education-heading">
-			<h3 id="browse-education-heading" class={headingClass}>Education level</h3>
-			<ul class={listClass}>
-				{#each educationLevels as level (level.label)}
-					<li>
-						{@render navLink(
-							filtersToHref({ education_level: level.label }),
-							level.label,
-							level.count,
-							activeEducation === level.label
-						)}
-					</li>
-				{/each}
-			</ul>
-		</section>
-	{/if}
-
 	{#if genders.length}
 		<section class={groupClass} aria-labelledby="browse-gender-heading">
 			<h3 id="browse-gender-heading" class={headingClass}>Gender</h3>
 			<ul class={listClass}>
-				{#each genders as item (item.value)}
+				{#each sortedGenders as item (item.value)}
 					<li>
 						{@render navLink(
 							filtersToHref({ gender: item.value }),
@@ -112,13 +102,18 @@
 		</section>
 	{/if}
 
-	{#if categories.length}
-		<section class={groupClass} aria-labelledby="browse-topics-heading">
-			<h3 id="browse-topics-heading" class={headingClass}>Topics</h3>
+	{#if degreeAreas.length}
+		<section class={groupClass} aria-labelledby="browse-specialization-heading">
+			<h3 id="browse-specialization-heading" class={headingClass}>Specialization</h3>
 			<ul class={listClass}>
-				{#each categories as cat (cat.slug)}
+				{#each sortedDegreeAreas as area (area.label)}
 					<li>
-						{@render navLink(`/${cat.slug}`, cat.label, cat.count, path === `/${cat.slug}`)}
+						{@render navLink(
+							filtersToHref({ degree_areas: [area.label] }),
+							area.label,
+							area.count,
+							activeDegreeAreas.includes(area.label.toLowerCase())
+						)}
 					</li>
 				{/each}
 			</ul>
@@ -129,7 +124,7 @@
 		<section class={groupClass} aria-labelledby="browse-posted-by-heading">
 			<h3 id="browse-posted-by-heading" class={headingClass}>Posted by</h3>
 			<ul class={listClass}>
-				{#each postedBy as org (org.label)}
+				{#each sortedPostedBy as org (org.label)}
 					<li>
 						{@render navLink(
 							filtersToHref({ posted_by: org.label }),
@@ -147,7 +142,7 @@
 		<section class={groupClass} aria-labelledby="browse-ad-date-heading">
 			<h3 id="browse-ad-date-heading" class={headingClass}>Ad date</h3>
 			<ul class={listClass}>
-				{#each adDates as adDate (adDate.value)}
+				{#each sortedAdDates as adDate (adDate.value)}
 					<li>
 						{@render navLink(
 							filtersToHref({ ad_date: adDate.value }),
@@ -162,10 +157,10 @@
 	{/if}
 
 	{#if donors.length}
-		<section class={groupClass} aria-labelledby="browse-donor-heading">
-			<h3 id="browse-donor-heading" class={headingClass}>Donor</h3>
+		<section class={groupClass} aria-labelledby="browse-funded-by-heading">
+			<h3 id="browse-funded-by-heading" class={headingClass}>Funded by</h3>
 			<ul class={listClass}>
-				{#each donors as donor (donor.label)}
+				{#each sortedDonors as donor (donor.label)}
 					<li>
 						{@render navLink(
 							filtersToHref({ donor_name: donor.label }),

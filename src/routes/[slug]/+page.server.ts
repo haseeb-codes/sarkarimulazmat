@@ -3,7 +3,6 @@ import type { PageServerLoad } from './$types';
 import db from '$lib/server/db';
 import {
 	getBrowseByCategoryData,
-	getFilterOptions,
 	listJobs,
 	parseJobFilters,
 	type BrowseByCategoryData,
@@ -15,7 +14,7 @@ const emptyBrowse: BrowseByCategoryData = {
 	postedBy: [],
 	donors: [],
 	genders: [],
-	categories: [],
+	degreeAreas: [],
 	educationLevels: []
 };
 
@@ -54,7 +53,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		has_salary: urlFilters.has_salary
 	};
 
-	const options = getFilterOptions();
 	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
 	const result = await listJobs(filters);
 
@@ -89,7 +87,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		jobs: result.jobs,
 		total: result.total,
 		totalPages: result.totalPages,
-		options,
 		browse,
 		filtered: Boolean(
 			urlFilters.ad_date ||

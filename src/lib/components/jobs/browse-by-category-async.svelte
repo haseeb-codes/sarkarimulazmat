@@ -7,7 +7,7 @@
 		postedBy: { label: string; count: number }[];
 		donors: { label: string; count: number }[];
 		genders: { value: string; label: string; count: number }[];
-		categories: { slug: string; label: string; count: number }[];
+		degreeAreas: { label: string; count: number }[];
 		educationLevels: { label: string; count: number }[];
 	};
 
@@ -27,7 +27,7 @@
 		class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
 		role="alert"
 	>
-		Could not load categories.
+		Could not load filters.
 		<span class="sr-only">{String(error)}</span>
 	</div>
 {/snippet}
@@ -42,8 +42,7 @@
 				postedBy={data.postedBy}
 				donors={data.donors}
 				genders={data.genders}
-				categories={data.categories}
-				educationLevels={data.educationLevels}
+				degreeAreas={data.degreeAreas}
 			/>
 		{:catch error}
 			{@render failed(error)}

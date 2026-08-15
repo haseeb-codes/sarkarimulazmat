@@ -5,6 +5,8 @@
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
 	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
+	import ShareJobButton from '$lib/components/jobs/share-job-button.svelte';
+	import { page } from '$app/state';
 	import {
 		badgeFilterHref,
 		filtersToHref,
@@ -68,6 +70,7 @@
 				: 'bg-status-open-bg text-status-open'
 	);
 	const href = $derived(jobDetailHref(job.slug));
+	const shareUrl = $derived(new URL(href, page.url.origin).href);
 	const departmentHref = $derived(
 		job.department ? badgeFilterHref(job.department, sort, 'department') : null
 	);
@@ -169,7 +172,7 @@
 			{/if}
 			{#if job.degree_area || job.degrees}
 				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Degree areas</p>
+					<p class="text-xs font-medium text-muted-foreground">Specialization</p>
 					<MultiValueBadges value={job.degree_area} {sort} />
 					{#if job.degrees}
 						<MultiValueBadges value={job.degrees} {sort} />
@@ -194,10 +197,10 @@
 				</div>
 			{/if}
 		</div>
-		<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs md:text-sm">
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
 			{#if salaryLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="font-medium text-muted-foreground">Salary</span>
+					<span class="text-xs font-medium text-muted-foreground">Salary</span>
 					<Badge
 						variant="outline"
 						href={hasSalaryHref}
@@ -210,7 +213,7 @@
 			{/if}
 			{#if job.max_age != null}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="font-medium text-muted-foreground">Max Age</span>
+					<span class="text-xs font-medium text-muted-foreground">Max Age</span>
 					<Badge
 						variant="outline"
 						class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
@@ -220,13 +223,13 @@
 				</span>
 			{:else if ageLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="font-medium text-muted-foreground">Age</span>
+					<span class="text-xs font-medium text-muted-foreground">Age</span>
 					<span class="text-foreground">{ageLabel}</span>
 				</span>
 			{/if}
 			{#if applyByLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="font-medium text-muted-foreground">Deadline</span>
+					<span class="text-xs font-medium text-muted-foreground">Deadline</span>
 					<span
 						class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
 					>
@@ -235,17 +238,25 @@
 				</span>
 			{/if}
 		</div>
-		{#if adUrl}
-			<Button
-				type="button"
-				variant="outline"
-				size="sm"
-				class="w-full"
-				onclick={() => (adOpen = true)}
-			>
-				<ImageIcon data-icon="inline-start" />
-				View Ad
-			</Button>
-		{/if}
+		<div class="flex gap-2">
+			{#if adUrl}
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					class="min-w-0 flex-1"
+					onclick={() => (adOpen = true)}
+				>
+					<ImageIcon data-icon="inline-start" />
+					View Ad
+				</Button>
+			{/if}
+			<ShareJobButton
+				url={shareUrl}
+				title={job.title}
+				text={job.department}
+				class={adUrl ? 'shrink-0' : 'w-full'}
+			/>
+		</div>
 	</Card.Content>
 </Card.Root>

@@ -50,12 +50,6 @@ export type FilterOptions = {
 	domiciles: string[];
 };
 
-export type BrowseCategoryLink = {
-	slug: string;
-	label: string;
-	count: number;
-};
-
 export type BrowseEducationLink = {
 	label: string;
 	count: number;
@@ -83,12 +77,17 @@ export type BrowseGenderLink = {
 	count: number;
 };
 
+export type BrowseDegreeAreaLink = {
+	label: string;
+	count: number;
+};
+
 export type BrowseByCategoryData = {
 	adDates: BrowseAdDateLink[];
 	postedBy: BrowsePostedByLink[];
 	donors: BrowseDonorLink[];
 	genders: BrowseGenderLink[];
-	categories: BrowseCategoryLink[];
+	degreeAreas: BrowseDegreeAreaLink[];
 	educationLevels: BrowseEducationLink[];
 };
 
@@ -105,28 +104,11 @@ const SEARCHABLE_TEXT_FIELDS = [
 	'title',
 	'department',
 	'project_program_name',
-	'employment_type',
-	'collar',
-	'degrees',
-	'degree_area',
-	'education_level',
-	'certifications',
-	'place_of_posting',
-	'domicile',
-	'gender',
-	'application_postal_address',
-	'application_online_address',
-	'email',
-	'notes',
-	'ad_code',
-	'url',
-	'grade',
-	'age_relaxation',
-	'application_fee',
-	'news_source',
 	'posted_by',
-	'donor_name',
-	'slug'
+	'degree_area',
+	'employment_type',
+	'domicile',
+	'gender'
 ] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
@@ -249,19 +231,6 @@ function buildKeywordWhere(
 		or.push(...containsAnyField(tokens[0]));
 	}
 
-	// Numeric queries also match age / experience / vacancy fields
-	const asInt = Number.parseInt(phrase, 10);
-	if (Number.isFinite(asInt) && String(asInt) === phrase) {
-		or.push(
-			{ max_age: asInt },
-			{ min_age: asInt },
-			{ experience: asInt },
-			{ vacancies: asInt },
-			{ salary: asInt },
-			{ qualification_level: asInt }
-		);
-	}
-
 	if (similarRowIds.length) {
 		or.push({ row_id: { in: similarRowIds } });
 	}
@@ -288,35 +257,23 @@ async function findSimilarJobIds(q: string): Promise<number[]> {
 	if (!(await ensurePgTrgm())) return [];
 
 	try {
+		const simClauses = SEARCHABLE_TEXT_FIELDS.map(
+			(field) => `similarity(coalesce("${field}", ''), $1) > $2`
+		);
+		const wordClauses = SEARCHABLE_TEXT_FIELDS.map(
+			(field) => `word_similarity($1, coalesce("${field}", '')) > $2`
+		);
+		const rankExprs = SEARCHABLE_TEXT_FIELDS.flatMap((field) => [
+			`similarity(coalesce("${field}", ''), $1)`,
+			`word_similarity($1, coalesce("${field}", ''))`
+		]);
+
 		const rows = await db.$queryRawUnsafe<{ row_id: number }[]>(
 			`
 			SELECT row_id
 			FROM "JobPostings"
-			WHERE
-				similarity(coalesce(title, ''), $1) > $2
-				OR similarity(coalesce(department, ''), $1) > $2
-				OR similarity(coalesce(degree_area, ''), $1) > $2
-				OR similarity(coalesce(degrees, ''), $1) > $2
-				OR similarity(coalesce(place_of_posting, ''), $1) > $2
-				OR similarity(coalesce(domicile, ''), $1) > $2
-				OR similarity(coalesce(education_level, ''), $1) > $2
-				OR similarity(coalesce(grade, ''), $1) > $2
-				OR similarity(coalesce(notes, ''), $1) > $2
-				OR similarity(coalesce(posted_by, ''), $1) > $2
-				OR similarity(coalesce(project_program_name, ''), $1) > $2
-				OR similarity(coalesce(collar, ''), $1) > $2
-				OR word_similarity($1, coalesce(title, '')) > $2
-				OR word_similarity($1, coalesce(department, '')) > $2
-				OR word_similarity($1, coalesce(degree_area, '')) > $2
-				OR word_similarity($1, coalesce(degrees, '')) > $2
-			ORDER BY GREATEST(
-				similarity(coalesce(title, ''), $1),
-				similarity(coalesce(department, ''), $1),
-				similarity(coalesce(degree_area, ''), $1),
-				similarity(coalesce(degrees, ''), $1),
-				word_similarity($1, coalesce(title, '')),
-				word_similarity($1, coalesce(department, ''))
-			) DESC
+			WHERE ${[...simClauses, ...wordClauses].join('\n\t\t\t\tOR ')}
+			ORDER BY GREATEST(${rankExprs.join(', ')}) DESC
 			LIMIT $3
 			`,
 			phrase,
@@ -366,7 +323,7 @@ export function buildJobWhere(
 	and.push({ OR: [{ active: true }, { active: null }] });
 	and.push({ row_id: { not: null } });
 
-	// Degree areas / degrees — comma-delimited strings; match any selected value
+	// Specialization / degrees — comma-delimited strings; match any selected value
 	if (filters.degree_areas.length) {
 		const degreeOr: Prisma.JobPostingsWhereInput[] = [];
 		for (const area of filters.degree_areas) {
@@ -608,32 +565,9 @@ async function countJobsMatching(partial: Partial<JobFilters>): Promise<number> 
 	return db.jobPostings.count({ where: buildJobWhere(browseBaseFilters(partial)) });
 }
 
-/** Short chip labels for known category slugs; otherwise trim the h1. */
-function categoryChipLabel(slug: string, h1: string): string {
-	const known: Record<string, string> = {
-		'medical-jobs': 'Medical',
-		'engineering-jobs': 'Engineering',
-		mba: 'MBA / Business',
-		'law-jobs': 'Law',
-		'teaching-jobs': 'Teaching',
-		'bs-cs': 'CS / IT',
-		'graduate-jobs': 'Graduate',
-		'intermediate-jobs': 'Intermediate',
-		'matric-jobs': 'Matric',
-		'balochistan-jobs': 'Balochistan'
-	};
-	if (known[slug]) return known[slug];
-	return (
-		h1
-			.replace(/\s+government jobs.*$/i, '')
-			.replace(/\s+jobs.*$/i, '')
-			.trim() || slug
-	);
-}
-
 /**
- * Education, gender, topics, posted-by, ad-date, and donor links for the browse sidebar,
- * each with an active (non-expired) job count. Cached briefly.
+ * Education, gender, specialization, posted-by, ad-date, and donor links
+ * for the browse sidebar, each with an active (non-expired) job count. Cached briefly.
  */
 export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 	const now = Date.now();
@@ -643,15 +577,8 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 
 	const browseWhere = buildJobWhere(browseBaseFilters());
 
-	const [options, categoryRows, adDateGroups, postedByGroups, donorGroups] = await Promise.all([
+	const [options, adDateGroups, postedByGroups, donorGroups] = await Promise.all([
 		getFilterOptions(),
-		db.categoryPage
-			.findMany({
-				where: { is_indexed: true },
-				select: { slug: true, h1: true, filters: true },
-				orderBy: { title: 'asc' }
-			})
-			.catch(() => [] as { slug: string; h1: string; filters: unknown }[]),
 		db.jobPostings
 			.groupBy({
 				by: ['ad_date'],
@@ -684,28 +611,11 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 			.catch(() => [] as { donor_name: string | null; _count: { _all: number } }[])
 	]);
 
-	const [categories, educationLevels, genders] = await Promise.all([
-		Promise.all(
-			categoryRows.map(async (row) => {
-				const preset = (row.filters ?? {}) as Partial<JobFilters>;
-				const count = await countJobsMatching({
-					degree_areas: preset.degree_areas?.length ? preset.degree_areas : [],
-					education_level: preset.education_level ?? null,
-					qualification_level: preset.qualification_level ?? null,
-					grade: preset.grade ?? null,
-					domicile: preset.domicile ?? null,
-					place_of_posting: preset.place_of_posting ?? null,
-					department: preset.department ?? null,
-					collar: preset.collar ?? null,
-					province: preset.province ?? null
-				});
-				return {
-					slug: row.slug,
-					label: categoryChipLabel(row.slug, row.h1),
-					count
-				};
-			})
-		),
+	const degreeAreaLabels = [
+		...new Set([...options.degree_areas, ...options.degrees])
+	].slice(0, FILTER_OPTIONS_CAP);
+
+	const [educationLevels, genders, degreeAreas] = await Promise.all([
 		Promise.all(
 			options.education_levels.map(async (level) => ({
 				label: level,
@@ -717,6 +627,12 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 				value: item.value,
 				label: item.label,
 				count: await countJobsMatching({ gender: item.value })
+			}))
+		),
+		Promise.all(
+			degreeAreaLabels.map(async (label) => ({
+				label,
+				count: await countJobsMatching({ degree_areas: [label] })
 			}))
 		)
 	]);
@@ -754,7 +670,7 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		postedBy,
 		donors,
 		genders,
-		categories,
+		degreeAreas: degreeAreas.filter((item) => item.count > 0),
 		educationLevels
 	};
 	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };

@@ -18,7 +18,7 @@
 	<h2>What we collect</h2>
 	<ul class="list-disc space-y-2 pl-5 text-sm leading-relaxed">
 		<li>
-			<strong>Search filters</strong> — when you filter jobs (degree area, education, grade, age,
+			<strong>Search filters</strong> — when you filter jobs (specialization, education, grade, age,
 			location, keywords), we may log those filters and the result count to understand which
 			searches are useful. We do not intend this as personal profiling.
 		</li>

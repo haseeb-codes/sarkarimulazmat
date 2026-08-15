@@ -1,35 +1,14 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import BrowseByCategoryAsync from '$lib/components/jobs/browse-by-category-async.svelte';
-	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
+	import EducationChipsAsync from '$lib/components/jobs/education-chips-async.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
-	import SavedSearchesAsync from '$lib/components/jobs/saved-searches-async.svelte';
 
-	let { data, form } = $props();
-
-	let filtersOpen = $state(false);
+	let { data } = $props();
 
 	const isNavigating = $derived(
 		navigating.to !== null &&
 			(navigating.to.route.id === '/' || navigating.to.route.id === '/[slug]')
-	);
-
-	const activeFilterCount = $derived(
-		data.filters.degree_areas.length +
-			(data.filters.education_level ? 1 : 0) +
-			(data.filters.ad_date ? 1 : 0) +
-			(data.filters.posted_by ? 1 : 0) +
-			(data.filters.donor_name ? 1 : 0) +
-			(data.filters.gender ? 1 : 0) +
-			(data.filters.grade ? 1 : 0) +
-			(data.filters.age ? 1 : 0) +
-			(data.filters.place_of_posting ? 1 : 0) +
-			(data.filters.domicile ? 1 : 0) +
-			(data.filters.department ? 1 : 0) +
-			(data.filters.collar ? 1 : 0) +
-			(data.filters.has_salary ? 1 : 0) +
-			(data.filters.q ? 1 : 0) +
-			(data.filters.show_expired ? 1 : 0)
 	);
 
 	const title = $derived(
@@ -45,14 +24,6 @@
 	);
 
 	const canonical = $derived(new URL('/', page.url.origin).href);
-
-	// Keep the drawer open while tweaking filters (URL updates), but close after leaving listing routes.
-	$effect(() => {
-		const to = navigating.to;
-		if (to && to.route.id !== '/' && to.route.id !== '/[slug]') {
-			filtersOpen = false;
-		}
-	});
 </script>
 
 <svelte:head>
@@ -69,43 +40,31 @@
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-	<div class="min-w-0 space-y-6">
-		<div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-			<div class="space-y-2">
-				<h1>Government jobs in Pakistan</h1>
-				<p class="max-w-2xl text-muted-foreground">
-					Filter postings by your degree area, education, grade, and age to see what you're
-					eligible for.
-				</p>
-			</div>
-			<FiltersDrawer
-				bind:open={filtersOpen}
-				filters={data.filters}
-				options={data.options}
-				resultCount={isNavigating ? 0 : data.total}
-				{activeFilterCount}
-			>
-				<SavedSearchesAsync
-					savedSearches={data.savedSearches}
-					canSave={data.canSave}
-					saveMessage={form?.saveMessage}
-				/>
-			</FiltersDrawer>
-		</div>
-
-		<JobList
-			jobs={data.jobs}
-			total={data.total}
-			totalPages={data.totalPages}
-			filters={data.filters}
-			filtered={data.filtered}
-			error={data.error}
-			loading={isNavigating}
-		/>
+<div class="space-y-6">
+	<div class="space-y-2">
+		<h1>Government jobs in Pakistan</h1>
+		<p class="max-w-2xl text-muted-foreground">
+			Browse postings by category, education, and more to see what you're eligible for.
+		</p>
 	</div>
 
-	<div class="lg:sticky lg:top-16 lg:h-[calc(100svh-5rem)] lg:overflow-hidden">
-		<BrowseByCategoryAsync browse={data.browse} />
+	<EducationChipsAsync browse={data.browse} />
+
+	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+		<div class="min-w-0">
+			<JobList
+				jobs={data.jobs}
+				total={data.total}
+				totalPages={data.totalPages}
+				filters={data.filters}
+				filtered={data.filtered}
+				error={data.error}
+				loading={isNavigating}
+			/>
+		</div>
+
+		<div class="lg:sticky lg:top-16 lg:h-[calc(100svh-5rem)] lg:overflow-hidden">
+			<BrowseByCategoryAsync browse={data.browse} />
+		</div>
 	</div>
 </div>

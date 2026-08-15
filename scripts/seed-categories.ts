@@ -94,7 +94,7 @@ const categories = [
 		meta_description:
 			'Browse government jobs in Pakistan that require a Bachelor’s or graduate-level qualification.',
 		intro_content:
-			'Graduate-level posts span administration, finance, and technical cadres. Filter further by degree area and grade to match your background.',
+			'Graduate-level posts span administration, finance, and technical cadres. Filter further by specialization and grade to match your background.',
 		filters: { education_level: 'Graduate' }
 	},
 	{

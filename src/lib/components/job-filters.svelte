@@ -119,7 +119,7 @@
 		</div>
 
 		<div class="space-y-2">
-			<Label>Degree areas</Label>
+			<Label>Specialization</Label>
 			<div class="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-md border border-input p-2">
 				{#each degreeOptions as area (area)}
 					{@const selected = filters.degree_areas.some(

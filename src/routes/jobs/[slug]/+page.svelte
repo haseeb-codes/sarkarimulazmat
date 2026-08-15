@@ -3,7 +3,6 @@
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
 	import GenderIcons from '$lib/components/gender-icons.svelte';
 	import JobDetailSkeleton from '$lib/components/jobs/job-detail-skeleton.svelte';
-	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
@@ -13,14 +12,15 @@
 		formatAgeRange,
 		formatDateLabel,
 		formatSalary,
+		getJobAdKind,
 		getJobAdUrl,
 		isClosingSoon,
 		isJobExpired,
 		jobDetailHref
 	} from '$lib/jobs-utils';
-	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-	import MailIcon from '@lucide/svelte/icons/mail';
+	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
+	import ShareJobButton from '$lib/components/jobs/share-job-button.svelte';
 
 	let { data } = $props();
 	const isNavigating = $derived(
@@ -41,11 +41,10 @@
 				: 'bg-status-open-bg text-status-open'
 	);
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	const adKind = $derived(getJobAdKind(job.supabase_file_path));
 	const departmentHref = $derived(
 		job.department ? badgeFilterHref(job.department, undefined, 'department') : null
 	);
-
-	let adOpen = $state(false);
 
 	const title = $derived(
 		`${job.title ?? 'Job'} — ${job.department ?? 'Government'} — Sarkari Mulazmat`
@@ -143,17 +142,7 @@
 		</a>
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<h1 class="flex items-start gap-2 text-2xl font-semibold tracking-tight md:text-3xl">
-				{#if adUrl}
-					<button
-						type="button"
-						class="text-left underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						onclick={() => (adOpen = true)}
-					>
-						{job.title ?? 'Untitled posting'}
-					</button>
-				{:else}
-					<span>{job.title ?? 'Untitled posting'}</span>
-				{/if}
+				<span>{job.title ?? 'Untitled posting'}</span>
 				<GenderIcons gender={job.gender} class="mt-1.5 md:mt-2 md:[&_svg]:size-5" />
 			</h1>
 			{#if expired}
@@ -190,11 +179,15 @@
 		{:else if job.department}
 			<p class="mt-2 text-muted-foreground">{job.department}</p>
 		{/if}
+		<div class="mt-4">
+			<ShareJobButton
+				url={canonical}
+				title={job.title}
+				text={job.department}
+				size="default"
+			/>
+		</div>
 	</div>
-
-	{#if adUrl}
-		<JobAdModal bind:open={adOpen} title={job.title} supabaseFilePath={job.supabase_file_path} />
-	{/if}
 
 	{#if expired}
 		<div
@@ -314,7 +307,7 @@
 		{#if job.degree_area || job.degrees}
 			<div class="space-y-2">
 				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-					Degree / area
+					Specialization
 				</p>
 				<MultiValueBadges value={job.degree_area} />
 				{#if job.degrees}
@@ -324,51 +317,33 @@
 		{/if}
 	</section>
 
-	<section class="space-y-3" aria-labelledby="apply-heading">
-		<h2 id="apply-heading" class="text-lg font-semibold">How to apply</h2>
-		{#if expired}
-			<p class="text-sm text-muted-foreground">Applications are no longer being accepted.</p>
-		{:else}
-			<div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-				{#if job.url}
-					<Button href={job.url} target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto">
-						<ExternalLinkIcon data-icon="inline-start" />
-						Official posting
-					</Button>
-				{/if}
-				{#if job.application_online_address}
-					<Button
-						href={job.application_online_address}
-						target="_blank"
-						rel="noopener noreferrer"
-						variant="outline"
-						class="w-full sm:w-auto"
-					>
-						<ExternalLinkIcon data-icon="inline-start" />
-						Apply online
-					</Button>
-				{/if}
-				{#if job.email}
-					<Button href={`mailto:${job.email}`} variant="outline" class="w-full sm:w-auto">
-						<MailIcon data-icon="inline-start" />
-						{job.email}
-					</Button>
-				{/if}
-			</div>
-			{#if !job.url && !job.application_online_address && !job.email}
-				<p class="text-sm text-muted-foreground">
-					No direct apply link is available for this posting. Check the original advertisement
-					for instructions.
-				</p>
-			{/if}
-			{#if job.application_postal_address}
-				<p class="text-sm">
-					<span class="font-medium">Postal address:</span>
-					{job.application_postal_address}
-				</p>
-			{/if}
-		{/if}
-	</section>
+	{#if adUrl && adKind === 'image'}
+		<section class="space-y-3" aria-labelledby="ad-heading">
+			<h2 id="ad-heading" class="text-lg font-semibold">Advertisement</h2>
+			<img
+				src={adUrl}
+				alt="{job.title ?? 'Job'} advertisement"
+				class="w-full rounded-lg border border-border bg-muted/30 object-contain"
+				loading="lazy"
+			/>
+		</section>
+	{:else if adUrl && adKind === 'pdf'}
+		<section class="space-y-3" aria-labelledby="ad-heading">
+			<h2 id="ad-heading" class="text-lg font-semibold">Advertisement</h2>
+			<Button href={adUrl} class="w-full sm:w-auto">
+				<FileTextIcon data-icon="inline-start" />
+				View PDF
+			</Button>
+		</section>
+	{:else if adUrl}
+		<section class="space-y-3" aria-labelledby="ad-heading">
+			<h2 id="ad-heading" class="text-lg font-semibold">Advertisement</h2>
+			<Button href={adUrl} class="w-full sm:w-auto">
+				<FileTextIcon data-icon="inline-start" />
+				View advertisement
+			</Button>
+		</section>
+	{/if}
 
 	{#if job.notes}
 		<Separator />

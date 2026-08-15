@@ -3,7 +3,7 @@
 </script>
 
 <div class="space-y-3 lg:flex lg:h-full lg:flex-col lg:gap-3 lg:space-y-0" aria-hidden="true">
-	{#each [4, 3, 4, 4, 4, 3] as count, section (section)}
+	{#each [3, 5, 4, 4, 3] as count, section (section)}
 		<section
 			class="rounded-xl bg-sidebar p-3 shadow-xs ring-1 ring-sidebar-border lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
 		>

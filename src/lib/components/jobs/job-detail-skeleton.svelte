@@ -29,10 +29,7 @@
 	</section>
 
 	<section class="space-y-3">
-		<Skeleton class="h-6 w-32" />
-		<div class="flex flex-col gap-2 sm:flex-row">
-			<Skeleton class="h-10 w-full sm:w-40" />
-			<Skeleton class="h-10 w-full sm:w-36" />
-		</div>
+		<Skeleton class="h-6 w-36" />
+		<Skeleton class="h-80 w-full rounded-lg" />
 	</section>
 </article>
