@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
-	import GenderIcons from '$lib/components/gender-icons.svelte';
-	import JobAdModal from '$lib/components/jobs/job-ad-modal.svelte';
-	import ShareJobButton from '$lib/components/jobs/share-job-button.svelte';
-	import { page } from '$app/state';
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as Card from "$lib/components/ui/card/index.js";
+	import MultiValueBadges from "$lib/components/multi-value-badges.svelte";
+	import GenderIcons from "$lib/components/gender-icons.svelte";
+	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
+	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
+	import { page } from "$app/state";
 	import {
 		badgeFilterHref,
 		filtersToHref,
@@ -19,9 +19,9 @@
 		isJobExpired,
 		isWomenOrTransOnly,
 		jobDetailHref,
-		type JobSort
-	} from '$lib/jobs-utils';
-	import ImageIcon from '@lucide/svelte/icons/image';
+		type JobSort,
+	} from "$lib/jobs-utils";
+	import ImageIcon from "@lucide/svelte/icons/image";
 
 	type JobCardJob = {
 		row_id: number;
@@ -47,8 +47,8 @@
 
 	let {
 		job,
-		sort = 'newest',
-		fresh = false
+		sort = "newest",
+		fresh = false,
 	}: {
 		job: JobCardJob;
 		sort?: JobSort;
@@ -64,28 +64,30 @@
 	const salaryLabel = $derived(formatSalary(job.salary));
 	const applyByClass = $derived(
 		expired
-			? 'bg-status-closed-bg text-status-closed'
+			? "bg-status-closed-bg text-status-closed"
 			: closingSoon
-				? 'bg-status-closing-bg text-status-closing'
-				: 'bg-status-open-bg text-status-open'
+				? "bg-status-closing-bg text-status-closing"
+				: "bg-status-open-bg text-status-open",
 	);
 	const href = $derived(jobDetailHref(job.slug));
 	const shareUrl = $derived(new URL(href, page.url.origin).href);
 	const departmentHref = $derived(
-		job.department ? badgeFilterHref(job.department, sort, 'department') : null
+		job.department
+			? badgeFilterHref(job.department, sort, "department")
+			: null,
 	);
 	const hasSalaryHref = $derived(filtersToHref({ has_salary: true, sort }));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
-	const whiteCollar = $derived(job.collar?.trim().toLowerCase() === 'white');
+	const whiteCollar = $derived(job.collar?.trim().toLowerCase() === "white");
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
 	const cardAccentClass = $derived(
 		fresh
-			? 'job-card-fresh ring-2 ring-primary/70'
+			? "job-card-fresh ring-2 ring-primary/70"
 			: womenOrTransOnly
-				? 'ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400'
+				? "ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400"
 				: whiteCollar
-					? 'ring-2 ring-primary/55 hover:ring-primary/75 dark:ring-primary/50 dark:hover:ring-primary/70'
-					: 'hover:border-primary/40'
+					? "ring-2 ring-primary/55 hover:ring-primary/75 dark:ring-primary/50 dark:hover:ring-primary/70"
+					: "hover:border-primary/40",
 	);
 
 	let adOpen = $state(false);
@@ -93,11 +95,16 @@
 
 <Card.Root
 	size="sm"
-	class="h-full transition-colors {cardAccentClass} {expired ? 'opacity-70' : ''}"
-	data-fresh={fresh ? 'true' : undefined}
+	class="h-full transition-colors {cardAccentClass} {expired
+		? 'opacity-70'
+		: ''}"
+	data-fresh={fresh ? "true" : undefined}
 >
 	<Card.Header class="gap-1.5 pb-2">
-		<a {href} class="block outline-none focus-visible:ring-2 focus-visible:ring-ring">
+		<a
+			{href}
+			class="block outline-none focus-visible:ring-2 focus-visible:ring-ring"
+		>
 			{#if recentAd || job.donor_name}
 				<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
@@ -120,7 +127,7 @@
 				<Card.Title
 					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
 				>
-					<span>{job.title ?? 'Untitled posting'}</span>
+					<span>{job.title ?? "Untitled posting"}</span>
 					<GenderIcons gender={job.gender} class="mt-0.5" />
 				</Card.Title>
 				<div class="flex flex-wrap gap-1.5">
@@ -164,30 +171,57 @@
 
 	<Card.Content class="space-y-2.5 pt-0">
 		<div class="space-y-2">
-			{#if job.education_level}
+			<!-- {#if job.education_level}
 				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Education</p>
-					<MultiValueBadges value={job.education_level} {sort} param="education_level" />
+					<p class="text-xs font-medium text-muted-foreground">
+						Education
+					</p>
+					<MultiValueBadges
+						value={job.education_level}
+						{sort}
+						param="education_level"
+					/>
+				</div>
+			{/if} -->
+			{#if job.degrees}
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">
+						Degrees
+					</p>
+					<MultiValueBadges value={job.degrees} {sort} />
+					<!-- {#if job.degrees}
+					<MultiValueBadges value={job.degrees} {sort} />
+				{/if} -->
 				</div>
 			{/if}
-			{#if job.degree_area || job.degrees}
+			{#if job.degree_area}
 				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Specialization</p>
+					<p class="text-xs font-medium text-muted-foreground">
+						Specialization
+					</p>
 					<MultiValueBadges value={job.degree_area} {sort} />
-					{#if job.degrees}
+					<!-- {#if job.degrees}
 						<MultiValueBadges value={job.degrees} {sort} />
-					{/if}
+					{/if} -->
 				</div>
 			{/if}
 			{#if job.domicile?.trim()}
 				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Domicile</p>
-					<MultiValueBadges value={job.domicile} {sort} param="domicile" />
+					<p class="text-xs font-medium text-muted-foreground">
+						Domicile
+					</p>
+					<MultiValueBadges
+						value={job.domicile}
+						{sort}
+						param="domicile"
+					/>
 				</div>
 			{/if}
 			{#if job.place_of_posting && !job.domicile?.trim()}
 				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Location</p>
+					<p class="text-xs font-medium text-muted-foreground">
+						Location
+					</p>
 					<MultiValueBadges
 						value={job.place_of_posting}
 						{sort}
@@ -200,7 +234,9 @@
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
 			{#if salaryLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="text-xs font-medium text-muted-foreground">Salary</span>
+					<span class="text-xs font-medium text-muted-foreground"
+						>Salary</span
+					>
 					<Badge
 						variant="outline"
 						href={hasSalaryHref}
@@ -213,7 +249,9 @@
 			{/if}
 			{#if job.max_age != null}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="text-xs font-medium text-muted-foreground">Max Age</span>
+					<span class="text-xs font-medium text-muted-foreground"
+						>Max Age</span
+					>
 					<Badge
 						variant="outline"
 						class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
@@ -223,13 +261,17 @@
 				</span>
 			{:else if ageLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="text-xs font-medium text-muted-foreground">Age</span>
+					<span class="text-xs font-medium text-muted-foreground"
+						>Age</span
+					>
 					<span class="text-foreground">{ageLabel}</span>
 				</span>
 			{/if}
 			{#if applyByLabel}
 				<span class="inline-flex items-center gap-1.5">
-					<span class="text-xs font-medium text-muted-foreground">Deadline</span>
+					<span class="text-xs font-medium text-muted-foreground"
+						>Deadline</span
+					>
 					<span
 						class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
 					>
@@ -255,7 +297,7 @@
 				url={shareUrl}
 				title={job.title}
 				text={job.department}
-				class={adUrl ? 'shrink-0' : 'w-full'}
+				class={adUrl ? "shrink-0" : "w-full"}
 			/>
 		</div>
 	</Card.Content>
