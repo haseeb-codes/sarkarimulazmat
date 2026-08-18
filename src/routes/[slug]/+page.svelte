@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
-	import BrowseByCategoryAsync from '$lib/components/jobs/browse-by-category-async.svelte';
 	import EducationChipsAsync from '$lib/components/jobs/education-chips-async.svelte';
+	import JobInterestTreeAsync from '$lib/components/jobs/job-interest-tree-async.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 
 	let { data } = $props();
@@ -65,8 +65,8 @@
 			/>
 		</div>
 
-		<div class="lg:sticky lg:top-16 lg:h-[calc(100svh-5rem)] lg:overflow-hidden">
-			<BrowseByCategoryAsync browse={data.browse} />
+		<div class="lg:sticky lg:top-16 lg:max-h-[calc(100svh-5rem)] lg:overflow-hidden">
+			<JobInterestTreeAsync browse={data.browse} />
 		</div>
 	</div>
 </div>

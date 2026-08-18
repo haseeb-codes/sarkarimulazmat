@@ -9,6 +9,16 @@
 		genders: { value: string; label: string; count: number }[];
 		degreeAreas: { label: string; count: number }[];
 		educationLevels: { label: string; count: number }[];
+		jobInterestTree: {
+			label: string;
+			count: number;
+			children: {
+				label: string;
+				count: number;
+				degree_areas?: string[];
+				q?: string;
+			}[];
+		}[];
 	};
 
 	let {

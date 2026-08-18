@@ -82,6 +82,19 @@ export type BrowseDegreeAreaLink = {
 	count: number;
 };
 
+export type BrowseJobInterestLeaf = {
+	label: string;
+	count: number;
+	degree_areas?: string[];
+	q?: string;
+};
+
+export type BrowseJobInterestBranch = {
+	label: string;
+	count: number;
+	children: BrowseJobInterestLeaf[];
+};
+
 export type BrowseByCategoryData = {
 	adDates: BrowseAdDateLink[];
 	postedBy: BrowsePostedByLink[];
@@ -89,6 +102,7 @@ export type BrowseByCategoryData = {
 	genders: BrowseGenderLink[];
 	degreeAreas: BrowseDegreeAreaLink[];
 	educationLevels: BrowseEducationLink[];
+	jobInterestTree: BrowseJobInterestBranch[];
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -96,24 +110,219 @@ const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_CAP = 50;
 const BROWSE_COUNTS_TTL_MS = 5 * 60 * 1000;
-const SIMILARITY_THRESHOLD = 0.25;
-const SIMILARITY_LIMIT = 800;
+const JOB_INTEREST_TAXONOMY: {
+	label: string;
+	children: { label: string; degree_areas?: string[]; q?: string }[];
+}[] = [
+	{
+		label: 'Engineering',
+		children: [
+			{ label: 'Mechanical', degree_areas: ['Mechanical'] },
+			{ label: 'Electrical', degree_areas: ['Electrical'] },
+			{ label: 'Civil', degree_areas: ['Civil'] },
+			{ label: 'Chemical', degree_areas: ['Chemical'] },
+			{ label: 'Electronics', degree_areas: ['Electronics'] },
+			{ label: 'Metallurgy', degree_areas: ['Metallurgy'] },
+			{ label: 'Mechatronics', degree_areas: ['Mechatronics'] },
+			{ label: 'Architecture', degree_areas: ['Architecture'] },
+			{ label: 'Transportation', degree_areas: ['Transportation'] }
+		]
+	},
+	{
+		label: 'Medical & Allied Health',
+		children: [
+			{ label: 'MBBS', degree_areas: ['MBBS'] },
+			{ label: 'FCPS', degree_areas: ['FCPS'] },
+			{ label: 'MCPS', degree_areas: ['MCPS'] },
+			{ label: 'Nursing', degree_areas: ['Nursing'] },
+			{ label: 'Pharmacist', degree_areas: ['Pharmacy', 'Pharm-D', 'Pharm D', 'Pharmacist'] },
+			{ label: 'BDS', degree_areas: ['BDS'] },
+			{ label: 'DPT', degree_areas: ['DPT'] },
+			{ label: 'Anesthesia', degree_areas: ['Anesthesia'] },
+			{ label: 'Radiology', degree_areas: ['Radiology'] },
+			{ label: 'Medical Lab Technology', degree_areas: ['Medical Lab Technology'] },
+			{ label: 'Physiotherapy', degree_areas: ['Physiotherapy'] },
+			{
+				label: 'Critical Care',
+				degree_areas: ['Adult Intensive Care', 'Pediatric Intensive Care', 'Critical Care Medicine']
+			},
+			{ label: 'Psychiatry', degree_areas: ['Psychiatry'] },
+			{ label: 'Pulmonology', degree_areas: ['Pulmonology'] },
+			{ label: 'Nephrology', degree_areas: ['Nephrology'] }
+		]
+	},
+	{
+		label: 'Education & Teaching',
+		children: [
+			{ label: 'B.Ed', degree_areas: ['B.Ed'] },
+			{ label: 'M.Ed', degree_areas: ['M.Ed'] },
+			{ label: 'Education', degree_areas: ['Education'] },
+			{ label: 'Physical Education', degree_areas: ['Physical Education'] },
+			{ label: 'Teacher', q: 'teacher' },
+			{ label: 'Lecturer', q: 'lecturer' },
+			{ label: 'Professor', q: 'professor' },
+			{ label: 'Instructor', q: 'instructor' },
+			{ label: 'Principal', q: 'principal' }
+		]
+	},
+	{
+		label: 'Accounting & Finance',
+		children: [
+			{ label: 'ACCA', degree_areas: ['ACCA'] },
+			{ label: 'CA', degree_areas: ['CA'] },
+			{ label: 'ACMA', degree_areas: ['ACMA', 'ICMA'] },
+			{ label: 'FCMA', degree_areas: ['FCMA'] },
+			{ label: 'CFA', degree_areas: ['CFA'] },
+			{ label: 'B.Com', degree_areas: ['B.Com'] },
+			{ label: 'M.Com', degree_areas: ['M.Com'] },
+			{ label: 'Accounts', degree_areas: ['Accounts'] }
+		]
+	},
+	{
+		label: 'Management & Administration',
+		children: [
+			{ label: 'MBA', degree_areas: ['MBA'] },
+			{ label: 'BBA', degree_areas: ['BBA'] },
+			{ label: 'Business Administration', degree_areas: ['Business Administration'] },
+			{ label: 'Public Administration', degree_areas: ['Public Administration'] },
+			{ label: 'MPA', degree_areas: ['MPA'] },
+			{ label: 'Project Management', degree_areas: ['Project Management'] },
+			{ label: 'Economics', degree_areas: ['Economics'] },
+			{ label: 'Human Resources', degree_areas: ['Human Resources', 'HR'] },
+			{ label: 'Supply Chain', degree_areas: ['Supply Chain'] },
+			{ label: 'Public Policy', degree_areas: ['Public Policy'] }
+		]
+	},
+	{
+		label: 'Information Technology',
+		children: [
+			{ label: 'Computer Science', degree_areas: ['Computer Science', 'Computer'] },
+			{ label: 'Artificial Intelligence', degree_areas: ['Artificial Intelligence'] },
+			{ label: 'Data Science', degree_areas: ['Data Science'] },
+			{ label: 'IT', degree_areas: ['IT', 'Information Technology'] },
+			{ label: 'BSCS / BCS', degree_areas: ['BSCS', 'BCS'] },
+			{ label: 'BSIT / BSSE', degree_areas: ['BSIT', 'BSSE'] },
+			{ label: 'B.Tech', degree_areas: ['B.Tech'] },
+			{ label: 'Cyber Security', degree_areas: ['Cyber Security', 'Cybersecurity'] },
+			{ label: 'Information Systems', degree_areas: ['Information Systems'] },
+			{ label: 'Networking', degree_areas: ['Networking'] },
+			{ label: 'Web Development', degree_areas: ['Web Development'] },
+			{ label: 'Software Engineer', q: 'software engineer' }
+		]
+	},
+	{
+		label: 'Technical & Skilled',
+		children: [
+			{ label: 'Diploma (DAE)', degree_areas: ['DAE'] },
+			{ label: 'Matric', degree_areas: ['Matric'] },
+			{ label: 'Technician', q: 'technician' },
+			{ label: 'Fitter', q: 'fitter' },
+			{ label: 'Operator', q: 'operator' },
+			{ label: 'Driver', q: 'driver' },
+			{ label: 'Security', q: 'security' }
+		]
+	},
+	{
+		label: 'Government & Executive',
+		children: [
+			{ label: 'Officer', q: 'officer' },
+			{ label: 'Director', q: 'director' },
+			{ label: 'Manager', q: 'manager' },
+			{ label: 'Deputy', q: 'deputy' },
+			{ label: 'Supervisor', q: 'supervisor' }
+		]
+	},
+	{
+		label: 'Law & Legal',
+		children: [
+			{ label: 'LLB', degree_areas: ['LLB'] },
+			{ label: 'LLM', degree_areas: ['LLM'] },
+			{ label: 'Law', degree_areas: ['Law'] },
+			{ label: 'Legal Advisor', q: 'legal advisor' }
+		]
+	},
+	{
+		label: 'Social Sciences & Humanities',
+		children: [
+			{ label: 'Political Science', degree_areas: ['Political Science'] },
+			{ label: 'International Relations', degree_areas: ['International Relations'] },
+			{ label: 'Psychology', degree_areas: ['Psychology'] },
+			{ label: 'Sociology', degree_areas: ['Sociology'] },
+			{ label: 'Statistics', degree_areas: ['Statistics'] },
+			{ label: 'Mass Communication', degree_areas: ['Mass Communication'] },
+			{ label: 'English', degree_areas: ['English'] },
+			{ label: 'Urdu', degree_areas: ['Urdu'] },
+			{ label: 'Islamic Studies', degree_areas: ['Islamic Studies'] },
+			{ label: 'Social Sciences', degree_areas: ['Social Sciences'] }
+		]
+	},
+	{
+		label: 'Natural Sciences',
+		children: [
+			{ label: 'Physics', degree_areas: ['Physics'] },
+			{ label: 'Chemistry', degree_areas: ['Chemistry'] },
+			{ label: 'Mathematics', degree_areas: ['Mathematics'] },
+			{ label: 'Biology', degree_areas: ['Biology', 'Molecular Biology'] },
+			{ label: 'Biotechnology', degree_areas: ['Biotechnology'] },
+			{ label: 'Environmental Science', degree_areas: ['Environmental Science', 'Environmental Sciences'] },
+			{ label: 'Bio-Medical', degree_areas: ['Bio-Medical'] }
+		]
+	},
+	{
+		label: 'Agriculture & Veterinary',
+		children: [
+			{ label: 'Agriculture', degree_areas: ['Agriculture'] },
+			{ label: 'Agronomy', degree_areas: ['Agronomy'] },
+			{ label: 'Horticulture', degree_areas: ['Horticulture'] },
+			{ label: 'Forestry', degree_areas: ['Forestry'] },
+			{ label: 'Veterinary', degree_areas: ['Veterinary'] }
+		]
+	},
+	{
+		label: 'Clerical & Office',
+		children: [
+			{ label: 'Clerk', q: 'clerk' },
+			{ label: 'Naib Qasid', q: 'naib qasid' },
+			{ label: 'Stenographer', q: 'stenographer' },
+			{ label: 'Data Entry', q: 'data entry' },
+			{ label: 'Office Assistant', q: 'office assistant' },
+			{ label: 'Admin', q: 'admin' },
+			{ label: 'Assistant', q: 'assistant' }
+		]
+	},
+	{
+		label: 'Research & Academia',
+		children: [
+			{ label: 'Research', q: 'research' },
+			{ label: 'Assistant Professor', q: 'assistant professor' },
+			{ label: 'Associate Professor', q: 'associate professor' },
+			{ label: 'Research Fellow', q: 'fellow' }
+		]
+	}
+];
 
-/** Text columns searched by the global `q` keyword (substring + similarity). */
+/** Text columns searched by the global `q` keyword (partial substring, case-insensitive). */
 const SEARCHABLE_TEXT_FIELDS = [
 	'title',
 	'department',
 	'project_program_name',
 	'posted_by',
 	'degree_area',
+	'degrees',
+	'education_level',
 	'employment_type',
+	'place_of_posting',
 	'domicile',
-	'gender'
+	'gender',
+	'grade',
+	'collar',
+	'donor_name',
+	'certifications',
+	'notes'
 ] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
 let browseCountsCache: { data: BrowseByCategoryData; expiresAt: number } | null = null;
-let pgTrgmReady: boolean | null = null;
 
 function parsePositiveInt(value: string | null, fallback: number, max?: number): number {
 	if (!value) return fallback;
@@ -203,88 +412,47 @@ export function filtersAreActive(filters: JobFilters): boolean {
 	);
 }
 
-function containsAnyField(term: string): Prisma.JobPostingsWhereInput[] {
-	return SEARCHABLE_TEXT_FIELDS.map((field) => ({
-		[field]: { contains: term, mode: 'insensitive' as const }
-	})) as Prisma.JobPostingsWhereInput[];
+function partialMatchInField(
+	field: (typeof SEARCHABLE_TEXT_FIELDS)[number],
+	term: string
+): Prisma.JobPostingsWhereInput {
+	return { [field]: { contains: term, mode: 'insensitive' as const } };
 }
 
-function buildKeywordWhere(
-	q: string,
-	similarRowIds: number[] = []
-): Prisma.JobPostingsWhereInput {
-	const phrase = q.trim();
+/** Match when the query appears as a contiguous substring in any searchable column. */
+function partialPhraseInAnyField(phrase: string): Prisma.JobPostingsWhereInput {
+	return {
+		OR: SEARCHABLE_TEXT_FIELDS.map((field) => partialMatchInField(field, phrase))
+	};
+}
+
+/**
+ * Multi-word fallback: every token must partially match within the same column
+ * (avoids cross-field token pairing that made results too broad).
+ */
+function partialTokensInSameField(phrase: string): Prisma.JobPostingsWhereInput | null {
 	const tokens = phrase
 		.split(/\s+/)
-		.map((t) => t.trim())
-		.filter((t) => t.length >= 2)
-		.slice(0, 8);
+		.map((token) => token.trim())
+		.filter(Boolean);
+	if (tokens.length <= 1) return null;
 
-	const or: Prisma.JobPostingsWhereInput[] = [...containsAnyField(phrase)];
+	return {
+		OR: SEARCHABLE_TEXT_FIELDS.map((field) => ({
+			AND: tokens.map((token) => partialMatchInField(field, token))
+		})) as Prisma.JobPostingsWhereInput[]
+	};
+}
 
-	// Multi-word: every token must appear somewhere across searchable fields
-	if (tokens.length > 1) {
-		or.push({
-			AND: tokens.map((token) => ({ OR: containsAnyField(token) }))
-		});
-	} else if (tokens.length === 1 && tokens[0] !== phrase) {
-		or.push(...containsAnyField(tokens[0]));
-	}
+function buildKeywordWhere(q: string): Prisma.JobPostingsWhereInput {
+	const phrase = q.trim();
+	if (!phrase) return { OR: [] };
 
-	if (similarRowIds.length) {
-		or.push({ row_id: { in: similarRowIds } });
-	}
+	const or: Prisma.JobPostingsWhereInput[] = [partialPhraseInAnyField(phrase)];
+	const sameField = partialTokensInSameField(phrase);
+	if (sameField) or.push(sameField);
 
 	return { OR: or };
-}
-
-async function ensurePgTrgm(): Promise<boolean> {
-	if (pgTrgmReady != null) return pgTrgmReady;
-	try {
-		await db.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS pg_trgm');
-		pgTrgmReady = true;
-	} catch (err) {
-		console.warn('pg_trgm unavailable; falling back to substring search', err);
-		pgTrgmReady = false;
-	}
-	return pgTrgmReady;
-}
-
-/** Fuzzy matches via pg_trgm similarity across key text columns. */
-async function findSimilarJobIds(q: string): Promise<number[]> {
-	const phrase = q.trim();
-	if (phrase.length < 2) return [];
-	if (!(await ensurePgTrgm())) return [];
-
-	try {
-		const simClauses = SEARCHABLE_TEXT_FIELDS.map(
-			(field) => `similarity(coalesce("${field}", ''), $1) > $2`
-		);
-		const wordClauses = SEARCHABLE_TEXT_FIELDS.map(
-			(field) => `word_similarity($1, coalesce("${field}", '')) > $2`
-		);
-		const rankExprs = SEARCHABLE_TEXT_FIELDS.flatMap((field) => [
-			`similarity(coalesce("${field}", ''), $1)`,
-			`word_similarity($1, coalesce("${field}", ''))`
-		]);
-
-		const rows = await db.$queryRawUnsafe<{ row_id: number }[]>(
-			`
-			SELECT row_id
-			FROM "JobPostings"
-			WHERE ${[...simClauses, ...wordClauses].join('\n\t\t\t\tOR ')}
-			ORDER BY GREATEST(${rankExprs.join(', ')}) DESC
-			LIMIT $3
-			`,
-			phrase,
-			SIMILARITY_THRESHOLD,
-			SIMILARITY_LIMIT
-		);
-		return rows.map((r) => r.row_id);
-	} catch (err) {
-		console.warn('Similarity search failed', err);
-		return [];
-	}
 }
 
 /** Match a gender kind without treating "female" as "male". */
@@ -313,10 +481,7 @@ function genderMatchWhere(kind: GenderKind): Prisma.JobPostingsWhereInput {
 	return { gender: { contains: 'trans', mode: 'insensitive' } };
 }
 
-export function buildJobWhere(
-	filters: JobFilters,
-	similarRowIds: number[] = []
-): Prisma.JobPostingsWhereInput {
+export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput {
 	const and: Prisma.JobPostingsWhereInput[] = [];
 
 	// Skip inactive when active is set
@@ -400,7 +565,7 @@ export function buildJobWhere(
 	}
 
 	if (filters.q) {
-		and.push(buildKeywordWhere(filters.q, similarRowIds));
+		and.push(buildKeywordWhere(filters.q));
 	}
 
 	if (filters.has_salary) {
@@ -431,8 +596,7 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 }
 
 export async function listJobs(filters: JobFilters) {
-	const similarRowIds = filters.q ? await findSimilarJobIds(filters.q) : [];
-	const where = buildJobWhere(filters, similarRowIds);
+	const where = buildJobWhere(filters);
 	const skip = (filters.page - 1) * filters.pageSize;
 
 	const [rawJobs, total] = await Promise.all([
@@ -615,7 +779,7 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		...new Set([...options.degree_areas, ...options.degrees])
 	].slice(0, FILTER_OPTIONS_CAP);
 
-	const [educationLevels, genders, degreeAreas] = await Promise.all([
+	const [educationLevels, genders, degreeAreas, jobInterestTree] = await Promise.all([
 		Promise.all(
 			options.education_levels.map(async (level) => ({
 				label: level,
@@ -634,6 +798,26 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 				label,
 				count: await countJobsMatching({ degree_areas: [label] })
 			}))
+		),
+		Promise.all(
+			JOB_INTEREST_TAXONOMY.map(async (branch) => {
+				const children = await Promise.all(
+					branch.children.map(async (child) => ({
+						label: child.label,
+						degree_areas: child.degree_areas,
+						q: child.q,
+						count: await countJobsMatching({
+							degree_areas: child.degree_areas ?? [],
+							q: child.q ?? null
+						})
+					}))
+				);
+				return {
+					label: branch.label,
+					count: children.reduce((sum, child) => sum + child.count, 0),
+					children: children.filter((child) => child.count > 0)
+				};
+			})
 		)
 	]);
 
@@ -671,7 +855,8 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		donors,
 		genders,
 		degreeAreas: degreeAreas.filter((item) => item.count > 0),
-		educationLevels
+		educationLevels,
+		jobInterestTree: jobInterestTree.filter((branch) => branch.children.length > 0)
 	};
 	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
 	return data;
