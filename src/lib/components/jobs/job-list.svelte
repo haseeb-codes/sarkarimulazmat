@@ -71,6 +71,8 @@
 
 	let items = $state<Job[]>([]);
 	let loadedPage = $state(1);
+	/** Maps each job slug to the page it was loaded on */
+	let jobPageMap = $state<Map<string, number>>(new Map());
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
@@ -133,8 +135,11 @@
 	/** Reset accumulated list when filters / totals change (not when appending pages). */
 	$effect(() => {
 		void resultKey;
-		items = untrack(() => jobs);
-		loadedPage = untrack(() => filters.page);
+		const initialJobs = untrack(() => jobs);
+		const initialPage = untrack(() => filters.page);
+		items = initialJobs;
+		loadedPage = initialPage;
+		jobPageMap = new Map(initialJobs.map((j) => [j.slug, initialPage]));
 		loadMoreError = null;
 		clearFreshHighlight();
 	});
@@ -165,6 +170,9 @@
 
 			const seen = new Set(items.map((j) => j.slug));
 			const appended = data.jobs.filter((j) => !seen.has(j.slug));
+			const newMap = new Map(jobPageMap);
+			for (const j of appended) newMap.set(j.slug, data.page);
+			jobPageMap = newMap;
 			items = [...items, ...appended];
 			loadedPage = data.page;
 			markFresh(appended.map((j) => j.slug));
@@ -240,13 +248,41 @@
 				{/if}
 			</div>
 		{:else}
-			<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
-				{#each items as job (job.slug)}
-					<li class="mb-3 break-inside-avoid">
-						<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.slug)} />
-					</li>
-				{/each}
-			</ul>
+			{@const pages = (() => {
+				const grouped: { page: number; jobs: Job[] }[] = [];
+				let currentPage = -1;
+				for (const job of items) {
+					const p = jobPageMap.get(job.slug) ?? 1;
+					if (p !== currentPage) {
+						grouped.push({ page: p, jobs: [job] });
+						currentPage = p;
+					} else {
+						grouped[grouped.length - 1].jobs.push(job);
+					}
+				}
+				return grouped;
+			})()}
+
+			{#each pages as group, i (group.page)}
+				{#if i > 0}
+					{@const jobsShownSoFar = pages.slice(0, i).reduce((sum, g) => sum + g.jobs.length, 0) + group.jobs.length}
+					{@const jobsLeft = total - jobsShownSoFar}
+					<div class="flex items-center gap-3 py-2">
+						<div class="h-px flex-1 bg-border"></div>
+						<span class="shrink-0 text-xs font-medium text-muted-foreground">
+							Page {group.page} of {totalPages} ({jobsLeft.toLocaleString()} job{jobsLeft === 1 ? '' : 's'} left)
+						</span>
+						<div class="h-px flex-1 bg-border"></div>
+					</div>
+				{/if}
+				<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
+					{#each group.jobs as job (job.slug)}
+						<li class="mb-3 break-inside-avoid">
+							<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.slug)} />
+						</li>
+					{/each}
+				</ul>
+			{/each}
 
 			{#if loadingMore}
 				<ul

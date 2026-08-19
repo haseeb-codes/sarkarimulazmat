@@ -39,17 +39,17 @@
 					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
 					<span class="hidden sm:inline">Sarkari Mulazmat</span>
 				</a>
+			<div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
 				<a
 					href="/tags"
-					class="shrink-0 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground {isTagsPage
-						? 'text-primary'
-						: 'text-muted-foreground'}"
+					class="shrink-0 rounded-full border px-3 py-1 text-sm font-semibold transition-colors {isTagsPage
+						? 'border-primary bg-primary text-primary-foreground'
+						: 'border-primary/30 bg-primary/10 text-primary hover:border-primary/50 hover:bg-primary/20'}"
 					aria-current={isTagsPage ? 'page' : undefined}
 				>
 					Tags
 				</a>
-				<div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
-					<NavSearch />
+				<NavSearch />
 					<nav class="flex shrink-0 items-center gap-1" aria-label="Site">
 						<ThemeToggle />
 					</nav>
