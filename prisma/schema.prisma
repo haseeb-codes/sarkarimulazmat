@@ -70,54 +70,98 @@ model JobPosting {
 }
 
 model JobPostings {
-  row_id                     Int?
-  slug                       String    @id
-  active                     Boolean?
-  title                      String?
-  department                 String?
-  project_program_name       String?
-  posted_by                  String?
-  employment_type            String?
-  collar                     String?
-  qualification_level        Int?
-  degrees                    String?
-  degree_area                String?
-  education_level            String?
-  education_years            Int?
-  certifications             String?
-  vacancies                  Int?
-  place_of_posting           String?
-  domicile                   String?
-  experience                 Int?
-  max_age                    Int?
-  gender                     String?
-  is_quota_basis             Boolean?
-  female_quota               Boolean?
-  disability_quota           Boolean?
-  minority_quota             Boolean?
-  salary                     Int?
-  last_date_to_apply         DateTime? @db.Date
-  application_online_address String?
-  email                      String?
-  file_path                  String?
-  min_age                    Int?
-  female_headcount           Int?
-  source_file                String?
-  file_creation_date         DateTime? @db.Date
-  province                   Boolean?
-  grade                      String?
-  application_postal_address String?
-  notes                      String?
-  age_relaxation             String?
-  url                        String?
-  ad_code                    String?
-  application_fee            String?
-  male_headcount             Int?
-  news_source                String?
-  donor_name                 String?
-  male_quota                 String?
-  supabase_file_path         String?
-  ad_date                    DateTime? @db.Date
+  row_id                              Int?
+  slug                                String    @id
+  active                              Boolean?
+  title                               String?
+  department                          String?
+  project_program_name                String?
+  employment_type                     String?
+  collar                              String?
+  is_army_officer_required            Int?
+  is_women_only_job                   Int?
+  is_transgender_only_job             Int?
+  is_law_enforcement_job              Int?
+  is_management_job                   Int?
+  is_driver_job                       Int?
+  is_nursing_job                      Int?
+  is_allied_health_job                Int?
+  is_bds_job                          Int?
+  is_dpt_job                          Int?
+  is_naib_qasid_job                   Int?
+  is_cooking_job                      Int?
+  is_computer_science_job             Int?
+  is_information_technology_job       Int?
+  is_llb_job                          Int?
+  is_mbbs_job                         Int?
+  is_pharmacist_job                   Int?
+  is_teaching_job                     Int?
+  is_education_degree_job             Int?
+  is_civil_engineer_job               Int?
+  is_mechanical_engineer_job          Int?
+  is_electrical_engineer_job          Int?
+  is_chemical_metallurgy_engineer_job Int?
+  is_mechatronics_engineer_job        Int?
+  is_aviation_aeronautics_job         Int?
+  is_dae_job                          Int?
+  is_mba_job                          Int?
+  is_mcom_job                         Int?
+  is_bcom_job                         Int?
+  is_commerce_job                     Int?
+  is_accounting_finance_job           Int?
+  is_acca_job                         Int?
+  is_acma_job                         Int?
+  is_statistician_job                 Int?
+  is_data_science_job                 Int?
+  is_agriculture_job                  Int?
+  is_environmental_sciences_job       Int?
+  is_social_science_job               Int?
+  is_psychology_job                   Int?
+  is_islamic_studies_job              Int?
+  is_communication_studies_job        Int?
+  is_economist_job                    Int?
+  qualification_level                 Int?
+  degrees                             String?
+  degree_area                         String?
+  education_level                     String?
+  education_years                     Int?
+  certifications                      String?
+  license_required                    String?
+  vacancies                           Int?
+  place_of_posting                    String?
+  domicile                            String?
+  experience                          Int?
+  max_age                             Int?
+  gender                              String?
+  is_quota_basis                      Boolean?
+  female_quota                        Boolean?
+  disability_quota                    Boolean?
+  minority_quota                      Boolean?
+  salary                              Int?
+  last_date_to_apply                  DateTime? @db.Date
+  application_postal_address          String?
+  application_online_address          String?
+  url                                 String?
+  email                               String?
+  file_path                           String?
+  min_age                             Int?
+  source_file                         String?
+  file_creation_date                  DateTime? @db.Date
+  province                            Boolean?
+  grade                               String?
+  ad_code                             String?
+  notes                               String?
+  posted_by                           String?
+  application_fee                     String?
+  challan_fee_amount                  Int?
+  age_relaxation                      String?
+  donor_name                          String?
+  news_source                         String?
+  female_headcount                    Int?
+  male_quota                          String?
+  male_headcount                      Int?
+  supabase_file_path                  String?
+  ad_date                             DateTime? @db.Date
 }
 
 /// Curated SEO landing pages with preset filters (e.g. /engineering-jobs, /bs-cs)

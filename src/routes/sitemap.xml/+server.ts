@@ -1,4 +1,5 @@
 import db from '$lib/server/db';
+import { JOB_CATEGORY_PAGES, JOB_CATEGORY_SLUGS } from '$lib/job-category-pages';
 import { jobDetailHref } from '$lib/jobs-utils';
 import type { RequestHandler } from './$types';
 
@@ -29,9 +30,23 @@ export const GET: RequestHandler = async ({ url }) => {
 			.catch(() => [] as { slug: string; updated_at: Date }[])
 	]);
 
+	const today = new Date().toISOString().slice(0, 10);
+
 	const urls = [
 		{ loc: `${base}/`, priority: '1.0', lastmod: undefined as string | undefined },
-		...categories.map((c) => ({
+		{
+			loc: `${base}/tags`,
+			lastmod: today,
+			priority: '0.9'
+		},
+		...JOB_CATEGORY_PAGES.map((c) => ({
+			loc: `${base}/${c.slug}`,
+			lastmod: today,
+			priority: '0.9'
+		})),
+		...categories
+			.filter((c) => !JOB_CATEGORY_SLUGS.has(c.slug))
+			.map((c) => ({
 			loc: `${base}/${c.slug}`,
 			lastmod: c.updated_at.toISOString().slice(0, 10),
 			priority: '0.9'

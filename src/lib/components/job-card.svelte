@@ -22,6 +22,7 @@
 		type JobSort,
 	} from "$lib/jobs-utils";
 	import ImageIcon from "@lucide/svelte/icons/image";
+	import BuildingIcon from "@lucide/svelte/icons/building-2";
 
 	type JobCardJob = {
 		row_id: number;
@@ -29,6 +30,7 @@
 		title: string | null;
 		department: string | null;
 		education_level: string | null;
+		project_program_name: string | null;
 		ad_date?: string | Date | null;
 		degree_area: string | null;
 		degrees: string | null;
@@ -49,11 +51,14 @@
 		job,
 		sort = "newest",
 		fresh = false,
+		static: isStatic = false,
 	}: {
 		job: JobCardJob;
 		sort?: JobSort;
 		/** Briefly highlight cards appended by infinite scroll */
 		fresh?: boolean;
+		/** Disable animations (for share/screenshot pages) */
+		static?: boolean;
 	} = $props();
 
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
@@ -109,14 +114,14 @@
 				<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
 						<span
-							class="inline-flex h-5 items-center rounded-full bg-red-100 px-2 text-xs font-semibold text-red-700 animate-pulse dark:bg-red-950/70 dark:text-red-300"
+							class="inline-flex h-5 items-center rounded-full bg-red-100 px-2 text-xs font-semibold text-red-700 dark:bg-red-950/70 dark:text-red-300 {isStatic ? '' : 'animate-pulse'}"
 						>
 							New
 						</span>
 					{/if}
 					{#if job.donor_name}
 						<span
-							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 animate-pulse dark:bg-blue-950/70 dark:text-blue-300"
+							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic ? '' : 'animate-pulse'}"
 						>
 							{job.donor_name}
 						</span>
@@ -153,10 +158,11 @@
 		{#if job.department && departmentHref}
 			<a
 				href={departmentHref}
-				class="line-clamp-2 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline md:text-sm"
+				class="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline md:text-sm"
 				aria-label="Filter by department {job.department}"
 			>
-				{job.department}
+				<BuildingIcon class="size-3.5 shrink-0" title="Department" />
+				<span class="line-clamp-2">{job.department}</span>
 			</a>
 		{/if}
 	</Card.Header>
@@ -171,6 +177,17 @@
 
 	<Card.Content class="space-y-2.5 pt-0">
 		<div class="space-y-2">
+			{#if job.project_program_name?.trim()}
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">Program</p>
+					<MultiValueBadges
+						value={job.project_program_name}
+						{sort}
+						param="program"
+						class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
+					/>
+				</div>
+			{/if}
 			<!-- {#if job.education_level}
 				<div class="space-y-1">
 					<p class="text-xs font-medium text-muted-foreground">

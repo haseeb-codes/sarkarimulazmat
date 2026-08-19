@@ -123,7 +123,8 @@ export function badgeFilterHref(
 		| 'domicile'
 		| 'place_of_posting'
 		| 'education_level'
-		| 'department' = 'degree_areas'
+		| 'department'
+		| 'program' = 'degree_areas'
 ): string {
 	const params = new URLSearchParams();
 	params.set(param, value);
@@ -147,6 +148,7 @@ export type FilterParams = {
 	department?: string | null;
 	collar?: string | null;
 	province?: boolean | null;
+	program?: string | null;
 	q?: string | null;
 	/** Only jobs with a non-null salary */
 	has_salary?: boolean;
@@ -176,6 +178,7 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.department) params.set('department', filters.department);
 	if (filters.collar) params.set('collar', filters.collar);
 	if (filters.province != null) params.set('province', filters.province ? '1' : '0');
+	if (filters.program) params.set('program', filters.program);
 	if (filters.q) params.set('q', filters.q);
 	if (filters.has_salary) params.set('has_salary', '1');
 	if (filters.show_expired) params.set('show_expired', '1');

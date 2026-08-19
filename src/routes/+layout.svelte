@@ -2,11 +2,17 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.ico';
 	import logo from '$lib/assets/logo.png';
+	import { page } from '$app/state';
+	import { isJobCategoryShareSlug } from '$lib/job-category-pages';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
 	import NavSearch from '$lib/components/nav-search.svelte';
 
 	let { children } = $props();
+
+	/** Shareable snapshot pages — no site chrome so the full page fits one screenshot. */
+	const isShareSnapshot = $derived(isJobCategoryShareSlug(page.url.pathname.slice(1)));
+	const isTagsPage = $derived(page.url.pathname === '/tags');
 </script>
 
 <!-- Default light; track={false} so OS preference does not override first visit. -->
@@ -16,6 +22,9 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+{#if isShareSnapshot}
+	{@render children()}
+{:else}
 <div class="flex min-h-svh flex-col">
 	<!-- One shared width shell so header / main / footer edges always match. -->
 	<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4">
@@ -29,6 +38,15 @@
 				>
 					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
 					<span class="hidden sm:inline">Sarkari Mulazmat</span>
+				</a>
+				<a
+					href="/tags"
+					class="shrink-0 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground {isTagsPage
+						? 'text-primary'
+						: 'text-muted-foreground'}"
+					aria-current={isTagsPage ? 'page' : undefined}
+				>
+					Tags
 				</a>
 				<div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
 					<NavSearch />
@@ -55,3 +73,4 @@
 		</footer>
 	</div>
 </div>
+{/if}

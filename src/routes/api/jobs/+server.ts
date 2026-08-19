@@ -10,6 +10,7 @@ function toListJob(job: Awaited<ReturnType<typeof listJobs>>['jobs'][number]) {
 		title: job.title,
 		department: job.department,
 		education_level: job.education_level,
+		project_program_name: job.project_program_name,
 		degree_area: job.degree_area,
 		degrees: job.degrees,
 		grade: job.grade,

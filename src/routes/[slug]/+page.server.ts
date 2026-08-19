@@ -1,5 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getJobCategoryPage } from '$lib/job-category-pages';
+import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
 import db from '$lib/server/db';
 import {
 	getBrowseByCategoryData,
@@ -20,6 +22,17 @@ const emptyBrowse: BrowseByCategoryData = {
 };
 
 export const load: PageServerLoad = async ({ params, url }) => {
+	const jobCategory = getJobCategoryPage(params.slug);
+	if (jobCategory) {
+		const result = await loadJobCategoryJobs(jobCategory.column);
+		return {
+			kind: 'share' as const,
+			category: jobCategory,
+			jobs: result.jobs,
+			updatedAt: result.updatedAt
+		};
+	}
+
 	const category = await db.categoryPage.findUnique({
 		where: { slug: params.slug }
 	});
@@ -51,6 +64,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		department: urlFilters.department,
 		collar: urlFilters.collar,
 		province: urlFilters.province,
+		program: urlFilters.program,
 		has_salary: urlFilters.has_salary
 	};
 
@@ -58,6 +72,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const result = await listJobs(filters);
 
 	return {
+		kind: 'category' as const,
 		category: {
 			slug: category.slug,
 			title: category.title,

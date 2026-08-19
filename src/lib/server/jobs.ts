@@ -32,6 +32,8 @@ export type JobFilters = FilterParams & {
 	collar: string | null;
 	/** Provincial posting flag (DB column is boolean). */
 	province: boolean | null;
+	/** Filter by project/program name */
+	program: string | null;
 	q: string | null;
 	/** Only include postings that have a salary value */
 	has_salary: boolean;
@@ -381,6 +383,7 @@ export function parseJobFilters(url: URL): JobFilters {
 		department: firstParam(url, 'department'),
 		collar: firstParam(url, 'collar'),
 		province: parseOptionalBoolean(firstParam(url, 'province')),
+		program: firstParam(url, 'program'),
 		q: firstParam(url, 'q'),
 		has_salary: url.searchParams.get('has_salary') === '1',
 		show_expired: url.searchParams.get('show_expired') === '1',
@@ -556,6 +559,12 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		and.push({ department: { equals: filters.department, mode: 'insensitive' } });
 	}
 
+	if (filters.program) {
+		and.push({
+			project_program_name: { contains: filters.program, mode: 'insensitive' }
+		});
+	}
+
 	if (filters.collar) {
 		and.push({ collar: { equals: filters.collar, mode: 'insensitive' } });
 	}
@@ -715,6 +724,7 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		department: null,
 		collar: null,
 		province: null,
+		program: null,
 		q: null,
 		has_salary: false,
 		show_expired: false,

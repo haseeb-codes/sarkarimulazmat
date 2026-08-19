@@ -13,6 +13,7 @@
 		title: string | null;
 		department: string | null;
 		education_level: string | null;
+		project_program_name: string | null;
 		ad_date: string | Date | null;
 		degree_area: string | null;
 		degrees: string | null;
@@ -215,11 +216,16 @@
 			<h2 class="text-base font-semibold">
 				{total.toLocaleString()} job{total === 1 ? '' : 's'}
 			</h2>
-			{#if items.length > 0 && items.length < total}
-				<p class="text-sm text-muted-foreground">
-					Showing {items.length.toLocaleString()} of {total.toLocaleString()}
-				</p>
-			{/if}
+			<div class="flex items-center gap-3">
+				{#if filtered}
+					<Button href="/" variant="outline" size="sm">← All jobs</Button>
+				{/if}
+				{#if items.length > 0 && items.length < total}
+					<p class="text-sm text-muted-foreground">
+						Showing {items.length.toLocaleString()} of {total.toLocaleString()}
+					</p>
+				{/if}
+			</div>
 		</div>
 
 		{#if items.length === 0}

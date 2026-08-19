@@ -23,6 +23,7 @@ function filtersSnapshot(filters: JobFilters) {
 		domicile: filters.domicile,
 		department: filters.department,
 		collar: filters.collar,
+		program: filters.program,
 		q: filters.q,
 		has_salary: filters.has_salary,
 		show_expired: filters.show_expired,
