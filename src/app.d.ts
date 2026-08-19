@@ -5,6 +5,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			visitorId?: string;
+			clientIp?: string;
 		}
 		// interface PageData {}
 		// interface PageState {}

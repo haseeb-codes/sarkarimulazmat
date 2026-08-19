@@ -54,7 +54,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const result = await listJobs(filters);
 
 		if (filtersAreActive(filters)) {
-			logSearch(filters, result.total, locals.visitorId);
+			logSearch(filters, result.total, locals.visitorId, locals.clientIp);
 		}
 
 		return {

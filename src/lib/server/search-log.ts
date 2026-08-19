@@ -5,7 +5,8 @@ import type { JobFilters } from '$lib/server/jobs';
 export function logSearch(
 	filters: JobFilters,
 	resultCount: number,
-	visitorId?: string
+	visitorId?: string,
+	ipAddress?: string
 ): void {
 	const payload = {
 		degree_areas: filters.degree_areas,
@@ -23,6 +24,7 @@ export function logSearch(
 		.create({
 			data: {
 				visitor_id: visitorId ?? null,
+				ip_address: ipAddress ?? null,
 				filters: payload,
 				result_count: resultCount
 			}

@@ -183,13 +183,16 @@ model CategoryPage {
 /// Anonymous visitor identity (cookie-linked)
 model Visitor {
   id          String        @id @default(uuid())
+  ip_address  String?       @map("ip_address")
   first_seen  DateTime      @default(now()) @map("first_seen_at")
   last_seen   DateTime      @default(now()) @map("last_seen_at")
   visit_count Int           @default(1)
   user_id     String?       @map("user_id")
   saved       SavedSearch[]
   search_logs SearchLog[]
+  page_views  PageView[]
 
+  @@index([ip_address])
   @@map("visitors")
 }
 
@@ -198,6 +201,7 @@ model SearchLog {
   id           String   @id @default(cuid())
   visitor_id   String?  @map("visitor_id")
   user_id      String?  @map("user_id")
+  ip_address   String?  @map("ip_address")
   filters      Json
   result_count Int      @map("result_count")
   created_at   DateTime @default(now()) @map("created_at")
@@ -205,7 +209,26 @@ model SearchLog {
 
   @@index([created_at])
   @@index([visitor_id])
+  @@index([ip_address])
   @@map("search_logs")
+}
+
+/// Page view log — every link visited, tracked by IP
+model PageView {
+  id         String   @id @default(cuid())
+  visitor_id String?  @map("visitor_id")
+  ip_address String?  @map("ip_address")
+  path       String
+  query      String?
+  referrer   String?
+  created_at DateTime @default(now()) @map("created_at")
+  visitor    Visitor? @relation(fields: [visitor_id], references: [id])
+
+  @@index([created_at])
+  @@index([ip_address])
+  @@index([visitor_id])
+  @@index([path])
+  @@map("page_views")
 }
 
 /// Saved filter sets for anonymous visitors and signed-in users

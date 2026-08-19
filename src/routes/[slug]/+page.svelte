@@ -56,6 +56,9 @@
 	<JobCategorySharePage category={data.category} jobs={data.jobs} updatedAt={data.updatedAt} />
 {:else}
 	<div class="space-y-6">
+		<p class="text-sm text-muted-foreground">
+			<a href="/" class="hover:text-foreground hover:underline">www.sarkarimulazmat.com</a><span>/{data.category.slug}</span>
+		</p>
 		<div class="space-y-3">
 			<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
 			<h1>{data.category.h1}</h1>

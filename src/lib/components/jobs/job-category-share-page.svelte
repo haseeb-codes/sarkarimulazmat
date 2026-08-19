@@ -80,6 +80,10 @@
 					</div>
 				</a>
 
+				<p class="text-sm font-medium text-primary/70">
+					<a href="/" class="hover:underline">{SITE_URL}</a><span>/{category.slug}</span>
+				</p>
+
 				<div class="space-y-1">
 					<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{category.h1}</h1>
 					<p class="text-sm text-muted-foreground sm:text-base">

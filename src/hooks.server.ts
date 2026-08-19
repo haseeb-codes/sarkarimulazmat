@@ -5,7 +5,19 @@ import db from '$lib/server/db';
 const VISITOR_COOKIE = 'visitor_id';
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
 
+function getClientIp(event: Parameters<Handle>[0]['event']): string | undefined {
+	return (
+		event.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+		event.request.headers.get('x-real-ip') ||
+		event.getClientAddress?.() ||
+		undefined
+	);
+}
+
 const visitorHandle: Handle = async ({ event, resolve }) => {
+	const ip = getClientIp(event);
+	event.locals.clientIp = ip;
+
 	let visitorId = event.cookies.get(VISITOR_COOKIE);
 
 	if (!visitorId) {
@@ -18,30 +30,39 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 			maxAge: ONE_YEAR_S
 		});
 
-		// Fire-and-forget create — never block the response
 		db.visitor
 			.create({
-				data: { id: visitorId }
+				data: { id: visitorId, ip_address: ip }
 			})
-			.catch(() => {
-				/* table may not exist yet before migrate */
-			});
+			.catch(() => {});
 	} else {
-		event.locals.visitorId = visitorId;
 		db.visitor
 			.update({
 				where: { id: visitorId },
 				data: {
 					last_seen: new Date(),
-					visit_count: { increment: 1 }
+					visit_count: { increment: 1 },
+					ip_address: ip
 				}
 			})
-			.catch(() => {
-				/* ignore — visitor row may be missing */
-			});
+			.catch(() => {});
 	}
 
 	event.locals.visitorId = visitorId;
+
+	// Fire-and-forget page view log
+	db.pageView
+		.create({
+			data: {
+				visitor_id: visitorId,
+				ip_address: ip,
+				path: event.url.pathname,
+				query: event.url.search || null,
+				referrer: event.request.headers.get('referer') || null
+			}
+		})
+		.catch(() => {});
+
 	return resolve(event);
 };
 
