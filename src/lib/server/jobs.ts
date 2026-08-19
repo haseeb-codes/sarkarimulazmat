@@ -1,5 +1,7 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
+import { getJobCategoryTags } from '$lib/job-category-pages';
+import { countJobCategoryJobs } from '$lib/server/job-category-jobs';
 import {
 	splitMultiValue,
 	toDateKey,
@@ -105,6 +107,7 @@ export type BrowseByCategoryData = {
 	degreeAreas: BrowseDegreeAreaLink[];
 	educationLevels: BrowseEducationLink[];
 	jobInterestTree: BrowseJobInterestBranch[];
+	topTags: { slug: string; label: string; count: number }[];
 };
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -859,6 +862,19 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		})
 		.filter((row): row is BrowseDonorLink => Boolean(row));
 
+	const allTags = getJobCategoryTags();
+	const tagCounts = await Promise.all(
+		allTags.map(async (tag) => ({
+			slug: tag.slug,
+			label: tag.label,
+			count: await countJobCategoryJobs(tag.column)
+		}))
+	);
+	const topTags = tagCounts
+		.filter((t) => t.count > 0)
+		.sort((a, b) => b.count - a.count)
+		.slice(0, 12);
+
 	const data: BrowseByCategoryData = {
 		adDates,
 		postedBy,
@@ -866,7 +882,8 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		genders,
 		degreeAreas: degreeAreas.filter((item) => item.count > 0),
 		educationLevels,
-		jobInterestTree: jobInterestTree.filter((branch) => branch.children.length > 0)
+		jobInterestTree: jobInterestTree.filter((branch) => branch.children.length > 0),
+		topTags
 	};
 	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
 	return data;

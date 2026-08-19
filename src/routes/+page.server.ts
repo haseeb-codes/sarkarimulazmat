@@ -40,7 +40,8 @@ const emptyBrowse: BrowseByCategoryData = {
 	genders: [],
 	degreeAreas: [],
 	educationLevels: [],
-	jobInterestTree: []
+	jobInterestTree: [],
+	topTags: []
 };
 
 export const load: PageServerLoad = async ({ url, locals }) => {

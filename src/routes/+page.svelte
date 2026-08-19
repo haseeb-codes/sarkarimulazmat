@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import EducationChipsAsync from '$lib/components/jobs/education-chips-async.svelte';
+	import TagChipsAsync from '$lib/components/jobs/tag-chips-async.svelte';
 	import JobInterestTreeAsync from '$lib/components/jobs/job-interest-tree-async.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 
@@ -49,6 +50,8 @@
 	</div>
 
 	<EducationChipsAsync browse={data.browse} />
+
+	<TagChipsAsync browse={data.browse} />
 
 	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 		<div class="min-w-0">
