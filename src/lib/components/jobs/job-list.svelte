@@ -28,6 +28,8 @@
 		max_age: number | null;
 		last_date_to_apply: string | Date | null;
 		supabase_file_path?: string | null;
+		application_online_address?: string | null;
+		email?: string | null;
 	};
 
 	type Filters = {

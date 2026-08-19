@@ -273,3 +273,30 @@ export function getJobAdKind(
 export function getJobAdImageUrl(supabaseFilePath: string | null | undefined): string | null {
 	return getJobAdUrl(supabaseFilePath);
 }
+
+export type JobApplyLink = {
+	href: string;
+	label: string;
+	kind: 'url' | 'email';
+};
+
+/**
+ * Prefer `application_online_address` as an http(s) link; if that is empty, use `email`.
+ */
+export function getJobApplyLink(
+	applicationOnlineAddress: string | null | undefined,
+	email: string | null | undefined
+): JobApplyLink | null {
+	const online = applicationOnlineAddress?.trim();
+	if (online && !/^(javascript|data|vbscript):/i.test(online)) {
+		const href = /^https?:\/\//i.test(online) ? online : `https://${online}`;
+		return { href, label: online, kind: 'url' };
+	}
+
+	const mail = email?.trim();
+	if (mail) {
+		return { href: `mailto:${mail}`, label: mail, kind: 'email' };
+	}
+
+	return null;
+}

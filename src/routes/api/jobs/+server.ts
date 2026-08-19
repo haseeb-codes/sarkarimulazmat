@@ -26,7 +26,9 @@ function toListJob(job: Awaited<ReturnType<typeof listJobs>>['jobs'][number]) {
 		last_date_to_apply: job.last_date_to_apply
 			? job.last_date_to_apply.toISOString().slice(0, 10)
 			: null,
-		supabase_file_path: job.supabase_file_path
+		supabase_file_path: job.supabase_file_path,
+		application_online_address: job.application_online_address,
+		email: job.email
 	};
 }
 

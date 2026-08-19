@@ -14,6 +14,7 @@
 		formatDateLabel,
 		formatSalary,
 		getJobAdUrl,
+		getJobApplyLink,
 		isRecentAd,
 		isClosingSoon,
 		isJobExpired,
@@ -23,6 +24,8 @@
 	} from "$lib/jobs-utils";
 	import ImageIcon from "@lucide/svelte/icons/image";
 	import BuildingIcon from "@lucide/svelte/icons/building-2";
+	import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
+	import MailIcon from "@lucide/svelte/icons/mail";
 
 	type JobCardJob = {
 		row_id: number;
@@ -45,6 +48,8 @@
 		max_age: number | null;
 		last_date_to_apply: string | Date | null;
 		supabase_file_path?: string | null;
+		application_online_address?: string | null;
+		email?: string | null;
 	};
 
 	let {
@@ -85,6 +90,9 @@
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const whiteCollar = $derived(job.collar?.trim().toLowerCase() === "white");
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	const applyLink = $derived(
+		getJobApplyLink(job.application_online_address, job.email),
+	);
 	const cardAccentClass = $derived(
 		fresh
 			? "job-card-fresh ring-2 ring-primary/70"
@@ -294,6 +302,26 @@
 					>
 						{applyByLabel}
 					</span>
+				</span>
+			{/if}
+			{#if applyLink}
+				<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+					<span class="text-xs font-medium text-muted-foreground"
+						>Apply</span
+					>
+					<a
+						href={applyLink.href}
+						target={applyLink.kind === "url" ? "_blank" : undefined}
+						rel={applyLink.kind === "url" ? "noopener noreferrer" : undefined}
+						class="inline-flex min-w-0 max-w-full items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
+					>
+						{#if applyLink.kind === "email"}
+							<MailIcon class="size-3.5 shrink-0" />
+						{:else}
+							<ExternalLinkIcon class="size-3.5 shrink-0" />
+						{/if}
+						<span class="truncate">{applyLink.label}</span>
+					</a>
 				</span>
 			{/if}
 		</div>
