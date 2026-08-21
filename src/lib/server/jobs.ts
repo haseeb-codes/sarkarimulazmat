@@ -1,6 +1,7 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
-import { getJobCategoryTags } from '$lib/job-category-pages';
+import { getJobCategoryPage, getJobCategoryTags } from '$lib/job-category-pages';
+import { getDomicileRegion, selectedDomicileRegions } from '$lib/domicile-regions';
 import { countJobCategoryJobs } from '$lib/server/job-category-jobs';
 import {
 	splitMultiValue,
@@ -8,9 +9,21 @@ import {
 	formatDateLabel,
 	parseGenderFilter,
 	GENDER_BROWSE_LINKS,
+	isAgeFilterActive,
+	isQualificationFilterActive,
+	resolvedAgeFrom,
+	resolvedAgeTo,
+	resolvedQualificationFrom,
+	resolvedQualificationTo,
+	clampAgeFilter,
+	selectedDomiciles,
+	selectedTags,
 	type JobSort,
 	type FilterParams,
-	type GenderKind
+	type GenderKind,
+	type AgeMaxPreset,
+	QUALIFICATION_LEVEL_MIN,
+	QUALIFICATION_LEVEL_MAX
 } from '$lib/jobs-utils';
 
 export type { JobSort };
@@ -23,12 +36,19 @@ export type JobFilters = FilterParams & {
 	posted_by: string | null;
 	donor_name: string | null;
 	gender: GenderKind | null;
-	qualification_level: number | null;
+	qualification_from: number | null;
+	qualification_to: number | null;
 	grade: string | null;
-	/** User's age — matched two-sided against job min_age/max_age */
+	/** @deprecated Legacy single-age filter */
 	age: number | null;
+	age_from: number | null;
+	age_to: number | null;
+	include_no_max_age: boolean;
+	age_max: AgeMaxPreset | null;
 	place_of_posting: string | null;
-	domicile: string | null;
+	domicile: string[];
+	domicile_region: string[];
+	tag: string[];
 	department: string | null;
 	/** White / Blue / Grey collar */
 	collar: string | null;
@@ -36,9 +56,14 @@ export type JobFilters = FilterParams & {
 	province: boolean | null;
 	/** Filter by project/program name */
 	program: string | null;
+	keyword: string | null;
 	q: string | null;
 	/** Only include postings that have a salary value */
 	has_salary: boolean;
+	/** @deprecated Prefer salary_from */
+	min_salary: number | null;
+	salary_from: number | null;
+	salary_to: number | null;
 	show_expired: boolean;
 	sort: JobSort;
 	page: number;
@@ -52,6 +77,7 @@ export type FilterOptions = {
 	grades: string[];
 	places: string[];
 	domiciles: string[];
+	salary_max: number;
 };
 
 export type BrowseEducationLink = {
@@ -306,6 +332,13 @@ const JOB_INTEREST_TAXONOMY: {
 	}
 ];
 
+/** Text columns searched by the drawer keyword filter. */
+const PRIMARY_KEYWORD_FIELDS = [
+	'title',
+	'department',
+	'project_program_name'
+] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
+
 /** Text columns searched by the global `q` keyword (partial substring, case-insensitive). */
 const SEARCHABLE_TEXT_FIELDS = [
 	'title',
@@ -344,6 +377,13 @@ function parseOptionalPositiveInt(value: string | null): number | null {
 	return n;
 }
 
+function parseOptionalQualificationLevel(value: string | null): number | null {
+	if (!value) return null;
+	const n = Number.parseInt(value, 10);
+	if (!Number.isFinite(n) || n < 0 || n > 7) return null;
+	return n;
+}
+
 function parseOptionalBoolean(value: string | null): boolean | null {
 	if (!value) return null;
 	const key = value.trim().toLowerCase();
@@ -357,19 +397,65 @@ function firstParam(url: URL, key: string): string | null {
 	return v ? v : null;
 }
 
-/** Collect multi-value degree_areas from repeated params and/or a single comma-separated param. */
-function parseDegreeAreas(url: URL): string[] {
-	const all = url.searchParams.getAll('degree_areas');
+/** Collect multi-value params from repeated keys and/or comma-separated entries. */
+function parseMultiParam(url: URL, key: string): string[] {
+	const all = url.searchParams.getAll(key);
 	const parts: string[] = [];
 	for (const entry of all) {
 		parts.push(...splitMultiValue(entry));
 	}
-	return parts;
+	return selectedDomiciles({ domicile: parts });
+}
+
+/** Collect multi-value degree_areas from repeated params and/or a single comma-separated param. */
+function parseDegreeAreas(url: URL): string[] {
+	return parseMultiParam(url, 'degree_areas');
+}
+
+function parseAgeFrom(url: URL): number | null {
+	const fromParam = parseOptionalPositiveInt(firstParam(url, 'age_from'));
+	if (fromParam != null) return clampAgeFilter(fromParam);
+	const legacy = parseOptionalPositiveInt(firstParam(url, 'age'));
+	return legacy != null ? clampAgeFilter(legacy) : null;
+}
+
+function parseAgeTo(url: URL): number | null {
+	const toParam = parseOptionalPositiveInt(firstParam(url, 'age_to'));
+	if (toParam != null) return clampAgeFilter(toParam);
+	const legacy = parseOptionalPositiveInt(firstParam(url, 'age'));
+	return legacy != null ? clampAgeFilter(legacy) : null;
+}
+
+function parseAgeMax(url: URL): AgeMaxPreset | null {
+	const value = firstParam(url, 'age_max');
+	if (!value) return null;
+	const key = value.trim().toLowerCase();
+	if (key === '60plus' || key === '60+') return '60plus';
+	const n = Number.parseInt(value, 10);
+	if (n === 30 || n === 45 || n === 60) return n;
+	return null;
+}
+
+function parseIncludeNoMaxAge(url: URL): boolean {
+	const value = firstParam(url, 'include_no_max_age');
+	return value !== '0' && value !== 'false';
+}
+
+function parseQualificationFrom(url: URL): number | null {
+	return parseOptionalQualificationLevel(firstParam(url, 'qualification_from'));
+}
+
+function parseQualificationTo(url: URL): number | null {
+	const toParam = parseOptionalQualificationLevel(firstParam(url, 'qualification_to'));
+	if (toParam != null) return toParam;
+	return parseOptionalQualificationLevel(firstParam(url, 'qualification_level'));
 }
 
 export function parseJobFilters(url: URL): JobFilters {
 	const sortParam = firstParam(url, 'sort');
 	const sort: JobSort = sortParam === 'closing_soon' ? 'closing_soon' : 'newest';
+	const ageFrom = parseAgeFrom(url);
+	const ageTo = parseAgeTo(url);
 
 	return {
 		degree_areas: parseDegreeAreas(url),
@@ -378,17 +464,32 @@ export function parseJobFilters(url: URL): JobFilters {
 		posted_by: firstParam(url, 'posted_by'),
 		donor_name: firstParam(url, 'donor_name'),
 		gender: parseGenderFilter(firstParam(url, 'gender')),
-		qualification_level: parseOptionalPositiveInt(firstParam(url, 'qualification_level')),
+		qualification_from: parseQualificationFrom(url),
+		qualification_to: parseQualificationTo(url),
 		grade: firstParam(url, 'grade'),
 		age: parseOptionalPositiveInt(firstParam(url, 'age')),
+		age_from: ageFrom,
+		age_to: ageTo,
+		include_no_max_age: parseIncludeNoMaxAge(url),
+		age_max: parseAgeMax(url),
 		place_of_posting: firstParam(url, 'place_of_posting'),
-		domicile: firstParam(url, 'domicile'),
+		domicile: parseMultiParam(url, 'domicile'),
+		domicile_region: selectedDomicileRegions({
+			domicile_region: url.searchParams.getAll('domicile_region')
+		}),
+		tag: selectedTags({ tag: url.searchParams.getAll('tag') }),
 		department: firstParam(url, 'department'),
 		collar: firstParam(url, 'collar'),
 		province: parseOptionalBoolean(firstParam(url, 'province')),
 		program: firstParam(url, 'program'),
+		keyword: firstParam(url, 'keyword'),
 		q: firstParam(url, 'q'),
 		has_salary: url.searchParams.get('has_salary') === '1',
+		min_salary: parseOptionalPositiveInt(firstParam(url, 'min_salary')),
+		salary_from:
+			parseOptionalPositiveInt(firstParam(url, 'salary_from')) ??
+			parseOptionalPositiveInt(firstParam(url, 'min_salary')),
+		salary_to: parseOptionalPositiveInt(firstParam(url, 'salary_to')),
 		show_expired: url.searchParams.get('show_expired') === '1',
 		sort,
 		page: parsePositiveInt(firstParam(url, 'page'), 1),
@@ -404,25 +505,60 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.posted_by ||
 			filters.donor_name ||
 			filters.gender ||
-			filters.qualification_level ||
+			isQualificationFilterActive(filters) ||
 			filters.grade ||
-			filters.age ||
+			isAgeFilterActive(filters) ||
 			filters.place_of_posting ||
-			filters.domicile ||
+			filters.domicile.length ||
+			filters.domicile_region.length ||
+			filters.tag.length ||
 			filters.department ||
 			filters.collar ||
 			filters.province != null ||
+			filters.keyword ||
 			filters.q ||
 			filters.has_salary ||
+			filters.min_salary != null ||
+			filters.salary_from != null ||
+			filters.salary_to != null ||
 			filters.show_expired
 	);
 }
 
-function partialMatchInField(
-	field: (typeof SEARCHABLE_TEXT_FIELDS)[number],
-	term: string
-): Prisma.JobPostingsWhereInput {
+type KeywordField =
+	| (typeof SEARCHABLE_TEXT_FIELDS)[number]
+	| (typeof PRIMARY_KEYWORD_FIELDS)[number];
+
+function partialMatchInField(field: KeywordField, term: string): Prisma.JobPostingsWhereInput {
 	return { [field]: { contains: term, mode: 'insensitive' as const } };
+}
+
+function buildKeywordWhereForFields(
+	fields: readonly KeywordField[],
+	q: string
+): Prisma.JobPostingsWhereInput {
+	const phrase = q.trim();
+	if (!phrase) return { OR: [] };
+
+	const or: Prisma.JobPostingsWhereInput[] = [
+		{
+			OR: fields.map((field) => partialMatchInField(field, phrase))
+		}
+	];
+
+	const tokens = phrase
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	if (tokens.length > 1) {
+		or.push({
+			OR: fields.map((field) => ({
+				AND: tokens.map((token) => partialMatchInField(field, token))
+			})) as Prisma.JobPostingsWhereInput[]
+		});
+	}
+
+	return { OR: or };
 }
 
 /** Match when the query appears as a contiguous substring in any searchable column. */
@@ -513,8 +649,15 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		});
 	}
 
-	if (filters.qualification_level != null) {
-		and.push({ qualification_level: filters.qualification_level });
+	if (isQualificationFilterActive(filters)) {
+		const from = resolvedQualificationFrom(filters);
+		const to = resolvedQualificationTo(filters);
+		and.push({
+			qualification_level: {
+				...(from > QUALIFICATION_LEVEL_MIN ? { gte: from } : {}),
+				...(to < QUALIFICATION_LEVEL_MAX ? { lte: to } : {})
+			}
+		});
 	}
 
 	if (filters.ad_date) {
@@ -533,19 +676,44 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		and.push(genderMatchWhere(filters.gender));
 	}
 
-	// Grade — exact match against distinct values
+	// Grade — exact match against grade_derived distinct values
 	if (filters.grade) {
-		and.push({ grade: { equals: filters.grade, mode: 'insensitive' } });
+		and.push({ grade_derived: { equals: filters.grade, mode: 'insensitive' } });
 	}
 
-	// Two-sided age eligibility: job.min_age <= userAge (or null) AND job.max_age >= userAge (or null)
-	if (filters.age != null) {
-		and.push({
+	// Age: badge presets (job max_age) first, then legacy slider / single age
+	if (filters.age_max === '60plus') {
+		and.push({ max_age: { gte: 60 } });
+	} else if (filters.age_max != null) {
+		and.push({ max_age: { lte: filters.age_max } });
+	} else if (isAgeFilterActive(filters)) {
+		const ageFrom = resolvedAgeFrom(filters);
+		const ageTo = resolvedAgeTo(filters);
+		const includeNoMaxAge = filters.include_no_max_age !== false;
+
+		const withMaxAge: Prisma.JobPostingsWhereInput = {
 			AND: [
-				{ OR: [{ min_age: null }, { min_age: { lte: filters.age } }] },
-				{ OR: [{ max_age: null }, { max_age: { gte: filters.age } }] }
+				{ max_age: { not: null } },
+				{ OR: [{ min_age: null }, { min_age: { lte: ageTo } }] },
+				{ max_age: { gte: ageFrom } }
 			]
-		});
+		};
+
+		if (includeNoMaxAge) {
+			and.push({
+				OR: [
+					withMaxAge,
+					{
+						AND: [
+							{ max_age: null },
+							{ OR: [{ min_age: null }, { min_age: { lte: ageTo } }] }
+						]
+					}
+				]
+			});
+		} else {
+			and.push(withMaxAge);
+		}
 	}
 
 	if (filters.place_of_posting) {
@@ -554,8 +722,32 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		});
 	}
 
-	if (filters.domicile) {
-		and.push({ domicile: { contains: filters.domicile, mode: 'insensitive' } });
+	if (filters.domicile.length) {
+		and.push({
+			OR: filters.domicile.map((value) => ({
+				domicile: { contains: value, mode: 'insensitive' as const }
+			}))
+		});
+	}
+
+	if (filters.domicile_region.length) {
+		const regionOr: Prisma.JobPostingsWhereInput[] = [];
+		for (const key of filters.domicile_region) {
+			const region = getDomicileRegion(key);
+			if (region) regionOr.push({ [region.column]: 1 });
+		}
+		if (regionOr.length) and.push({ OR: regionOr });
+	}
+
+	if (filters.tag.length) {
+		const tagOr: Prisma.JobPostingsWhereInput[] = [];
+		for (const slug of filters.tag) {
+			const category = getJobCategoryPage(slug);
+			if (category) {
+				tagOr.push({ [category.column]: 1 });
+			}
+		}
+		if (tagOr.length) and.push({ OR: tagOr });
 	}
 
 	if (filters.department) {
@@ -576,12 +768,30 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		and.push({ province: filters.province });
 	}
 
+	if (filters.keyword) {
+		and.push(buildKeywordWhereForFields(PRIMARY_KEYWORD_FIELDS, filters.keyword));
+	}
+
 	if (filters.q) {
 		and.push(buildKeywordWhere(filters.q));
 	}
 
-	if (filters.has_salary) {
-		and.push({ salary: { not: null } });
+	const salaryFrom = filters.salary_from ?? filters.min_salary;
+	const salaryTo = filters.salary_to;
+	if (salaryFrom != null || salaryTo != null) {
+		const listed: Prisma.JobPostingsWhereInput = {
+			salary_estimated: {
+				...(salaryFrom != null && salaryFrom > 0 ? { gte: salaryFrom } : {}),
+				...(salaryTo != null ? { lte: salaryTo } : {})
+			}
+		};
+		if (salaryFrom == null || salaryFrom <= 0) {
+			and.push({ OR: [listed, { salary_estimated: null }] });
+		} else {
+			and.push(listed);
+		}
+	} else if (filters.has_salary) {
+		and.push({ salary_estimated: { not: null } });
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -678,32 +888,88 @@ function distinctStrings(values: (string | null)[], cap = FILTER_OPTIONS_CAP): s
 		.map((x) => x.label);
 }
 
+/** Unique grade_derived values from active postings, sorted A–Z (case-insensitive). */
+function distinctGradesAlphabetical(values: (string | null)[]): string[] {
+	const seen = new Map<string, string>();
+	for (const value of values) {
+		const trimmed = value?.trim();
+		if (!trimmed) continue;
+		const key = trimmed.toLowerCase();
+		if (!seen.has(key)) seen.set(key, trimmed);
+	}
+	return [...seen.values()].sort((a, b) =>
+		a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
+	);
+}
+
+/** Unique labels from possibly comma-delimited fields, sorted A–Z. */
+function distinctLabelsAlphabetical(values: (string | null)[]): string[] {
+	const seen = new Map<string, string>();
+	for (const value of values) {
+		for (const part of splitMultiValue(value)) {
+			if (part.toUpperCase() === 'NA' || part === '-') continue;
+			const key = part.toLowerCase();
+			if (!seen.has(key)) seen.set(key, part);
+		}
+	}
+	return [...seen.values()].sort((a, b) =>
+		a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
+	);
+}
+
 export async function getFilterOptions(): Promise<FilterOptions> {
 	const now = Date.now();
 	if (filterOptionsCache && filterOptionsCache.expiresAt > now) {
 		return filterOptionsCache.data;
 	}
 
-	const rows = await db.jobPostings.findMany({
-		where: { OR: [{ active: true }, { active: null }] },
-		select: {
-			degree_area: true,
-			degrees: true,
-			education_level: true,
-			grade: true,
-			place_of_posting: true,
-			domicile: true
-		},
-		take: 2000
-	});
+	const [rows, gradeRows, domicileRows, salaryAgg] = await Promise.all([
+		db.jobPostings.findMany({
+			where: { OR: [{ active: true }, { active: null }] },
+			select: {
+				degree_area: true,
+				degrees: true,
+				education_level: true,
+				place_of_posting: true
+			},
+			take: 2000
+		}),
+		db.jobPostings.findMany({
+			where: {
+				AND: [
+					{ OR: [{ active: true }, { active: null }] },
+					{ grade_derived: { not: null } }
+				]
+			},
+			select: { grade_derived: true },
+			distinct: ['grade_derived']
+		}),
+		db.jobPostings.findMany({
+			where: {
+				AND: [{ OR: [{ active: true }, { active: null }] }, { domicile: { not: null } }]
+			},
+			select: { domicile: true },
+			distinct: ['domicile']
+		}),
+		db.jobPostings.aggregate({
+			where: {
+				AND: [
+					{ OR: [{ active: true }, { active: null }] },
+					{ salary_estimated: { not: null } }
+				]
+			},
+			_max: { salary_estimated: true }
+		})
+	]);
 
 	const data: FilterOptions = {
 		degree_areas: frequencyRank(rows.map((r) => r.degree_area ?? '')),
 		degrees: frequencyRank(rows.map((r) => r.degrees ?? '')),
 		education_levels: frequencyRank(rows.map((r) => r.education_level ?? '')),
-		grades: distinctStrings(rows.map((r) => r.grade)),
+		grades: distinctGradesAlphabetical(gradeRows.map((r) => r.grade_derived)),
 		places: frequencyRank(rows.map((r) => r.place_of_posting ?? '')),
-		domiciles: distinctStrings(rows.map((r) => r.domicile))
+		domiciles: distinctLabelsAlphabetical(domicileRows.map((r) => r.domicile)),
+		salary_max: salaryAgg._max.salary_estimated ?? 0
 	};
 
 	filterOptionsCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
@@ -719,17 +985,28 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		posted_by: null,
 		donor_name: null,
 		gender: null,
-		qualification_level: null,
+		qualification_from: null,
+		qualification_to: null,
 		grade: null,
 		age: null,
+		age_from: null,
+		age_to: null,
+		include_no_max_age: true,
+		age_max: null,
 		place_of_posting: null,
-		domicile: null,
+		domicile: [],
+		domicile_region: [],
+		tag: [],
 		department: null,
 		collar: null,
 		province: null,
 		program: null,
+		keyword: null,
 		q: null,
 		has_salary: false,
+		min_salary: null,
+		salary_from: null,
+		salary_to: null,
 		show_expired: false,
 		sort: 'newest',
 		page: 1,

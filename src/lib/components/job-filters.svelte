@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
-	import { filtersToHref, type FilterParams, type JobSort } from '$lib/jobs-utils';
+	import { filtersToHref, selectedDomiciles, type FilterParams, type JobSort } from '$lib/jobs-utils';
 
 	type Options = {
 		degree_areas: string[];
@@ -21,10 +21,11 @@
 		grade: string | null;
 		age: number | null;
 		place_of_posting: string | null;
-		domicile: string | null;
+		domicile: string[];
 		department?: string | null;
 		collar?: string | null;
 		has_salary?: boolean;
+		min_salary?: number | null;
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;
@@ -63,6 +64,7 @@
 			department: next.department !== undefined ? next.department : filters.department,
 			collar: next.collar !== undefined ? next.collar : filters.collar,
 			has_salary: next.has_salary !== undefined ? next.has_salary : filters.has_salary,
+			min_salary: next.min_salary !== undefined ? next.min_salary : filters.min_salary,
 			q: next.q !== undefined ? next.q : filters.q,
 			show_expired:
 				next.show_expired !== undefined ? next.show_expired : filters.show_expired,
@@ -99,13 +101,49 @@
 			(filters.grade ? 1 : 0) +
 			(filters.age ? 1 : 0) +
 			(filters.place_of_posting ? 1 : 0) +
-			(filters.domicile ? 1 : 0) +
+			(filters.domicile.length ? 1 : 0) +
 			(filters.q ? 1 : 0) +
 			(filters.show_expired ? 1 : 0)
 	);
 
 	const degreeOptions = $derived(
 		[...new Set([...options.degree_areas, ...options.degrees])].slice(0, 50)
+	);
+
+	const gradeOptions = $derived.by(() => {
+		const grades = new Map<string, string>();
+		for (const grade of options.grades) {
+			grades.set(grade.toLowerCase(), grade);
+		}
+		if (filters.grade) {
+			const key = filters.grade.toLowerCase();
+			if (!grades.has(key)) grades.set(key, filters.grade);
+		}
+		return [...grades.values()].sort((a, b) =>
+			a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
+		);
+	});
+
+	const selectedDomicileValues = $derived(selectedDomiciles(filters));
+	const domicileOptions = $derived.by(() => {
+		const domiciles = new Map<string, string>();
+		for (const domicile of options.domiciles) {
+			domiciles.set(domicile.toLowerCase(), domicile);
+		}
+		for (const domicile of selectedDomicileValues) {
+			const key = domicile.toLowerCase();
+			if (!domiciles.has(key)) domiciles.set(key, domicile);
+		}
+		return [...domiciles.values()].sort((a, b) =>
+			a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
+		);
+	});
+	const domicileTriggerLabel = $derived(
+		selectedDomicileValues.length === 0
+			? 'Any domicile'
+			: selectedDomicileValues.length === 1
+				? selectedDomicileValues[0]
+				: `${selectedDomicileValues.length} selected`
 	);
 </script>
 
@@ -171,7 +209,7 @@
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="" label="Any grade">Any grade</Select.Item>
-						{#each options.grades as g (g)}
+						{#each gradeOptions as g (g)}
 							<Select.Item value={g} label={g}>{g}</Select.Item>
 						{/each}
 					</Select.Content>
@@ -237,16 +275,15 @@
 			<div class="space-y-2">
 				<Label for="domicile">Domicile</Label>
 				<Select.Root
-					type="single"
-					value={filters.domicile ?? undefined}
-					onValueChange={(v) => navigate({ domicile: v || null, page: 1 })}
+					type="multiple"
+					value={selectedDomicileValues}
+					onValueChange={(v) => navigate({ domicile: v, page: 1 })}
 				>
 					<Select.Trigger id="domicile" class="w-full">
-						{filters.domicile ?? 'Any domicile'}
+						<span class="truncate">{domicileTriggerLabel}</span>
 					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="" label="Any domicile">Any domicile</Select.Item>
-						{#each options.domiciles as d (d)}
+					<Select.Content class="max-h-72">
+						{#each domicileOptions as d (d)}
 							<Select.Item value={d} label={d}>{d}</Select.Item>
 						{/each}
 					</Select.Content>

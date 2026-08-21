@@ -504,6 +504,12 @@ export function getJobCategoryTags(): JobCategoryTag[] {
 	})).sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
 }
 
+export function getJobCategoryTagLabel(slug: string): string {
+	const page = getJobCategoryPage(slug);
+	if (!page) return slug;
+	return JOB_CATEGORY_LABELS[page.slug] ?? page.h1.replace(/\s+government jobs in Pakistan$/i, '');
+}
+
 export const SITE_NAME = 'Sarkari Mulazmat';
 export const SITE_URL = 'www.sarkarimulazmat.com';
 export const SITE_HREF = 'https://www.sarkarimulazmat.com';

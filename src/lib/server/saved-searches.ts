@@ -1,7 +1,20 @@
 import db from '$lib/server/db';
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import type { JobFilters } from '$lib/server/jobs';
-import { filtersToSearchParams } from '$lib/jobs-utils';
+import {
+	filtersToSearchParams,
+	isAgeFilterActive,
+	isQualificationFilterActive,
+	resolvedAgeFrom,
+	resolvedAgeTo,
+	resolvedQualificationFrom,
+	resolvedQualificationTo,
+	selectedDomiciles,
+	selectedTags,
+	formatQualificationLevel
+} from '$lib/jobs-utils';
+import { getJobCategoryTagLabel } from '$lib/job-category-pages';
+import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
 
 const MAX_SAVED = 10;
 
@@ -17,11 +30,39 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 	if (filters.degree_areas?.length) parts.push(filters.degree_areas.join(', '));
 	if (filters.education_level) parts.push(filters.education_level);
 	if (filters.grade) parts.push(filters.grade);
-	if (filters.age) parts.push(`age ${filters.age}`);
+	if (filters.age_max === '60plus') parts.push('age 60+');
+	else if (filters.age_max) parts.push(`age ≤${filters.age_max}`);
+	else if (isAgeFilterActive(filters)) {
+		const from = resolvedAgeFrom(filters);
+		const to = resolvedAgeTo(filters);
+		parts.push(`age ${from}–${to}`);
+		if (filters.include_no_max_age === false) parts.push('max age required');
+	}
 	if (filters.place_of_posting) parts.push(filters.place_of_posting);
-	if (filters.domicile) parts.push(filters.domicile);
-	if (filters.has_salary) parts.push('with salary');
+	const domiciles = selectedDomiciles(filters);
+	if (domiciles.length) parts.push(domiciles.join(', '));
+	const regions = selectedDomicileRegions(filters);
+	if (regions.length) parts.push(regions.map((key) => getDomicileRegionLabel(key)).join(', '));
+	const tags = selectedTags(filters);
+	if (tags.length) parts.push(tags.map((slug) => getJobCategoryTagLabel(slug)).join(', '));
+	if (filters.min_salary != null || filters.salary_from != null || filters.salary_to != null) {
+		const from = filters.salary_from ?? filters.min_salary;
+		const to = filters.salary_to;
+		if (from != null && to != null) {
+			parts.push(`salary ${from.toLocaleString('en-PK')}–${to.toLocaleString('en-PK')}`);
+		} else if (from != null) {
+			parts.push(`salary ${from.toLocaleString('en-PK')}+`);
+		} else if (to != null) {
+			parts.push(`salary up to ${to.toLocaleString('en-PK')}`);
+		}
+	} else if (filters.has_salary) parts.push('with salary');
+	if (isQualificationFilterActive(filters)) {
+		const from = resolvedQualificationFrom(filters);
+		const to = resolvedQualificationTo(filters);
+		parts.push(`qualification ${formatQualificationLevel(from)}–${formatQualificationLevel(to)}`);
+	}
 	if (filters.q) parts.push(`"${filters.q}"`);
+	else if (filters.keyword) parts.push(`"${filters.keyword}"`);
 	return parts.length ? parts.join(' · ') : 'Saved search';
 }
 
@@ -29,15 +70,26 @@ function filtersToStored(filters: JobFilters): Prisma.InputJsonValue {
 	return {
 		degree_areas: filters.degree_areas,
 		education_level: filters.education_level,
-		qualification_level: filters.qualification_level,
+		qualification_from: filters.qualification_from,
+		qualification_to: filters.qualification_to,
 		grade: filters.grade,
 		age: filters.age,
+		age_from: filters.age_from,
+		age_to: filters.age_to,
+		include_no_max_age: filters.include_no_max_age,
+		age_max: filters.age_max,
 		place_of_posting: filters.place_of_posting,
 		domicile: filters.domicile,
+		domicile_region: filters.domicile_region,
+		tag: filters.tag,
 		department: filters.department,
 		collar: filters.collar,
 		province: filters.province,
 		has_salary: filters.has_salary,
+		min_salary: filters.min_salary,
+		salary_from: filters.salary_from,
+		salary_to: filters.salary_to,
+		keyword: filters.keyword,
 		q: filters.q,
 		show_expired: filters.show_expired,
 		sort: filters.sort
@@ -52,19 +104,32 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 	});
 
 	return rows.map((row) => {
-		const filters = row.filters as Partial<JobFilters>;
+		const filters = row.filters as Partial<JobFilters> & {
+			qualification_level?: number | null;
+		};
 		const params = filtersToSearchParams({
 			degree_areas: filters.degree_areas ?? [],
 			education_level: filters.education_level,
-			qualification_level: filters.qualification_level,
+			qualification_from: filters.qualification_from ?? null,
+			qualification_to: filters.qualification_to ?? filters.qualification_level ?? null,
 			grade: filters.grade,
 			age: filters.age,
+			age_from: filters.age_from,
+			age_to: filters.age_to,
+			include_no_max_age: filters.include_no_max_age,
+			age_max: filters.age_max,
 			place_of_posting: filters.place_of_posting,
 			domicile: filters.domicile,
+			domicile_region: filters.domicile_region ?? [],
+			tag: filters.tag ?? [],
 			department: filters.department,
 			collar: filters.collar,
 			province: filters.province,
 			has_salary: filters.has_salary,
+			min_salary: filters.min_salary,
+			salary_from: filters.salary_from,
+			salary_to: filters.salary_to,
+			keyword: filters.keyword,
 			q: filters.q,
 			show_expired: filters.show_expired,
 			sort: filters.sort

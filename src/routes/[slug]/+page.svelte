@@ -3,6 +3,7 @@
 	import EducationChipsAsync from '$lib/components/jobs/education-chips-async.svelte';
 	import JobCategorySharePage from '$lib/components/jobs/job-category-share-page.svelte';
 	import JobInterestTreeAsync from '$lib/components/jobs/job-interest-tree-async.svelte';
+	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
 
 	let { data } = $props();
@@ -68,7 +69,11 @@
 		<EducationChipsAsync browse={data.browse} />
 
 		<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-			<div class="min-w-0">
+			<FiltersDrawer
+				filters={data.filters}
+				options={data.filterOptions}
+				resultCount={data.total}
+			>
 				<JobList
 					jobs={data.jobs}
 					total={data.total}
@@ -78,7 +83,7 @@
 					error={data.error}
 					loading={isNavigating}
 				/>
-			</div>
+			</FiltersDrawer>
 
 			<div class="lg:sticky lg:top-16 lg:max-h-[calc(100svh-5rem)] lg:overflow-hidden">
 				<JobInterestTreeAsync browse={data.browse} />

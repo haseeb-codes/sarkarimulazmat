@@ -5,11 +5,13 @@ import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
 import db from '$lib/server/db';
 import {
 	getBrowseByCategoryData,
+	getFilterOptions,
 	listJobs,
 	parseJobFilters,
 	type BrowseByCategoryData,
 	type JobFilters
 } from '$lib/server/jobs';
+import { isAgeFilterActive, selectedDomiciles, selectedTags } from '$lib/jobs-utils';
 
 const emptyBrowse: BrowseByCategoryData = {
 	adDates: [],
@@ -53,8 +55,15 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		posted_by: urlFilters.posted_by,
 		donor_name: urlFilters.donor_name,
 		grade: preset.grade ?? urlFilters.grade,
-		qualification_level: preset.qualification_level ?? urlFilters.qualification_level,
-		domicile: urlFilters.domicile ?? preset.domicile ?? null,
+		qualification_from: preset.qualification_from ?? urlFilters.qualification_from,
+		qualification_to:
+			preset.qualification_to ??
+			preset.qualification_level ??
+			urlFilters.qualification_to,
+		domicile: urlFilters.domicile.length
+			? urlFilters.domicile
+			: selectedDomiciles(preset),
+		tag: urlFilters.tag,
 		place_of_posting: urlFilters.place_of_posting ?? preset.place_of_posting ?? null,
 		q: urlFilters.q,
 		sort: urlFilters.sort,
@@ -62,14 +71,22 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		pageSize: urlFilters.pageSize,
 		show_expired: urlFilters.show_expired,
 		age: urlFilters.age,
+		age_from: urlFilters.age_from,
+		age_to: urlFilters.age_to,
+		include_no_max_age: urlFilters.include_no_max_age,
+		age_max: urlFilters.age_max,
 		department: urlFilters.department,
 		collar: urlFilters.collar,
 		province: urlFilters.province,
 		program: urlFilters.program,
-		has_salary: urlFilters.has_salary
+		has_salary: urlFilters.has_salary,
+		min_salary: urlFilters.min_salary,
+		salary_from: urlFilters.salary_from,
+		salary_to: urlFilters.salary_to
 	};
 
 	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
+	const filterOptions = getFilterOptions();
 	const result = await listJobs(filters);
 
 	return {
@@ -88,14 +105,28 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			posted_by: filters.posted_by,
 			donor_name: filters.donor_name,
 			gender: filters.gender,
+			qualification_from: filters.qualification_from,
+			qualification_to: filters.qualification_to,
 			grade: filters.grade,
 			age: filters.age,
+			age_from: filters.age_from,
+			age_to: filters.age_to,
+			include_no_max_age: filters.include_no_max_age,
+			age_max: filters.age_max,
 			place_of_posting: filters.place_of_posting,
 			domicile: filters.domicile,
+			domicile_region: filters.domicile_region,
+			tag: filters.tag,
 			department: filters.department,
 			collar: filters.collar,
+			province: filters.province,
+			program: filters.program,
+			keyword: filters.keyword,
 			q: filters.q,
 			has_salary: filters.has_salary,
+			min_salary: filters.min_salary,
+			salary_from: filters.salary_from,
+			salary_to: filters.salary_to,
 			show_expired: filters.show_expired,
 			sort: filters.sort,
 			page: filters.page,
@@ -105,18 +136,26 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		total: result.total,
 		totalPages: result.totalPages,
 		browse,
+		filterOptions,
 		filtered: Boolean(
 			urlFilters.ad_date ||
 				urlFilters.posted_by ||
 				urlFilters.donor_name ||
 				urlFilters.gender ||
 				urlFilters.place_of_posting ||
-				urlFilters.domicile ||
+				urlFilters.domicile.length ||
+				urlFilters.domicile_region.length ||
+				urlFilters.tag.length ||
 				urlFilters.department ||
 				urlFilters.collar ||
 				urlFilters.has_salary ||
+				urlFilters.min_salary != null ||
+				urlFilters.salary_from != null ||
+				urlFilters.salary_to != null ||
+				urlFilters.keyword ||
 				urlFilters.q ||
-				urlFilters.age ||
+				isAgeFilterActive(urlFilters) ||
+				urlFilters.grade ||
 				urlFilters.show_expired
 		),
 		error: null as string | null

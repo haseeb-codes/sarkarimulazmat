@@ -41,11 +41,21 @@
 		gender?: string | null;
 		grade: string | null;
 		age: number | null;
+		age_from: number | null;
+		age_to: number | null;
+		include_no_max_age: boolean;
+		age_max?: string | number | null;
 		place_of_posting: string | null;
-		domicile: string | null;
+		domicile: string[];
+		domicile_region?: string[];
+		tag?: string[];
 		department?: string | null;
 		collar?: string | null;
 		has_salary?: boolean;
+		min_salary?: number | null;
+		salary_from?: number | null;
+		salary_to?: number | null;
+		keyword?: string | null;
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;
@@ -96,12 +106,21 @@
 			filters.donor_name ?? '',
 			filters.gender ?? '',
 			filters.grade ?? '',
-			filters.age ?? '',
+			filters.age_from ?? filters.age ?? '',
+			filters.age_to ?? filters.age ?? '',
+			filters.include_no_max_age ? '1' : '0',
+			filters.age_max ?? '',
 			filters.place_of_posting ?? '',
-			filters.domicile ?? '',
+			filters.domicile.join('\0'),
+			(filters.domicile_region ?? []).join('\0'),
+			(filters.tag ?? []).join('\0'),
 			filters.department ?? '',
 			filters.collar ?? '',
 			filters.has_salary ? '1' : '0',
+			filters.min_salary ?? '',
+			filters.salary_from ?? '',
+			filters.salary_to ?? '',
+			filters.keyword ?? '',
 			filters.q ?? '',
 			filters.show_expired ? '1' : '0',
 			filters.sort,

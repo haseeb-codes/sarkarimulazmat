@@ -1,5 +1,7 @@
 /** Shared job-display / URL helpers — safe for client and server. */
 
+import { selectedDomicileRegions } from '$lib/domicile-regions';
+
 export type JobSort = 'newest' | 'closing_soon';
 
 /** Split comma-delimited multi-value fields consistently. */
@@ -133,6 +135,14 @@ export function badgeFilterHref(
 	return qs ? `/?${qs}` : '/';
 }
 
+/** Default bounds for the age range filter UI. */
+export const AGE_FILTER_MIN = 16;
+export const AGE_FILTER_MAX = 70;
+
+/** Job max-age badge presets (Pakistan govt postings commonly cap at 30 / 45 / 60). */
+export const AGE_MAX_PRESETS = [30, 45, 60] as const;
+export type AgeMaxPreset = (typeof AGE_MAX_PRESETS)[number] | '60plus';
+
 export type FilterParams = {
 	degree_areas?: string[];
 	education_level?: string | null;
@@ -140,23 +150,68 @@ export type FilterParams = {
 	posted_by?: string | null;
 	donor_name?: string | null;
 	gender?: GenderKind | null;
+	/** @deprecated Legacy single-sided filter — use qualification_from / qualification_to */
 	qualification_level?: number | null;
+	qualification_from?: number | null;
+	qualification_to?: number | null;
 	grade?: string | null;
+	/** @deprecated Legacy single-age filter — use age_from / age_to */
 	age?: number | null;
+	age_from?: number | null;
+	age_to?: number | null;
+	/** Include postings that do not specify a maximum age (default true). */
+	include_no_max_age?: boolean;
+	/** Filter by the posting's listed maximum age: 30 / 45 / 60, or 60+. */
+	age_max?: AgeMaxPreset | null;
 	place_of_posting?: string | null;
-	domicile?: string | null;
+	/** One or more domicile values (URL: repeated `domicile` params). */
+	domicile?: string | string[] | null;
+	/** Domicile region flags (URL: repeated `domicile_region` params). */
+	domicile_region?: string | string[] | null;
+	/** Job category tag slugs from /tags (URL: repeated `tag` params). */
+	tag?: string | string[] | null;
 	department?: string | null;
 	collar?: string | null;
 	province?: boolean | null;
 	program?: string | null;
+	/** Search title, department, and project/program name. */
+	keyword?: string | null;
 	q?: string | null;
 	/** Only jobs with a non-null salary */
 	has_salary?: boolean;
+	/** @deprecated Prefer salary_from */
+	min_salary?: number | null;
+	salary_from?: number | null;
+	salary_to?: number | null;
 	show_expired?: boolean;
 	sort?: JobSort;
 	page?: number;
 	pageSize?: number;
 };
+
+export function clampAgeFilter(value: number): number {
+	return Math.min(AGE_FILTER_MAX, Math.max(AGE_FILTER_MIN, Math.round(value)));
+}
+
+export function resolvedAgeFrom(filters: FilterParams): number {
+	return clampAgeFilter(filters.age_from ?? filters.age ?? AGE_FILTER_MIN);
+}
+
+export function resolvedAgeTo(filters: FilterParams): number {
+	return clampAgeFilter(filters.age_to ?? filters.age ?? AGE_FILTER_MAX);
+}
+
+/** True when any age filter is set (badge preset, slider, or legacy age). */
+export function isAgeFilterActive(filters: FilterParams): boolean {
+	if (filters.age_max != null) return true;
+	const from = resolvedAgeFrom(filters);
+	const to = resolvedAgeTo(filters);
+	return (
+		from > AGE_FILTER_MIN ||
+		to < AGE_FILTER_MAX ||
+		filters.include_no_max_age === false
+	);
+}
 
 export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	const params = new URLSearchParams();
@@ -168,19 +223,46 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.posted_by) params.set('posted_by', filters.posted_by);
 	if (filters.donor_name) params.set('donor_name', filters.donor_name);
 	if (filters.gender) params.set('gender', filters.gender);
-	if (filters.qualification_level != null) {
-		params.set('qualification_level', String(filters.qualification_level));
+	if (isQualificationFilterActive(filters)) {
+		const from = resolvedQualificationFrom(filters);
+		const to = resolvedQualificationTo(filters);
+		if (from > QUALIFICATION_LEVEL_MIN) params.set('qualification_from', String(from));
+		if (to < QUALIFICATION_LEVEL_MAX) params.set('qualification_to', String(to));
 	}
 	if (filters.grade) params.set('grade', filters.grade);
-	if (filters.age != null) params.set('age', String(filters.age));
+	if (filters.age_max === '60plus') {
+		params.set('age_max', '60plus');
+	} else if (filters.age_max != null) {
+		params.set('age_max', String(filters.age_max));
+	} else if (isAgeFilterActive(filters)) {
+		params.set('age_from', String(resolvedAgeFrom(filters)));
+		params.set('age_to', String(resolvedAgeTo(filters)));
+		if (filters.include_no_max_age === false) params.set('include_no_max_age', '0');
+	}
 	if (filters.place_of_posting) params.set('place_of_posting', filters.place_of_posting);
-	if (filters.domicile) params.set('domicile', filters.domicile);
+	for (const domicile of selectedDomiciles(filters)) {
+		params.append('domicile', domicile);
+	}
+	for (const region of selectedDomicileRegions(filters)) {
+		params.append('domicile_region', region);
+	}
+	for (const tag of selectedTags(filters)) {
+		params.append('tag', tag);
+	}
 	if (filters.department) params.set('department', filters.department);
 	if (filters.collar) params.set('collar', filters.collar);
 	if (filters.province != null) params.set('province', filters.province ? '1' : '0');
 	if (filters.program) params.set('program', filters.program);
+	if (filters.keyword) params.set('keyword', filters.keyword);
 	if (filters.q) params.set('q', filters.q);
-	if (filters.has_salary) params.set('has_salary', '1');
+	if (isSalaryRangeActive(filters)) {
+		const from = resolvedSalaryFrom(filters);
+		const to = filters.salary_to;
+		if (from > SALARY_FILTER_MIN) params.set('salary_from', String(from));
+		if (to != null) params.set('salary_to', String(to));
+	} else if (filters.has_salary) {
+		params.set('has_salary', '1');
+	}
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));
@@ -190,9 +272,9 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	return params;
 }
 
-export function filtersToHref(filters: FilterParams): string {
+export function filtersToHref(filters: FilterParams, path = '/'): string {
 	const qs = filtersToSearchParams(filters).toString();
-	return qs ? `/?${qs}` : '/';
+	return qs ? `${path}?${qs}` : path;
 }
 
 /** Public job detail path — jobs are addressed by slug, not row id. */
@@ -200,14 +282,211 @@ export function jobDetailHref(slug: string): string {
 	return `/jobs/${encodeURIComponent(slug)}`;
 }
 
-/** True when at least one primary eligibility filter is set (not keyword/location alone). */
+/** Normalize domicile from a single value, comma list, or array. */
+export function selectedDomiciles(filters: {
+	domicile?: string | string[] | null;
+}): string[] {
+	const raw = filters.domicile;
+	const parts = Array.isArray(raw) ? raw : raw ? splitMultiValue(raw) : [];
+	const seen = new Set<string>();
+	const result: string[] = [];
+	for (const part of parts) {
+		const trimmed = part.trim();
+		if (!trimmed) continue;
+		const key = trimmed.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		result.push(trimmed);
+	}
+	return result;
+}
+
+/** Normalize tag slugs from a single value or array. */
+export function selectedTags(filters: { tag?: string | string[] | null }): string[] {
+	const raw = filters.tag;
+	const parts = Array.isArray(raw) ? raw : raw ? [raw] : [];
+	const seen = new Set<string>();
+	const result: string[] = [];
+	for (const part of parts) {
+		const trimmed = part.trim();
+		if (!trimmed) continue;
+		const key = trimmed.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		result.push(trimmed);
+	}
+	return result;
+}
+
+/** Ordered qualification levels stored on job postings (0 = lowest). */
+export const QUALIFICATION_LEVEL_MIN = 0;
+export const QUALIFICATION_LEVEL_MAX = 7;
+
+export const QUALIFICATION_LEVEL_LABELS: Record<number, string> = {
+	0: 'Literate',
+	1: 'Primary',
+	2: 'Middle',
+	3: 'Matric',
+	4: 'Diploma',
+	5: "Bachelor's",
+	6: "Master's",
+	7: 'PhD'
+};
+
+export function formatQualificationLevel(value: number): string {
+	return QUALIFICATION_LEVEL_LABELS[value] ?? String(value);
+}
+
+export function resolvedQualificationFrom(filters: FilterParams): number {
+	return filters.qualification_from ?? QUALIFICATION_LEVEL_MIN;
+}
+
+export function resolvedQualificationTo(filters: FilterParams): number {
+	if (filters.qualification_to != null) return filters.qualification_to;
+	if (filters.qualification_level != null) return filters.qualification_level;
+	return QUALIFICATION_LEVEL_MAX;
+}
+
+export function isQualificationFilterActive(filters: FilterParams): boolean {
+	return (
+		resolvedQualificationFrom(filters) > QUALIFICATION_LEVEL_MIN ||
+		resolvedQualificationTo(filters) < QUALIFICATION_LEVEL_MAX
+	);
+}
+
+export const SALARY_FILTER_MIN = 0;
+
+export function resolvedSalaryFrom(filters: FilterParams): number {
+	return filters.salary_from ?? filters.min_salary ?? SALARY_FILTER_MIN;
+}
+
+export function resolvedSalaryTo(filters: FilterParams, salaryMax: number): number {
+	return filters.salary_to ?? salaryMax;
+}
+
+/** True when salary bounds differ from the full available range. */
+export function isSalaryRangeActive(filters: FilterParams, salaryMax?: number): boolean {
+	const from = resolvedSalaryFrom(filters);
+	if (from > SALARY_FILTER_MIN) return true;
+	return filters.salary_to != null && (salaryMax == null || filters.salary_to < salaryMax);
+}
+
+/** True when salary bounds differ from the full available range, or "listed only" is on. */
+export function isSalaryFilterActive(filters: FilterParams, salaryMax?: number): boolean {
+	return isSalaryRangeActive(filters, salaryMax) || Boolean(filters.has_salary);
+}
+
+/** Reset all drawer-managed filters while preserving sort and other page filters. */
+export function clearDrawerFilterPatch(): Partial<FilterParams> {
+	return {
+		age: null,
+		age_from: null,
+		age_to: null,
+		age_max: null,
+		qualification_from: null,
+		qualification_to: null,
+		qualification_level: null,
+		grade: null,
+		domicile: [],
+		domicile_region: [],
+		tag: [],
+		keyword: null,
+		has_salary: false,
+		min_salary: null,
+		salary_from: null,
+		salary_to: null,
+		page: 1
+	};
+}
+
+export function drawerFilterActiveCount(filters: FilterParams, salaryMax?: number): number {
+	return (
+		(filters.keyword ? 1 : 0) +
+		(isAgeFilterActive(filters) ? 1 : 0) +
+		(isQualificationFilterActive(filters) ? 1 : 0) +
+		(filters.grade ? 1 : 0) +
+		(selectedDomicileRegions(filters).length ? 1 : 0) +
+		(selectedTags(filters).length ? 1 : 0) +
+		(isSalaryFilterActive(filters, salaryMax) ? 1 : 0)
+	);
+}
+
+function parseDrawerIntParam(
+	value: string | null,
+	min = 0,
+	max?: number
+): number | null {
+	if (!value) return null;
+	const n = Number.parseInt(value, 10);
+	if (!Number.isFinite(n) || n < min) return null;
+	if (max != null && n > max) return null;
+	return n;
+}
+
+function parseDrawerAgeMaxParam(value: string | null): AgeMaxPreset | null {
+	if (!value) return null;
+	const key = value.trim().toLowerCase();
+	if (key === '60plus' || key === '60+') return '60plus';
+	const n = Number.parseInt(value, 10);
+	if (n === 30 || n === 45 || n === 60) return n;
+	return null;
+}
+
+/** Parse drawer-managed filters from a URL — client-safe for optimistic UI during navigation. */
+export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
+	const params = url.searchParams;
+
+	return {
+		keyword: params.get('keyword')?.trim() || null,
+		age_max: parseDrawerAgeMaxParam(params.get('age_max')),
+		age_from: null,
+		age_to: null,
+		age: null,
+		include_no_max_age: true,
+		qualification_from: parseDrawerIntParam(
+			params.get('qualification_from'),
+			0,
+			QUALIFICATION_LEVEL_MAX
+		),
+		qualification_to:
+			parseDrawerIntParam(params.get('qualification_to'), 0, QUALIFICATION_LEVEL_MAX) ??
+			parseDrawerIntParam(params.get('qualification_level'), 0, QUALIFICATION_LEVEL_MAX),
+		qualification_level: null,
+		grade: params.get('grade')?.trim() || null,
+		domicile_region: selectedDomicileRegions({
+			domicile_region: params.getAll('domicile_region')
+		}),
+		tag: selectedTags({ tag: params.getAll('tag') }),
+		salary_from:
+			parseDrawerIntParam(params.get('salary_from'), 1) ??
+			parseDrawerIntParam(params.get('min_salary'), 1),
+		salary_to: parseDrawerIntParam(params.get('salary_to'), 1),
+		min_salary: null,
+		has_salary: params.get('has_salary') === '1'
+	};
+}
+
+/** Prefer in-flight navigation URL for drawer filter display when staying on the same page. */
+export function effectiveDrawerFilters(
+	current: FilterParams,
+	targetUrl: URL | undefined,
+	pathname: string
+): FilterParams {
+	if (!targetUrl || targetUrl.pathname !== pathname) return current;
+	return { ...current, ...parseDrawerFiltersFromUrl(targetUrl) };
+}
+
+export function formatSalaryFilter(value: number): string {
+	return `Rs. ${formatSalary(value) ?? '0'}`;
+}
+
 export function eligibilityFiltersActive(filters: FilterParams): boolean {
 	return Boolean(
 		filters.degree_areas?.length ||
 			filters.education_level ||
-			filters.qualification_level != null ||
+			isQualificationFilterActive(filters) ||
 			filters.grade ||
-			filters.age != null
+			isAgeFilterActive(filters)
 	);
 }
 

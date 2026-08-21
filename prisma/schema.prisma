@@ -75,8 +75,6 @@ model JobPostings {
   active                              Boolean?
   title                               String?
   department                          String?
-  project_program_name                String?
-  employment_type                     String?
   collar                              String?
   is_army_officer_required            Int?
   is_women_only_job                   Int?
@@ -127,41 +125,56 @@ model JobPostings {
   education_years                     Int?
   certifications                      String?
   license_required                    String?
-  vacancies                           Int?
   place_of_posting                    String?
   domicile                            String?
+  domicile_any                        Int?
+  domicile_punjab                     Int?
+  domicile_sindh                      Int?
+  domicile_sindh_urban                Int?
+  domicile_sindh_rural                Int?
+  domicile_kpk                        Int?
+  domicile_balochistan                Int?
+  domicile_ict                        Int?
+  domicile_ajk                        Int?
+  domicile_gb                         Int?
+  domicile_fata                       Int?
   experience                          Int?
-  max_age                             Int?
   gender                              String?
   is_quota_basis                      Boolean?
-  female_quota                        Boolean?
   disability_quota                    Boolean?
   minority_quota                      Boolean?
   salary                              Int?
+  salary_estimated                    Int?
   last_date_to_apply                  DateTime? @db.Date
   application_postal_address          String?
-  application_online_address          String?
-  url                                 String?
-  email                               String?
   file_path                           String?
-  min_age                             Int?
   source_file                         String?
   file_creation_date                  DateTime? @db.Date
   province                            Boolean?
-  grade                               String?
-  ad_code                             String?
   notes                               String?
+  employment_type                     String?
+  application_online_address          String?
+  ad_code                             String?
+  url                                 String?
   posted_by                           String?
+  vacancies                           Int?
   application_fee                     String?
   challan_fee_amount                  Int?
+  max_age                             Int?
+  project_program_name                String?
+  email                               String?
+  grade                               String?
+  grade_derived                       String?
   age_relaxation                      String?
+  min_age                             Int?
   donor_name                          String?
-  news_source                         String?
-  female_headcount                    Int?
-  male_quota                          String?
   male_headcount                      Int?
+  female_headcount                    Int?
+  news_source                         String?
+  license_reference                   Boolean?
   supabase_file_path                  String?
   ad_date                             DateTime? @db.Date
+  is_active                           Float?
 }
 
 /// Curated SEO landing pages with preset filters (e.g. /engineering-jobs, /bs-cs)
@@ -183,14 +196,14 @@ model CategoryPage {
 /// Anonymous visitor identity (cookie-linked)
 model Visitor {
   id          String        @id @default(uuid())
-  ip_address  String?       @map("ip_address")
   first_seen  DateTime      @default(now()) @map("first_seen_at")
   last_seen   DateTime      @default(now()) @map("last_seen_at")
   visit_count Int           @default(1)
   user_id     String?       @map("user_id")
+  ip_address  String?       @map("ip_address")
+  page_views  PageView[]
   saved       SavedSearch[]
   search_logs SearchLog[]
-  page_views  PageView[]
 
   @@index([ip_address])
   @@map("visitors")
@@ -201,10 +214,10 @@ model SearchLog {
   id           String   @id @default(cuid())
   visitor_id   String?  @map("visitor_id")
   user_id      String?  @map("user_id")
-  ip_address   String?  @map("ip_address")
   filters      Json
   result_count Int      @map("result_count")
   created_at   DateTime @default(now()) @map("created_at")
+  ip_address   String?  @map("ip_address")
   visitor      Visitor? @relation(fields: [visitor_id], references: [id])
 
   @@index([created_at])
