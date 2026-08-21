@@ -147,11 +147,10 @@ model JobPostings {
   salary_estimated                    Int?
   last_date_to_apply                  DateTime? @db.Date
   application_postal_address          String?
-  file_path                           String?
   source_file                         String?
   file_creation_date                  DateTime? @db.Date
-  province                            Boolean?
-  notes                               String?
+  province                            String?
+  file_path                           String?
   employment_type                     String?
   application_online_address          String?
   ad_code                             String?
@@ -161,6 +160,7 @@ model JobPostings {
   application_fee                     String?
   challan_fee_amount                  Int?
   max_age                             Int?
+  notes                               String?
   project_program_name                String?
   email                               String?
   grade                               String?
@@ -168,10 +168,9 @@ model JobPostings {
   age_relaxation                      String?
   min_age                             Int?
   donor_name                          String?
+  news_source                         String?
   male_headcount                      Int?
   female_headcount                    Int?
-  news_source                         String?
-  license_reference                   Boolean?
   supabase_file_path                  String?
   ad_date                             DateTime? @db.Date
   is_active                           Float?

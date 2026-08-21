@@ -1,11 +1,8 @@
 import type { PageServerLoad } from './$types';
 import {
 	filtersAreActive,
-	getBrowseByCategoryData,
-	getFilterOptions,
 	listJobs,
 	parseJobFilters,
-	type BrowseByCategoryData,
 	type JobFilters
 } from '$lib/server/jobs';
 import { logSearch } from '$lib/server/search-log';
@@ -47,24 +44,9 @@ function filtersSnapshot(filters: JobFilters) {
 	};
 }
 
-const emptyBrowse: BrowseByCategoryData = {
-	adDates: [],
-	postedBy: [],
-	donors: [],
-	genders: [],
-	degreeAreas: [],
-	educationLevels: [],
-	jobInterestTree: [],
-	topTags: []
-};
-
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const filters = parseJobFilters(url);
 	const snapshot = filtersSnapshot(filters);
-
-	// Stream non-critical sections — do not block the job list on these.
-	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
-	const filterOptions = getFilterOptions();
 
 	try {
 		const result = await listJobs(filters);
@@ -78,8 +60,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			jobs: result.jobs,
 			total: result.total,
 			totalPages: result.totalPages,
-			browse,
-			filterOptions,
 			filtered: filtersAreActive(filters),
 			error: null as string | null
 		};
@@ -90,8 +70,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			jobs: [],
 			total: 0,
 			totalPages: 1,
-			browse,
-			filterOptions,
 			filtered: filtersAreActive(filters),
 			error: 'We could not load job listings right now. Please try again shortly.'
 		};

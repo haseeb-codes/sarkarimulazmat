@@ -14,7 +14,7 @@ function activeJobsWhere(column: JobCategoryColumn): Prisma.JobPostingsWhereInpu
 	return {
 		[column]: 1,
 		AND: [
-			{ OR: [{ active: true }, { active: null }] },
+			{ is_active: 1 },
 			{ row_id: { not: null } },
 			{
 				OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]

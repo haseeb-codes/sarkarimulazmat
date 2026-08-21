@@ -174,8 +174,9 @@ export type FilterParams = {
 	collar?: string | null;
 	province?: boolean | null;
 	program?: string | null;
-	/** Search title, department, and project/program name. */
+	/** Drawer keyword: title, department, project/program name. */
 	keyword?: string | null;
+	/** Global search (`q`): title, department, grades, donors, addresses, notes, etc. */
 	q?: string | null;
 	/** Only jobs with a non-null salary */
 	has_salary?: boolean;
@@ -390,7 +391,6 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		domicile: [],
 		domicile_region: [],
 		tag: [],
-		keyword: null,
 		has_salary: false,
 		min_salary: null,
 		salary_from: null,
@@ -401,7 +401,6 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 
 export function drawerFilterActiveCount(filters: FilterParams, salaryMax?: number): number {
 	return (
-		(filters.keyword ? 1 : 0) +
 		(isAgeFilterActive(filters) ? 1 : 0) +
 		(isQualificationFilterActive(filters) ? 1 : 0) +
 		(filters.grade ? 1 : 0) +

@@ -345,17 +345,14 @@ const SEARCHABLE_TEXT_FIELDS = [
 	'department',
 	'project_program_name',
 	'posted_by',
-	'degree_area',
-	'degrees',
-	'education_level',
 	'employment_type',
-	'place_of_posting',
-	'domicile',
-	'gender',
 	'grade',
-	'collar',
+	'degrees',
+	'degree_area',
 	'donor_name',
-	'certifications',
+	'gender',
+	'application_online_address',
+	'application_postal_address',
 	'notes'
 ] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
@@ -623,11 +620,13 @@ function genderMatchWhere(kind: GenderKind): Prisma.JobPostingsWhereInput {
 	return { gender: { contains: 'trans', mode: 'insensitive' } };
 }
 
+/** Only postings marked active in source data (`is_active = 1`). */
+export const IS_ACTIVE_JOB: Prisma.JobPostingsWhereInput = { is_active: 1 };
+
 export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput {
 	const and: Prisma.JobPostingsWhereInput[] = [];
 
-	// Skip inactive when active is set
-	and.push({ OR: [{ active: true }, { active: null }] });
+	and.push(IS_ACTIVE_JOB);
 	and.push({ row_id: { not: null } });
 
 	// Specialization / degrees — comma-delimited strings; match any selected value
@@ -925,7 +924,7 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 
 	const [rows, gradeRows, domicileRows, salaryAgg] = await Promise.all([
 		db.jobPostings.findMany({
-			where: { OR: [{ active: true }, { active: null }] },
+			where: IS_ACTIVE_JOB,
 			select: {
 				degree_area: true,
 				degrees: true,
@@ -936,27 +935,21 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 		}),
 		db.jobPostings.findMany({
 			where: {
-				AND: [
-					{ OR: [{ active: true }, { active: null }] },
-					{ grade_derived: { not: null } }
-				]
+				AND: [IS_ACTIVE_JOB, { grade_derived: { not: null } }]
 			},
 			select: { grade_derived: true },
 			distinct: ['grade_derived']
 		}),
 		db.jobPostings.findMany({
 			where: {
-				AND: [{ OR: [{ active: true }, { active: null }] }, { domicile: { not: null } }]
+				AND: [IS_ACTIVE_JOB, { domicile: { not: null } }]
 			},
 			select: { domicile: true },
 			distinct: ['domicile']
 		}),
 		db.jobPostings.aggregate({
 			where: {
-				AND: [
-					{ OR: [{ active: true }, { active: null }] },
-					{ salary_estimated: { not: null } }
-				]
+				AND: [IS_ACTIVE_JOB, { salary_estimated: { not: null } }]
 			},
 			_max: { salary_estimated: true }
 		})

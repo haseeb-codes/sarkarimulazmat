@@ -1,6 +1,7 @@
 import db from '$lib/server/db';
 import { JOB_CATEGORY_PAGES, JOB_CATEGORY_SLUGS } from '$lib/job-category-pages';
 import { jobDetailHref } from '$lib/jobs-utils';
+import { IS_ACTIVE_JOB } from '$lib/server/jobs';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -12,7 +13,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		db.jobPostings.findMany({
 			where: {
 				AND: [
-					{ OR: [{ active: true }, { active: null }] },
+					IS_ACTIVE_JOB,
 					{
 						OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
 					}

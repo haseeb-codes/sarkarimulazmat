@@ -69,7 +69,7 @@
 		<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
 			<Drawer.Header class="shrink-0 border-b border-border text-left">
 				<Drawer.Title>Filters</Drawer.Title>
-				<Drawer.Description>Narrow jobs by keyword, age, salary, domicile, tags, and grade.</Drawer.Description>
+				<Drawer.Description>Narrow jobs by age, salary, domicile, tags, and grade.</Drawer.Description>
 			</Drawer.Header>
 			<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
 				<JobsFilterFormAsync {filters} {options} {resultCount} />

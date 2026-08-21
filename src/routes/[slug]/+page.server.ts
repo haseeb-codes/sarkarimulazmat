@@ -3,26 +3,8 @@ import type { PageServerLoad } from './$types';
 import { getJobCategoryPage } from '$lib/job-category-pages';
 import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
 import db from '$lib/server/db';
-import {
-	getBrowseByCategoryData,
-	getFilterOptions,
-	listJobs,
-	parseJobFilters,
-	type BrowseByCategoryData,
-	type JobFilters
-} from '$lib/server/jobs';
-import { isAgeFilterActive, selectedDomiciles, selectedTags } from '$lib/jobs-utils';
-
-const emptyBrowse: BrowseByCategoryData = {
-	adDates: [],
-	postedBy: [],
-	donors: [],
-	genders: [],
-	degreeAreas: [],
-	educationLevels: [],
-	jobInterestTree: [],
-	topTags: []
-};
+import { listJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
+import { isAgeFilterActive, selectedDomiciles } from '$lib/jobs-utils';
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const jobCategory = getJobCategoryPage(params.slug);
@@ -85,8 +67,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		salary_to: urlFilters.salary_to
 	};
 
-	const browse = getBrowseByCategoryData().catch(() => emptyBrowse);
-	const filterOptions = getFilterOptions();
 	const result = await listJobs(filters);
 
 	return {
@@ -135,8 +115,6 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		jobs: result.jobs,
 		total: result.total,
 		totalPages: result.totalPages,
-		browse,
-		filterOptions,
 		filtered: Boolean(
 			urlFilters.ad_date ||
 				urlFilters.posted_by ||

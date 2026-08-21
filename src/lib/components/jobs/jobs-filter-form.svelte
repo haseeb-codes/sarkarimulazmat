@@ -62,11 +62,9 @@
 	]);
 	let tagSearch = $state('');
 	let tagOpen = $state(false);
-	let keywordDraft = $state('');
 	let gradeDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey[]>([]);
 	let tagsDraft = $state<string[]>([]);
-	let keywordDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const tagOptions = $derived(getJobCategoryTags());
 
@@ -75,7 +73,6 @@
 	});
 
 	$effect(() => {
-		keywordDraft = filters.keyword ?? '';
 		ageMaxDraft = filters.age_max ?? null;
 		gradeDraft = filters.grade ?? null;
 		domicileRegionDraft = selectedDomicileRegions(filters);
@@ -89,7 +86,6 @@
 
 	const optimisticFilters = $derived({
 		...filters,
-		keyword: keywordDraft.trim() || null,
 		age_max: ageMaxDraft,
 		age_from: null,
 		age_to: null,
@@ -155,14 +151,6 @@
 			keepFocus: true,
 			noScroll: true
 		});
-	}
-
-	function onKeywordInput(value: string) {
-		keywordDraft = value;
-		clearTimeout(keywordDebounceTimer);
-		keywordDebounceTimer = setTimeout(() => {
-			navigate({ keyword: value.trim() || null });
-		}, 300);
 	}
 
 	function setAgeMax(next: AgeMaxPreset | null) {
@@ -243,7 +231,6 @@
 	function clearDrawerFilters() {
 		ageMaxDraft = null;
 		qualificationRange = [QUALIFICATION_LEVEL_MIN, QUALIFICATION_LEVEL_MAX];
-		keywordDraft = '';
 		gradeDraft = null;
 		domicileRegionDraft = [];
 		tagsDraft = [];
@@ -253,22 +240,6 @@
 </script>
 
 <div class="space-y-5">
-	<div class="space-y-2">
-		<Label for="{idPrefix}filter-keyword">Keyword</Label>
-		<Input
-			id="{idPrefix}filter-keyword"
-			type="search"
-			placeholder="Search title, department, program…"
-			value={keywordDraft}
-			oninput={(e) => onKeywordInput(e.currentTarget.value)}
-		/>
-		<p class="text-xs text-muted-foreground">
-			Matches job title, department, or project/program name.
-		</p>
-	</div>
-
-	<Separator />
-
 	<div class="space-y-2">
 		<Label id="{idPrefix}filter-age-label">Max age</Label>
 		<div class="flex flex-wrap gap-1.5">
