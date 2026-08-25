@@ -254,6 +254,10 @@ export type FilterParams = {
 	has_salary?: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only?: boolean;
+	/** Only women-eligible jobs (`gender` contains “Female”). */
+	women_only?: boolean;
+	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
+	transgender_applicable?: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary?: number | null;
 	salary_from?: number | null;
@@ -338,6 +342,8 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 		params.set('has_salary', '1');
 	}
 	if (filters.permanent_only) params.set('permanent', '1');
+	if (filters.women_only) params.set('women', '1');
+	if (filters.transgender_applicable) params.set('transgender', '1');
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));
@@ -511,6 +517,8 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		tag: [],
 		has_salary: false,
 		permanent_only: false,
+		women_only: false,
+		transgender_applicable: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,
@@ -525,7 +533,9 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
-		(filters.permanent_only ? 1 : 0)
+		(filters.permanent_only ? 1 : 0) +
+		(filters.women_only ? 1 : 0) +
+		(filters.transgender_applicable ? 1 : 0)
 	);
 }
 
@@ -590,7 +600,9 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 		salary_to: parseDrawerIntParam(params.get('salary_to'), 1),
 		min_salary: null,
 		has_salary: params.get('has_salary') === '1',
-		permanent_only: params.get('permanent') === '1'
+		permanent_only: params.get('permanent') === '1',
+		women_only: params.get('women') === '1',
+		transgender_applicable: params.get('transgender') === '1'
 	};
 }
 

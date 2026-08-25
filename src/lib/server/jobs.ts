@@ -62,6 +62,10 @@ export type JobFilters = FilterParams & {
 	has_salary: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only: boolean;
+	/** Only women-eligible jobs (`gender` contains “Female”). */
+	women_only: boolean;
+	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
+	transgender_applicable: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary: number | null;
 	salary_from: number | null;
@@ -501,6 +505,8 @@ export function parseJobFilters(url: URL): JobFilters {
 		q: firstParam(url, 'q'),
 		has_salary: url.searchParams.get('has_salary') === '1',
 		permanent_only: url.searchParams.get('permanent') === '1',
+		women_only: url.searchParams.get('women') === '1',
+		transgender_applicable: url.searchParams.get('transgender') === '1',
 		min_salary: parseOptionalPositiveInt(firstParam(url, 'min_salary')),
 		salary_from:
 			parseOptionalPositiveInt(firstParam(url, 'salary_from')) ??
@@ -535,6 +541,8 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.q ||
 			filters.has_salary ||
 			filters.permanent_only ||
+			filters.women_only ||
+			filters.transgender_applicable ||
 			filters.min_salary != null ||
 			filters.salary_from != null ||
 			filters.salary_to != null ||
@@ -815,6 +823,14 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	if (filters.permanent_only) {
 		and.push({ employment_type: { equals: 'Permanent', mode: 'insensitive' } });
+	}
+
+	if (filters.women_only) {
+		and.push({ gender: { contains: 'Female', mode: 'insensitive' } });
+	}
+
+	if (filters.transgender_applicable) {
+		and.push({ gender: { contains: 'Transgender', mode: 'insensitive' } });
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -1177,6 +1193,8 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		q: null,
 		has_salary: false,
 		permanent_only: false,
+		women_only: false,
+		transgender_applicable: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,

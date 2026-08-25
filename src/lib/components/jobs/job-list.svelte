@@ -67,6 +67,8 @@
 		collar?: string | null;
 		has_salary?: boolean;
 		permanent_only?: boolean;
+		women_only?: boolean;
+		transgender_applicable?: boolean;
 		min_salary?: number | null;
 		salary_from?: number | null;
 		salary_to?: number | null;
@@ -161,6 +163,8 @@
 			filters.collar ?? '',
 			filters.has_salary ? '1' : '0',
 			filters.permanent_only ? '1' : '0',
+			filters.women_only ? '1' : '0',
+			filters.transgender_applicable ? '1' : '0',
 			filters.min_salary ?? '',
 			filters.salary_from ?? '',
 			filters.salary_to ?? '',
@@ -331,11 +335,11 @@
 					<Button href={page.url.pathname} variant="outline" size="sm">Clear filter</Button>
 				{/if}
 				{#if items.length > 0 && items.length < total}
-					<p class="text-sm text-muted-foreground">
+					<p class="ml-2 text-sm text-muted-foreground">
 						Showing {items.length.toLocaleString()} of {total.toLocaleString()}
 					</p>
 				{:else if items.length > 0}
-					<p class="text-sm text-muted-foreground">
+					<p class="ml-2 text-sm text-muted-foreground">
 						{total.toLocaleString()} job{total === 1 ? '' : 's'}
 					</p>
 				{/if}

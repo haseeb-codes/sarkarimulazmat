@@ -57,6 +57,8 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 		}
 	} else if (filters.has_salary) parts.push('with salary');
 	if (filters.permanent_only) parts.push('permanent only');
+	if (filters.women_only) parts.push('women');
+	if (filters.transgender_applicable) parts.push('transgender');
 	if (isQualificationFilterActive(filters)) {
 		const levels = selectedQualificationLevels(filters);
 		if (levels.length) parts.push(formatQualificationLevel(levels[0]!));
@@ -88,6 +90,8 @@ function filtersToStored(filters: JobFilters): Prisma.InputJsonValue {
 		province: filters.province,
 		has_salary: filters.has_salary,
 		permanent_only: filters.permanent_only,
+		women_only: filters.women_only,
+		transgender_applicable: filters.transgender_applicable,
 		min_salary: filters.min_salary,
 		salary_from: filters.salary_from,
 		salary_to: filters.salary_to,
@@ -133,7 +137,9 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 			collar: filters.collar,
 			province: filters.province,
 			has_salary: filters.has_salary,
-		permanent_only: filters.permanent_only,
+			permanent_only: filters.permanent_only,
+			women_only: filters.women_only,
+			transgender_applicable: filters.transgender_applicable,
 			min_salary: filters.min_salary,
 			salary_from: filters.salary_from,
 			salary_to: filters.salary_to,

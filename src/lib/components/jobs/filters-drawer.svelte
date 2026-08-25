@@ -77,18 +77,14 @@
 						<Button
 							variant="outline"
 							size="sm"
-							class="h-12 gap-1.5 px-3"
+							class="h-12 gap-1.5 {activeCount ? 'px-3' : 'w-12 px-0'}"
 							onclick={() => (open = true)}
 							aria-label={filtersLabel}
 						>
 							<FilterIcon class="size-4" aria-hidden="true" />
-							<span class="text-sm font-medium">
-								{#if activeCount}
-									{activeCount}
-								{:else}
-									Filters
-								{/if}
-							</span>
+							{#if activeCount}
+								<span class="text-sm font-medium tabular-nums">{activeCount}</span>
+							{/if}
 						</Button>
 						{#if activeCount}
 							<Button variant="ghost" size="sm" class="h-12 px-2" onclick={clearFilters}>

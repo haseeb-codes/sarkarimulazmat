@@ -38,4 +38,14 @@
 		<Skeleton class="h-4 w-36" />
 		<Skeleton class="h-9 w-full" />
 	</div>
+	<div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+		<div class="flex items-center gap-2">
+			<Skeleton class="h-6 w-11 rounded-full" />
+			<Skeleton class="h-4 w-20" />
+		</div>
+		<div class="flex items-center gap-2">
+			<Skeleton class="h-6 w-11 rounded-full" />
+			<Skeleton class="h-4 w-36" />
+		</div>
+	</div>
 </div>

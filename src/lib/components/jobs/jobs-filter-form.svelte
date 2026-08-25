@@ -48,6 +48,8 @@
 	let specializationSearch = $state('');
 	let specializationOpen = $state(false);
 	let permanentOnlyDraft = $state(false);
+	let womenOnlyDraft = $state(false);
+	let transgenderApplicableDraft = $state(false);
 
 	const specializationOptions = $derived(options.specializations ?? []);
 
@@ -62,6 +64,8 @@
 		domicileRegionDraft = regions[0] ?? null;
 		degreeAreasDraft = [...(filters.degree_areas ?? [])];
 		permanentOnlyDraft = Boolean(filters.permanent_only);
+		womenOnlyDraft = Boolean(filters.women_only);
+		transgenderApplicableDraft = Boolean(filters.transgender_applicable);
 		const levels = selectedQualificationLevels(filters);
 		qualificationDraft = levels.length ? levels[0]! : null;
 	});
@@ -143,6 +147,28 @@
 		navigate({ permanent_only: next });
 	}
 
+	function setWomenOnly(next: boolean) {
+		womenOnlyDraft = next;
+		navigate({ women_only: next });
+	}
+
+	function setTransgenderApplicable(next: boolean) {
+		transgenderApplicableDraft = next;
+		navigate({ transgender_applicable: next });
+	}
+
+	function switchClass(on: boolean): string {
+		return `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+			on ? 'bg-primary' : 'bg-input'
+		}`;
+	}
+
+	function switchThumbClass(on: boolean): string {
+		return `pointer-events-none block size-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+			on ? 'translate-x-5' : 'translate-x-0'
+		}`;
+	}
+
 	function setQualification(next: number | null) {
 		qualificationDraft = next;
 		navigate({
@@ -166,16 +192,9 @@
 			role="switch"
 			aria-checked={permanentOnlyDraft}
 			onclick={() => setPermanentOnly(!permanentOnlyDraft)}
-			class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background {permanentOnlyDraft
-				? 'bg-primary'
-				: 'bg-input'}"
+			class={switchClass(permanentOnlyDraft)}
 		>
-			<span
-				aria-hidden="true"
-				class="pointer-events-none block size-5 rounded-full bg-background shadow-lg ring-0 transition-transform {permanentOnlyDraft
-					? 'translate-x-5'
-					: 'translate-x-0'}"
-			></span>
+			<span aria-hidden="true" class={switchThumbClass(permanentOnlyDraft)}></span>
 		</button>
 	</div>
 
@@ -341,5 +360,40 @@
 		<p class="text-xs text-muted-foreground">
 			All unique degree specializations from current job postings.
 		</p>
+	</div>
+
+	<Separator />
+
+	<div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+		<div class="flex items-center gap-2">
+			<button
+				id="{idPrefix}filter-women"
+				type="button"
+				role="switch"
+				aria-checked={womenOnlyDraft}
+				onclick={() => setWomenOnly(!womenOnlyDraft)}
+				class={switchClass(womenOnlyDraft)}
+			>
+				<span aria-hidden="true" class={switchThumbClass(womenOnlyDraft)}></span>
+			</button>
+			<Label for="{idPrefix}filter-women" class="cursor-pointer text-sm font-normal">
+				Women
+			</Label>
+		</div>
+		<div class="flex items-center gap-2">
+			<button
+				id="{idPrefix}filter-transgender"
+				type="button"
+				role="switch"
+				aria-checked={transgenderApplicableDraft}
+				onclick={() => setTransgenderApplicable(!transgenderApplicableDraft)}
+				class={switchClass(transgenderApplicableDraft)}
+			>
+				<span aria-hidden="true" class={switchThumbClass(transgenderApplicableDraft)}></span>
+			</button>
+			<Label for="{idPrefix}filter-transgender" class="cursor-pointer text-sm font-normal">
+				Transgender
+			</Label>
+		</div>
 	</div>
 </div>
