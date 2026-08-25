@@ -5,6 +5,7 @@
 
 	type FilterOptions = {
 		grades: string[];
+		specializations: string[];
 		salary_max: number;
 	};
 

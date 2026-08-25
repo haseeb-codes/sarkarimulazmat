@@ -15,6 +15,7 @@ function filtersSnapshot(filters: JobFilters) {
 		posted_by: filters.posted_by,
 		donor_name: filters.donor_name,
 		gender: filters.gender,
+		qualification: filters.qualification,
 		qualification_from: filters.qualification_from,
 		qualification_to: filters.qualification_to,
 		grade: filters.grade,

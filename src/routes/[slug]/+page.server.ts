@@ -4,7 +4,7 @@ import { getJobCategoryPage } from '$lib/job-category-pages';
 import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
 import db from '$lib/server/db';
 import { listJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
-import { isAgeFilterActive, selectedDomiciles } from '$lib/jobs-utils';
+import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } from '$lib/jobs-utils';
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const jobCategory = getJobCategoryPage(params.slug);
@@ -37,6 +37,17 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		posted_by: urlFilters.posted_by,
 		donor_name: urlFilters.donor_name,
 		grade: preset.grade ?? urlFilters.grade,
+		qualification: preset.qualification?.length
+			? selectedQualificationLevels(preset)
+			: urlFilters.qualification.length
+				? urlFilters.qualification
+				: selectedQualificationLevels({
+						qualification_from: preset.qualification_from ?? urlFilters.qualification_from,
+						qualification_to:
+							preset.qualification_to ??
+							preset.qualification_level ??
+							urlFilters.qualification_to
+					}),
 		qualification_from: preset.qualification_from ?? urlFilters.qualification_from,
 		qualification_to:
 			preset.qualification_to ??
@@ -85,6 +96,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			posted_by: filters.posted_by,
 			donor_name: filters.donor_name,
 			gender: filters.gender,
+			qualification: filters.qualification,
 			qualification_from: filters.qualification_from,
 			qualification_to: filters.qualification_to,
 			grade: filters.grade,

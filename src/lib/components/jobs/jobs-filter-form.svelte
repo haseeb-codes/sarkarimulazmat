@@ -17,25 +17,25 @@
 	} from '$lib/domicile-regions';
 	import {
 		AGE_MAX_PRESETS,
-		QUALIFICATION_LEVEL_MAX,
-		QUALIFICATION_LEVEL_MIN,
+		QUALIFICATION_LEVELS,
 		SALARY_FILTER_MIN,
 		clearDrawerFilterPatch,
 		drawerFilterActiveCount,
 		filtersToHref,
 		formatQualificationLevel,
 		formatSalaryFilter,
-		resolvedQualificationFrom,
-		resolvedQualificationTo,
+		selectedQualificationLevels,
 		resolvedSalaryFrom,
 		resolvedSalaryTo,
 		selectedTags,
 		type AgeMaxPreset,
-		type FilterParams
-	} from '$lib/jobs-utils';
+		type FilterParams,
+		BPS_GRADE_GROUPS,
+		formatGradeFilter} from '$lib/jobs-utils';
 
 	type Options = {
 		grades: string[];
+		specializations: string[];
 		salary_max: number;
 	};
 
@@ -56,20 +56,25 @@
 
 	let salaryRange = $state<[number, number]>([SALARY_FILTER_MIN, SALARY_FILTER_MIN]);
 	let ageMaxDraft = $state<AgeMaxPreset | null>(null);
-	let qualificationRange = $state<[number, number]>([
-		QUALIFICATION_LEVEL_MIN,
-		QUALIFICATION_LEVEL_MAX
-	]);
+	let qualificationDraft = $state<number | null>(null);
 	let tagSearch = $state('');
 	let tagOpen = $state(false);
 	let gradeDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey[]>([]);
 	let tagsDraft = $state<string[]>([]);
+	let degreeAreasDraft = $state<string[]>([]);
+	let specializationSearch = $state('');
+	let specializationOpen = $state(false);
 
 	const tagOptions = $derived(getJobCategoryTags());
+	const specializationOptions = $derived(options.specializations ?? []);
 
 	$effect(() => {
 		if (!tagOpen) tagSearch = '';
+	});
+
+	$effect(() => {
+		if (!specializationOpen) specializationSearch = '';
 	});
 
 	$effect(() => {
@@ -77,10 +82,9 @@
 		gradeDraft = filters.grade ?? null;
 		domicileRegionDraft = selectedDomicileRegions(filters);
 		tagsDraft = selectedTags(filters);
-		qualificationRange = [
-			resolvedQualificationFrom(filters),
-			resolvedQualificationTo(filters)
-		];
+		degreeAreasDraft = [...(filters.degree_areas ?? [])];
+		const levels = selectedQualificationLevels(filters);
+		qualificationDraft = levels.length ? levels[0]! : null;
 		salaryRange = [resolvedSalaryFrom(filters), resolvedSalaryTo(filters, salaryMax)];
 	});
 
@@ -91,12 +95,12 @@
 		age_to: null,
 		age: null,
 		include_no_max_age: true,
-		qualification_from:
-			qualificationRange[0] > QUALIFICATION_LEVEL_MIN ? qualificationRange[0] : null,
-		qualification_to:
-			qualificationRange[1] < QUALIFICATION_LEVEL_MAX ? qualificationRange[1] : null,
+		qualification: qualificationDraft == null ? [] : [qualificationDraft],
+		qualification_from: null,
+		qualification_to: null,
 		qualification_level: null,
 		grade: gradeDraft,
+		degree_areas: degreeAreasDraft,
 		domicile: [],
 		domicile_region: domicileRegionDraft,
 		tag: tagsDraft,
@@ -108,23 +112,6 @@
 
 	const activeCount = $derived(drawerFilterActiveCount(optimisticFilters, salaryMax));
 
-	const gradeOptions = $derived.by(() => {
-		const grades = new Map<string, string>();
-		for (const grade of options.grades) {
-			grades.set(grade.toLowerCase(), grade);
-		}
-		if (filters.grade) {
-			const key = filters.grade.toLowerCase();
-			if (!grades.has(key)) grades.set(key, filters.grade);
-		}
-		if (gradeDraft) {
-			const key = gradeDraft.toLowerCase();
-			if (!grades.has(key)) grades.set(key, gradeDraft);
-		}
-		return [...grades.values()].sort((a, b) =>
-			a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
-		);
-	});
 
 	const filteredTagOptions = $derived.by(() => {
 		const query = tagSearch.trim().toLowerCase();
@@ -144,6 +131,34 @@
 			: tagsDraft.length === 1
 				? getJobCategoryTagLabel(tagsDraft[0])
 				: `${tagsDraft.length} selected`
+	);
+
+	const filteredSpecializationOptions = $derived.by(() => {
+		const query = specializationSearch.trim().toLowerCase();
+		const selected = new Set(degreeAreasDraft.map((v) => v.toLowerCase()));
+		const base = new Map<string, string>();
+		for (const label of specializationOptions) {
+			base.set(label.toLowerCase(), label);
+		}
+		for (const label of degreeAreasDraft) {
+			const key = label.toLowerCase();
+			if (!base.has(key)) base.set(key, label);
+		}
+		const all = [...base.values()].sort((a, b) =>
+			a.localeCompare(b, 'en', { sensitivity: 'base', numeric: true })
+		);
+		if (!query) return all;
+		return all.filter(
+			(label) => selected.has(label.toLowerCase()) || label.toLowerCase().includes(query)
+		);
+	});
+
+	const specializationTriggerLabel = $derived(
+		degreeAreasDraft.length === 0
+			? 'Any specialization'
+			: degreeAreasDraft.length === 1
+				? degreeAreasDraft[0]
+				: `${degreeAreasDraft.length} selected`
 	);
 
 	function navigate(patch: Partial<FilterParams>) {
@@ -217,21 +232,26 @@
 		navigate({ tag: next });
 	}
 
-	function commitQualificationRange(next: [number, number]) {
-		qualificationRange = next;
-		const from = next[0] > QUALIFICATION_LEVEL_MIN ? next[0] : null;
-		const to = next[1] < QUALIFICATION_LEVEL_MAX ? next[1] : null;
+	function setDegreeAreas(next: string[]) {
+		degreeAreasDraft = next;
+		navigate({ degree_areas: next });
+	}
+
+	function setQualification(next: number | null) {
+		qualificationDraft = next;
 		navigate({
-			qualification_from: from,
-			qualification_to: to,
+			qualification: next == null ? [] : [next],
+			qualification_from: null,
+			qualification_to: null,
 			qualification_level: null
 		});
 	}
 
 	function clearDrawerFilters() {
 		ageMaxDraft = null;
-		qualificationRange = [QUALIFICATION_LEVEL_MIN, QUALIFICATION_LEVEL_MAX];
+		qualificationDraft = null;
 		gradeDraft = null;
+		degreeAreasDraft = [];
 		domicileRegionDraft = [];
 		tagsDraft = [];
 		salaryRange = [SALARY_FILTER_MIN, salaryMax > 0 ? salaryMax : SALARY_FILTER_MIN];
@@ -283,22 +303,33 @@
 
 	<Separator />
 
-	<div class="space-y-3">
+	<div class="space-y-2">
 		<Label id="{idPrefix}filter-qualification-label">Qualification level</Label>
-		<DualRangeSlider
-			min={QUALIFICATION_LEVEL_MIN}
-			max={QUALIFICATION_LEVEL_MAX}
-			bind:value={qualificationRange}
-			onValueCommit={commitQualificationRange}
-			formatValue={formatQualificationLevel}
-			loAriaLabel="Minimum qualification"
-			hiAriaLabel="Maximum qualification"
-		/>
+		<div class="flex flex-wrap gap-1.5" role="group" aria-labelledby="{idPrefix}filter-qualification-label">
+			<button
+				type="button"
+				class={chipClass(qualificationDraft == null)}
+				aria-pressed={qualificationDraft == null}
+				onclick={() => setQualification(null)}
+			>
+				Any
+			</button>
+			{#each QUALIFICATION_LEVELS as level (level)}
+				<button
+					type="button"
+					class={chipClass(qualificationDraft === level)}
+					aria-pressed={qualificationDraft === level}
+					onclick={() => setQualification(level)}
+				>
+					{formatQualificationLevel(level)}
+				</button>
+			{/each}
+		</div>
 		<p class="text-xs text-muted-foreground">
-			{#if qualificationRange[0] > QUALIFICATION_LEVEL_MIN || qualificationRange[1] < QUALIFICATION_LEVEL_MAX}
-				Jobs requiring qualification from {formatQualificationLevel(qualificationRange[0])} to {formatQualificationLevel(qualificationRange[1])}.
+			{#if qualificationDraft == null}
+				All qualification levels included.
 			{:else}
-				Filter by the posting’s required qualification level.
+				Jobs requiring {formatQualificationLevel(qualificationDraft)}.
 			{/if}
 		</p>
 	</div>
@@ -370,6 +401,48 @@
 	<Separator />
 
 	<div class="space-y-2">
+		<Label for="{idPrefix}filter-specialization">Degree specialization</Label>
+		<DropdownMenu.Root bind:open={specializationOpen}>
+			<DropdownMenu.Trigger
+				id="{idPrefix}filter-specialization"
+				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+			>
+				<span class="truncate">{specializationTriggerLabel}</span>
+				<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" />
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content class="max-h-72 w-(--bits-dropdown-menu-anchor-width) p-0" align="start">
+				<div class="sticky top-0 z-10 border-b bg-popover p-2">
+					<Input
+						id="{idPrefix}filter-specialization-search"
+						type="search"
+						placeholder="Search specializations..."
+						aria-label="Search degree specializations"
+						class="h-8"
+						bind:value={specializationSearch}
+						onkeydown={(e) => e.stopPropagation()}
+					/>
+				</div>
+				<DropdownMenu.CheckboxGroup value={degreeAreasDraft} onValueChange={setDegreeAreas}>
+					<div class="max-h-52 overflow-y-auto p-1">
+						{#each filteredSpecializationOptions as label (label)}
+							<DropdownMenu.CheckboxItem value={label} class="whitespace-normal">
+								{label}
+							</DropdownMenu.CheckboxItem>
+						{:else}
+							<p class="px-2 py-3 text-sm text-muted-foreground">No matching specializations.</p>
+						{/each}
+					</div>
+				</DropdownMenu.CheckboxGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+		<p class="text-xs text-muted-foreground">
+			All unique degree specializations from current job postings.
+		</p>
+	</div>
+
+	<Separator />
+
+	<div class="space-y-2">
 		<Label for="{idPrefix}filter-tag">Tags</Label>
 		<DropdownMenu.Root bind:open={tagOpen}>
 			<DropdownMenu.Trigger
@@ -412,19 +485,19 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-grade">Grade</Label>
+		<Label for="{idPrefix}filter-grade">BPS grade</Label>
 		<Select.Root
 			type="single"
 			value={gradeDraft ?? ''}
 			onValueChange={(v) => setGrade(v || null)}
 		>
 			<Select.Trigger id="{idPrefix}filter-grade" class="w-full">
-				{gradeDraft ?? 'Any'}
+				{formatGradeFilter(gradeDraft) ?? 'Any'}
 			</Select.Trigger>
 			<Select.Content class="max-h-72">
 				<Select.Item value="" label="Any">Any</Select.Item>
-				{#each gradeOptions as g (g)}
-					<Select.Item value={g} label={g}>{g}</Select.Item>
+				{#each BPS_GRADE_GROUPS as group (group.key)}
+					<Select.Item value={group.key} label={group.label}>{group.label}</Select.Item>
 				{/each}
 			</Select.Content>
 		</Select.Root>

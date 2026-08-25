@@ -7,11 +7,11 @@ import {
 	isQualificationFilterActive,
 	resolvedAgeFrom,
 	resolvedAgeTo,
-	resolvedQualificationFrom,
-	resolvedQualificationTo,
+	selectedQualificationLevels,
 	selectedDomiciles,
 	selectedTags,
-	formatQualificationLevel
+	formatQualificationLevel,
+	formatGradeFilter
 } from '$lib/jobs-utils';
 import { getJobCategoryTagLabel } from '$lib/job-category-pages';
 import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
@@ -29,7 +29,7 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 	const parts: string[] = [];
 	if (filters.degree_areas?.length) parts.push(filters.degree_areas.join(', '));
 	if (filters.education_level) parts.push(filters.education_level);
-	if (filters.grade) parts.push(filters.grade);
+	if (filters.grade) parts.push(formatGradeFilter(filters.grade) ?? filters.grade);
 	if (filters.age_max === '60plus') parts.push('age 60+');
 	else if (filters.age_max) parts.push(`age ≤${filters.age_max}`);
 	else if (isAgeFilterActive(filters)) {
@@ -57,9 +57,8 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 		}
 	} else if (filters.has_salary) parts.push('with salary');
 	if (isQualificationFilterActive(filters)) {
-		const from = resolvedQualificationFrom(filters);
-		const to = resolvedQualificationTo(filters);
-		parts.push(`qualification ${formatQualificationLevel(from)}–${formatQualificationLevel(to)}`);
+		const levels = selectedQualificationLevels(filters);
+		if (levels.length) parts.push(formatQualificationLevel(levels[0]!));
 	}
 	if (filters.q) parts.push(`"${filters.q}"`);
 	else if (filters.keyword) parts.push(`"${filters.keyword}"`);
@@ -70,6 +69,7 @@ function filtersToStored(filters: JobFilters): Prisma.InputJsonValue {
 	return {
 		degree_areas: filters.degree_areas,
 		education_level: filters.education_level,
+		qualification: filters.qualification,
 		qualification_from: filters.qualification_from,
 		qualification_to: filters.qualification_to,
 		grade: filters.grade,
@@ -110,8 +110,13 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 		const params = filtersToSearchParams({
 			degree_areas: filters.degree_areas ?? [],
 			education_level: filters.education_level,
-			qualification_from: filters.qualification_from ?? null,
-			qualification_to: filters.qualification_to ?? filters.qualification_level ?? null,
+			qualification: selectedQualificationLevels({
+				qualification: filters.qualification,
+				qualification_from: filters.qualification_from ?? null,
+				qualification_to: filters.qualification_to ?? filters.qualification_level ?? null
+			}),
+			qualification_from: null,
+			qualification_to: null,
 			grade: filters.grade,
 			age: filters.age,
 			age_from: filters.age_from,

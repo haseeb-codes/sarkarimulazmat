@@ -196,40 +196,6 @@
 					/>
 				</div>
 			{/if}
-			<!-- {#if job.education_level}
-				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">
-						Education
-					</p>
-					<MultiValueBadges
-						value={job.education_level}
-						{sort}
-						param="education_level"
-					/>
-				</div>
-			{/if} -->
-			{#if job.degrees}
-				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">
-						Degrees
-					</p>
-					<MultiValueBadges value={job.degrees} {sort} />
-					<!-- {#if job.degrees}
-					<MultiValueBadges value={job.degrees} {sort} />
-				{/if} -->
-				</div>
-			{/if}
-			{#if job.degree_area}
-				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">
-						Specialization
-					</p>
-					<MultiValueBadges value={job.degree_area} {sort} />
-					<!-- {#if job.degrees}
-						<MultiValueBadges value={job.degrees} {sort} />
-					{/if} -->
-				</div>
-			{/if}
 			{#if job.domicile?.trim()}
 				<div class="space-y-1">
 					<p class="text-xs font-medium text-muted-foreground">
@@ -257,6 +223,22 @@
 			{/if}
 		</div>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+			{#if job.degrees}
+				<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+					<span class="shrink-0 text-xs font-medium text-muted-foreground"
+						>Degrees</span
+					>
+					<MultiValueBadges value={job.degrees} {sort} />
+				</span>
+			{/if}
+			{#if job.degree_area}
+				<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+					<span class="shrink-0 text-xs font-medium text-muted-foreground"
+						>Specialization</span
+					>
+					<MultiValueBadges value={job.degree_area} {sort} />
+				</span>
+			{/if}
 			{#if salaryLabel}
 				<span class="inline-flex items-center gap-1.5">
 					<span class="text-xs font-medium text-muted-foreground"

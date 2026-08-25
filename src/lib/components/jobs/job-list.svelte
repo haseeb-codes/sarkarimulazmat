@@ -39,6 +39,9 @@
 		posted_by?: string | null;
 		donor_name?: string | null;
 		gender?: string | null;
+		qualification?: number[];
+		qualification_from?: number | null;
+		qualification_to?: number | null;
 		grade: string | null;
 		age: number | null;
 		age_from: number | null;
@@ -105,6 +108,9 @@
 			filters.posted_by ?? '',
 			filters.donor_name ?? '',
 			filters.gender ?? '',
+			(filters.qualification ?? []).join('\0'),
+			filters.qualification_from ?? '',
+			filters.qualification_to ?? '',
 			filters.grade ?? '',
 			filters.age_from ?? filters.age ?? '',
 			filters.age_to ?? filters.age ?? '',

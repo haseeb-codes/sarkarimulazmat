@@ -50,6 +50,12 @@
 		debounceTimer = setTimeout(() => navigate(draft.trim() || null), 300);
 	}
 
+	function commitNow(event?: Event) {
+		event?.preventDefault();
+		clearTimeout(debounceTimer);
+		navigate(draft.trim() || null);
+	}
+
 	function onFocus() {
 		focused = true;
 	}
@@ -61,9 +67,11 @@
 	}
 </script>
 
-<div
+<form
 	class="rounded-xl border-2 border-primary/25 bg-primary/5 p-3 shadow-sm sm:p-4"
 	role="search"
+	aria-label="Search jobs"
+	onsubmit={commitNow}
 >
 	<label for="jobs-search" class="mb-2 block text-sm font-semibold text-foreground">
 		Search jobs
@@ -76,6 +84,7 @@
 		<Input
 			id="jobs-search"
 			type="search"
+			name="q"
 			bind:value={draft}
 			oninput={scheduleCommit}
 			onfocus={onFocus}
@@ -86,4 +95,4 @@
 			enterkeyhint="search"
 		/>
 	</div>
-</div>
+</form>

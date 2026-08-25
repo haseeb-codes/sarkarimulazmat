@@ -13,8 +13,7 @@ import {
 	isQualificationFilterActive,
 	resolvedAgeFrom,
 	resolvedAgeTo,
-	resolvedQualificationFrom,
-	resolvedQualificationTo,
+	selectedQualificationLevels,
 	clampAgeFilter,
 	selectedDomiciles,
 	selectedTags,
@@ -22,8 +21,8 @@ import {
 	type FilterParams,
 	type GenderKind,
 	type AgeMaxPreset,
-	QUALIFICATION_LEVEL_MIN,
-	QUALIFICATION_LEVEL_MAX
+	expandGradeFilter,
+	normalizeGradeFilter
 } from '$lib/jobs-utils';
 
 export type { JobSort };
@@ -36,6 +35,7 @@ export type JobFilters = FilterParams & {
 	posted_by: string | null;
 	donor_name: string | null;
 	gender: GenderKind | null;
+	qualification: number[];
 	qualification_from: number | null;
 	qualification_to: number | null;
 	grade: string | null;
@@ -73,6 +73,8 @@ export type JobFilters = FilterParams & {
 export type FilterOptions = {
 	degree_areas: string[];
 	degrees: string[];
+	/** Full unique specialization labels from `degree_area` + `degrees` (A–Z). */
+	specializations: string[];
 	education_levels: string[];
 	grades: string[];
 	places: string[];
@@ -448,6 +450,19 @@ function parseQualificationTo(url: URL): number | null {
 	return parseOptionalQualificationLevel(firstParam(url, 'qualification_level'));
 }
 
+function parseQualificationLevels(url: URL): number[] {
+	const fromParams = url.searchParams
+		.getAll('qualification')
+		.map((v) => parseOptionalQualificationLevel(v))
+		.filter((n): n is number => n != null);
+
+	return selectedQualificationLevels({
+		qualification: fromParams,
+		qualification_from: parseQualificationFrom(url),
+		qualification_to: parseQualificationTo(url)
+	});
+}
+
 export function parseJobFilters(url: URL): JobFilters {
 	const sortParam = firstParam(url, 'sort');
 	const sort: JobSort = sortParam === 'closing_soon' ? 'closing_soon' : 'newest';
@@ -461,9 +476,10 @@ export function parseJobFilters(url: URL): JobFilters {
 		posted_by: firstParam(url, 'posted_by'),
 		donor_name: firstParam(url, 'donor_name'),
 		gender: parseGenderFilter(firstParam(url, 'gender')),
+		qualification: parseQualificationLevels(url),
 		qualification_from: parseQualificationFrom(url),
 		qualification_to: parseQualificationTo(url),
-		grade: firstParam(url, 'grade'),
+		grade: normalizeGradeFilter(firstParam(url, 'grade')),
 		age: parseOptionalPositiveInt(firstParam(url, 'age')),
 		age_from: ageFrom,
 		age_to: ageTo,
@@ -649,13 +665,8 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 	}
 
 	if (isQualificationFilterActive(filters)) {
-		const from = resolvedQualificationFrom(filters);
-		const to = resolvedQualificationTo(filters);
 		and.push({
-			qualification_level: {
-				...(from > QUALIFICATION_LEVEL_MIN ? { gte: from } : {}),
-				...(to < QUALIFICATION_LEVEL_MAX ? { lte: to } : {})
-			}
+			qualification_level: { in: selectedQualificationLevels(filters) }
 		});
 	}
 
@@ -677,7 +688,12 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	// Grade — exact match against grade_derived distinct values
 	if (filters.grade) {
-		and.push({ grade_derived: { equals: filters.grade, mode: 'insensitive' } });
+		const grades = expandGradeFilter(filters.grade);
+		and.push(
+			grades.length === 1
+				? { grade_derived: { equals: grades[0], mode: 'insensitive' } }
+				: { grade_derived: { in: grades } }
+		);
 	}
 
 	// Age: badge presets (job max_age) first, then legacy slider / single age
@@ -816,9 +832,144 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 	];
 }
 
+/** True when phrase (or all tokens) appears in a text field — mirrors keyword WHERE matching. */
+function textFieldMatches(value: string | null | undefined, phrase: string): boolean {
+	if (!value) return false;
+	const hay = value.toLowerCase();
+	const needle = phrase.trim().toLowerCase();
+	if (!needle) return false;
+	if (hay.includes(needle)) return true;
+
+	const tokens = needle.split(/\s+/).filter(Boolean);
+	if (tokens.length <= 1) return false;
+	return tokens.every((token) => hay.includes(token));
+}
+
+/**
+ * Lower is better: title → department → project/program → other searchable fields.
+ * Call only for rows that already matched the keyword WHERE clause.
+ */
+function searchRelevanceRank(
+	job: {
+		title: string | null;
+		department: string | null;
+		project_program_name: string | null;
+	},
+	phrase: string
+): number {
+	if (textFieldMatches(job.title, phrase)) return 1;
+	if (textFieldMatches(job.department, phrase)) return 2;
+	if (textFieldMatches(job.project_program_name, phrase)) return 3;
+	return 4;
+}
+
+function compareNullableDates(
+	a: Date | null | undefined,
+	b: Date | null | undefined,
+	direction: 'asc' | 'desc'
+): number {
+	if (a == null && b == null) return 0;
+	if (a == null) return 1; // nulls last
+	if (b == null) return -1;
+	const diff = a.getTime() - b.getTime();
+	return direction === 'asc' ? diff : -diff;
+}
+
+function compareJobsBySort(
+	a: {
+		row_id: number | null;
+		ad_date: Date | null;
+		file_creation_date: Date | null;
+		last_date_to_apply: Date | null;
+	},
+	b: {
+		row_id: number | null;
+		ad_date: Date | null;
+		file_creation_date: Date | null;
+		last_date_to_apply: Date | null;
+	},
+	sort: JobSort
+): number {
+	if (sort === 'closing_soon') {
+		const byClosing = compareNullableDates(a.last_date_to_apply, b.last_date_to_apply, 'asc');
+		if (byClosing !== 0) return byClosing;
+	} else {
+		const byAd = compareNullableDates(a.ad_date, b.ad_date, 'desc');
+		if (byAd !== 0) return byAd;
+		const byFile = compareNullableDates(a.file_creation_date, b.file_creation_date, 'desc');
+		if (byFile !== 0) return byFile;
+	}
+	return (b.row_id ?? 0) - (a.row_id ?? 0);
+}
+
+/** Prefer global `q`, else drawer `keyword` — used only for ranking matched rows. */
+function searchRankingPhrase(filters: JobFilters): string | null {
+	const q = filters.q?.trim();
+	if (q) return q;
+	const keyword = filters.keyword?.trim();
+	return keyword || null;
+}
+
 export async function listJobs(filters: JobFilters) {
 	const where = buildJobWhere(filters);
 	const skip = (filters.page - 1) * filters.pageSize;
+	const rankingPhrase = searchRankingPhrase(filters);
+
+	// Keyword search: rank title → department → project/program → other, then apply sort.
+	if (rankingPhrase) {
+		const candidates = await db.jobPostings.findMany({
+			where,
+			select: {
+				row_id: true,
+				title: true,
+				department: true,
+				project_program_name: true,
+				ad_date: true,
+				file_creation_date: true,
+				last_date_to_apply: true
+			}
+		});
+
+		const ranked = candidates
+			.filter((job): job is typeof job & { row_id: number } => job.row_id != null)
+			.sort((a, b) => {
+				const byRelevance =
+					searchRelevanceRank(a, rankingPhrase) - searchRelevanceRank(b, rankingPhrase);
+				if (byRelevance !== 0) return byRelevance;
+				return compareJobsBySort(a, b, filters.sort);
+			});
+
+		const total = ranked.length;
+		const pageIds = ranked.slice(skip, skip + filters.pageSize).map((job) => job.row_id);
+
+		if (!pageIds.length) {
+			return {
+				jobs: [],
+				total,
+				page: filters.page,
+				pageSize: filters.pageSize,
+				totalPages: Math.max(1, Math.ceil(total / filters.pageSize))
+			};
+		}
+
+		const pageJobs = await db.jobPostings.findMany({
+			where: { row_id: { in: pageIds } }
+		});
+		const byId = new Map(
+			pageJobs
+				.filter((job): job is typeof job & { row_id: number } => job.row_id != null)
+				.map((job) => [job.row_id, job])
+		);
+		const jobs = pageIds.map((id) => byId.get(id)).filter((job) => job != null);
+
+		return {
+			jobs,
+			total,
+			page: filters.page,
+			pageSize: filters.pageSize,
+			totalPages: Math.max(1, Math.ceil(total / filters.pageSize))
+		};
+	}
 
 	const [rawJobs, total] = await Promise.all([
 		db.jobPostings.findMany({
@@ -922,42 +1073,61 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 		return filterOptionsCache.data;
 	}
 
-	const [rows, gradeRows, domicileRows, salaryAgg] = await Promise.all([
-		db.jobPostings.findMany({
-			where: IS_ACTIVE_JOB,
-			select: {
-				degree_area: true,
-				degrees: true,
-				education_level: true,
-				place_of_posting: true
-			},
-			take: 2000
-		}),
-		db.jobPostings.findMany({
-			where: {
-				AND: [IS_ACTIVE_JOB, { grade_derived: { not: null } }]
-			},
-			select: { grade_derived: true },
-			distinct: ['grade_derived']
-		}),
-		db.jobPostings.findMany({
-			where: {
-				AND: [IS_ACTIVE_JOB, { domicile: { not: null } }]
-			},
-			select: { domicile: true },
-			distinct: ['domicile']
-		}),
-		db.jobPostings.aggregate({
-			where: {
-				AND: [IS_ACTIVE_JOB, { salary_estimated: { not: null } }]
-			},
-			_max: { salary_estimated: true }
-		})
-	]);
+	const [rows, specializationAreaRows, specializationDegreeRows, gradeRows, domicileRows, salaryAgg] =
+		await Promise.all([
+			db.jobPostings.findMany({
+				where: IS_ACTIVE_JOB,
+				select: {
+					degree_area: true,
+					degrees: true,
+					education_level: true,
+					place_of_posting: true
+				},
+				take: 2000
+			}),
+			db.jobPostings.findMany({
+				where: {
+					AND: [IS_ACTIVE_JOB, { degree_area: { not: null } }]
+				},
+				select: { degree_area: true },
+				distinct: ['degree_area']
+			}),
+			db.jobPostings.findMany({
+				where: {
+					AND: [IS_ACTIVE_JOB, { degrees: { not: null } }]
+				},
+				select: { degrees: true },
+				distinct: ['degrees']
+			}),
+			db.jobPostings.findMany({
+				where: {
+					AND: [IS_ACTIVE_JOB, { grade_derived: { not: null } }]
+				},
+				select: { grade_derived: true },
+				distinct: ['grade_derived']
+			}),
+			db.jobPostings.findMany({
+				where: {
+					AND: [IS_ACTIVE_JOB, { domicile: { not: null } }]
+				},
+				select: { domicile: true },
+				distinct: ['domicile']
+			}),
+			db.jobPostings.aggregate({
+				where: {
+					AND: [IS_ACTIVE_JOB, { salary_estimated: { not: null } }]
+				},
+				_max: { salary_estimated: true }
+			})
+		]);
 
 	const data: FilterOptions = {
 		degree_areas: frequencyRank(rows.map((r) => r.degree_area ?? '')),
 		degrees: frequencyRank(rows.map((r) => r.degrees ?? '')),
+		specializations: distinctLabelsAlphabetical([
+			...specializationAreaRows.map((r) => r.degree_area),
+			...specializationDegreeRows.map((r) => r.degrees)
+		]),
 		education_levels: frequencyRank(rows.map((r) => r.education_level ?? '')),
 		grades: distinctGradesAlphabetical(gradeRows.map((r) => r.grade_derived)),
 		places: frequencyRank(rows.map((r) => r.place_of_posting ?? '')),
@@ -978,6 +1148,7 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		posted_by: null,
 		donor_name: null,
 		gender: null,
+		qualification: [],
 		qualification_from: null,
 		qualification_to: null,
 		grade: null,

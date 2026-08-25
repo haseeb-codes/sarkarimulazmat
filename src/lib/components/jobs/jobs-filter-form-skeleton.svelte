@@ -40,6 +40,10 @@
 		</div>
 	</div>
 	<div class="space-y-2">
+		<Skeleton class="h-4 w-36" />
+		<Skeleton class="h-9 w-full" />
+	</div>
+	<div class="space-y-2">
 		<Skeleton class="h-4 w-10" />
 		<Skeleton class="h-9 w-full" />
 	</div>

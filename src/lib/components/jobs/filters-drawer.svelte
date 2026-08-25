@@ -16,6 +16,7 @@
 
 	type FilterOptions = {
 		grades: string[];
+		specializations: string[];
 		salary_max: number;
 	};
 
@@ -34,7 +35,7 @@
 	let open = $state(false);
 
 	const displayFilters = $derived(
-		effectiveDrawerFilters(filters, navigating.to?.url, page.url.pathname)
+		effectiveDrawerFilters(filters, navigating.to?.url ?? page.url, page.url.pathname)
 	);
 
 	const activeCount = $derived(drawerFilterActiveCount(displayFilters));
@@ -55,27 +56,33 @@
 </script>
 
 <div class="min-w-0">
-	<Drawer.Root bind:open direction="left" handleOnly>
-		<div class="mb-4 flex flex-wrap items-center gap-2">
-			<Button variant="outline" size="sm" onclick={() => (open = true)}>
-				<FilterIcon data-icon="inline-start" />
-				{filtersLabel}
-			</Button>
-			{#if activeCount}
-				<Button variant="ghost" size="sm" onclick={clearFilters}>Clear</Button>
-			{/if}
-		</div>
-
-		<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
-			<Drawer.Header class="shrink-0 border-b border-border text-left">
-				<Drawer.Title>Filters</Drawer.Title>
-				<Drawer.Description>Narrow jobs by age, salary, domicile, tags, and grade.</Drawer.Description>
-			</Drawer.Header>
-			<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-				<JobsFilterFormAsync {filters} {options} {resultCount} />
+	<div
+		class="sticky top-14 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-backdrop-filter:bg-background/80"
+	>
+		<Drawer.Root bind:open direction="left" handleOnly>
+			<div class="flex flex-wrap items-center gap-2">
+				<Button variant="outline" size="sm" onclick={() => (open = true)}>
+					<FilterIcon data-icon="inline-start" />
+					{filtersLabel}
+				</Button>
+				{#if activeCount}
+					<Button variant="ghost" size="sm" onclick={clearFilters}>Clear</Button>
+				{/if}
 			</div>
-		</Drawer.Content>
-	</Drawer.Root>
+
+			<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
+				<Drawer.Header class="shrink-0 border-b border-border text-left">
+					<Drawer.Title>Filters</Drawer.Title>
+					<Drawer.Description>Narrow jobs by age, qualification, degree specialization, salary, domicile, tags, and grade.</Drawer.Description>
+				</Drawer.Header>
+				<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+					{#if open}
+						<JobsFilterFormAsync filters={displayFilters} {options} {resultCount} />
+					{/if}
+				</div>
+			</Drawer.Content>
+		</Drawer.Root>
+	</div>
 
 	{@render children?.()}
 </div>
