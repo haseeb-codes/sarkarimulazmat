@@ -36,6 +36,16 @@ export const GET: RequestHandler = async ({ url }) => {
 	const urls = [
 		{ loc: `${base}/`, priority: '1.0', lastmod: undefined as string | undefined },
 		{
+			loc: `${base}/about`,
+			lastmod: today,
+			priority: '0.8'
+		},
+		{
+			loc: `${base}/contact`,
+			lastmod: today,
+			priority: '0.8'
+		},
+		{
 			loc: `${base}/tags`,
 			lastmod: today,
 			priority: '0.9'

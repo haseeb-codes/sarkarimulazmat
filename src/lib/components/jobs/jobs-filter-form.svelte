@@ -50,6 +50,9 @@
 	let permanentOnlyDraft = $state(false);
 	let womenOnlyDraft = $state(false);
 	let transgenderApplicableDraft = $state(false);
+	let disabilityQuotaDraft = $state(false);
+	let minorityQuotaDraft = $state(false);
+	let showExpiredDraft = $state(false);
 
 	const specializationOptions = $derived(options.specializations ?? []);
 
@@ -66,6 +69,9 @@
 		permanentOnlyDraft = Boolean(filters.permanent_only);
 		womenOnlyDraft = Boolean(filters.women_only);
 		transgenderApplicableDraft = Boolean(filters.transgender_applicable);
+		disabilityQuotaDraft = Boolean(filters.disability_quota);
+		minorityQuotaDraft = Boolean(filters.minority_quota);
+		showExpiredDraft = Boolean(filters.show_expired);
 		const levels = selectedQualificationLevels(filters);
 		qualificationDraft = levels.length ? levels[0]! : null;
 	});
@@ -155,6 +161,21 @@
 	function setTransgenderApplicable(next: boolean) {
 		transgenderApplicableDraft = next;
 		navigate({ transgender_applicable: next });
+	}
+
+	function setDisabilityQuota(next: boolean) {
+		disabilityQuotaDraft = next;
+		navigate({ disability_quota: next });
+	}
+
+	function setMinorityQuota(next: boolean) {
+		minorityQuotaDraft = next;
+		navigate({ minority_quota: next });
+	}
+
+	function setShowExpired(next: boolean) {
+		showExpiredDraft = next;
+		navigate({ show_expired: next });
 	}
 
 	function switchClass(on: boolean): string {
@@ -395,5 +416,56 @@
 				Transgender
 			</Label>
 		</div>
+		<div class="flex items-center gap-2">
+			<button
+				id="{idPrefix}filter-minority"
+				type="button"
+				role="switch"
+				aria-checked={minorityQuotaDraft}
+				onclick={() => setMinorityQuota(!minorityQuotaDraft)}
+				class={switchClass(minorityQuotaDraft)}
+			>
+				<span aria-hidden="true" class={switchThumbClass(minorityQuotaDraft)}></span>
+			</button>
+			<Label for="{idPrefix}filter-minority" class="cursor-pointer text-sm font-normal">
+				Minority
+			</Label>
+		</div>
+		<div class="flex items-center gap-2">
+			<button
+				id="{idPrefix}filter-disability"
+				type="button"
+				role="switch"
+				aria-checked={disabilityQuotaDraft}
+				onclick={() => setDisabilityQuota(!disabilityQuotaDraft)}
+				class={switchClass(disabilityQuotaDraft)}
+			>
+				<span aria-hidden="true" class={switchThumbClass(disabilityQuotaDraft)}></span>
+			</button>
+			<Label for="{idPrefix}filter-disability" class="cursor-pointer text-sm font-normal">
+				Disability
+			</Label>
+		</div>
+	</div>
+
+	<Separator />
+
+	<div class="flex items-center justify-between gap-3">
+		<div class="min-w-0 space-y-0.5">
+			<Label for="{idPrefix}filter-show-expired" class="cursor-pointer">Include Expired Job</Label>
+			<p class="text-xs text-muted-foreground">
+				When off, only active jobs are listed. Turn on to include inactive postings too.
+			</p>
+		</div>
+		<button
+			id="{idPrefix}filter-show-expired"
+			type="button"
+			role="switch"
+			aria-checked={showExpiredDraft}
+			onclick={() => setShowExpired(!showExpiredDraft)}
+			class={switchClass(showExpiredDraft)}
+		>
+			<span aria-hidden="true" class={switchThumbClass(showExpiredDraft)}></span>
+		</button>
 	</div>
 </div>

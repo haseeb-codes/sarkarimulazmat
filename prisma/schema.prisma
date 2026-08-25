@@ -243,6 +243,20 @@ model PageView {
   @@map("page_views")
 }
 
+/// Contact form submissions from /contact
+model Email {
+  id         String   @id @default(cuid())
+  name       String
+  email      String?
+  contact    String
+  message    String
+  created_at DateTime @default(now()) @map("created_at")
+
+  @@index([created_at])
+  @@index([email])
+  @@map("emails")
+}
+
 /// Saved filter sets for anonymous visitors and signed-in users
 model SavedSearch {
   id               String   @id @default(cuid())

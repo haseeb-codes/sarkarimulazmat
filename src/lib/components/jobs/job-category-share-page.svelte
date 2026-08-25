@@ -23,6 +23,7 @@
 		place_of_posting: string | null;
 		domicile: string | null;
 		gender: string | null;
+		disability_quota?: boolean | null;
 		collar?: string | null;
 		donor_name?: string | null;
 		salary?: number | null;

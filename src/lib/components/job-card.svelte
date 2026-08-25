@@ -4,6 +4,7 @@
 	import * as Card from "$lib/components/ui/card/index.js";
 	import MultiValueBadges from "$lib/components/multi-value-badges.svelte";
 	import GenderIcons from "$lib/components/gender-icons.svelte";
+	import DisabilityIcon from "$lib/components/disability-icon.svelte";
 	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
 	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
 	import { page } from "$app/state";
@@ -42,6 +43,7 @@
 		place_of_posting: string | null;
 		domicile: string | null;
 		gender: string | null;
+		disability_quota?: boolean | null;
 		collar?: string | null;
 		donor_name?: string | null;
 		salary?: number | null;
@@ -160,7 +162,14 @@
 						</span>
 					{/if}
 					{#if job.grade}
-						<Badge variant="secondary">{job.grade}</Badge>
+						<Badge
+							variant="secondary"
+							href={badgeFilterHref(job.grade, sort, "grade")}
+							aria-label="Filter by grade {job.grade}"
+							class="underline-offset-2 hover:underline"
+						>
+							{job.grade}
+						</Badge>
 					{/if}
 					{#if job.donor_name}
 						<span
@@ -181,7 +190,10 @@
 					>
 						{job.title ?? "Untitled posting"}
 					</span>
-					<GenderIcons gender={job.gender} class="mt-0.5 shrink-0" />
+					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
+						<GenderIcons gender={job.gender} />
+						<DisabilityIcon show={Boolean(job.disability_quota)} />
+					</span>
 				</a>
 
 				{#if job.department && departmentHref}
@@ -283,7 +295,10 @@
 						class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
 					>
 						<span>{job.title ?? "Untitled posting"}</span>
-						<GenderIcons gender={job.gender} class="mt-0.5" />
+						<span class="mt-0.5 inline-flex items-center gap-0.5">
+							<GenderIcons gender={job.gender} />
+							<DisabilityIcon show={Boolean(job.disability_quota)} />
+						</span>
 					</Card.Title>
 					<div class="flex flex-wrap gap-1.5">
 						{#if expired}
@@ -300,7 +315,14 @@
 							</span>
 						{/if}
 						{#if job.grade}
-							<Badge variant="secondary">{job.grade}</Badge>
+							<Badge
+								variant="secondary"
+								href={badgeFilterHref(job.grade, sort, "grade")}
+								aria-label="Filter by grade {job.grade}"
+								class="underline-offset-2 hover:underline"
+							>
+								{job.grade}
+							</Badge>
 						{/if}
 					</div>
 				</div>
@@ -319,52 +341,67 @@
 		</Card.Header>
 
 		<Card.Content class="space-y-2.5 pt-0">
-			<div class="space-y-2">
-				{#if job.project_program_name?.trim()}
-					<div class="space-y-1">
-						<p class="text-xs font-medium text-muted-foreground">Program</p>
+			{#if job.project_program_name?.trim()}
+				<div class="space-y-1">
+					<p class="text-xs font-medium text-muted-foreground">Program</p>
+					<MultiValueBadges
+						value={job.project_program_name}
+						{sort}
+						param="program"
+						class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
+					/>
+				</div>
+			{/if}
+			{#if job.degree_area}
+				<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+					<span class="shrink-0 text-xs font-medium text-muted-foreground"
+						>Specialization</span
+					>
+					<MultiValueBadges
+						value={job.degree_area}
+						{sort}
+						containerClass="contents"
+					/>
+				</div>
+			{/if}
+			<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+				{#if job.domicile?.trim()}
+					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+						<span class="shrink-0 text-xs font-medium text-muted-foreground"
+							>Domicile</span
+						>
 						<MultiValueBadges
-							value={job.project_program_name}
+							value={job.domicile}
 							{sort}
-							param="program"
-							class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
+							param="domicile"
+							containerClass="contents"
 						/>
 					</div>
-				{/if}
-				{#if job.domicile?.trim()}
-					<div class="space-y-1">
-						<p class="text-xs font-medium text-muted-foreground">Domicile</p>
-						<MultiValueBadges value={job.domicile} {sort} param="domicile" />
-					</div>
-				{/if}
-				{#if job.place_of_posting && !job.domicile?.trim()}
-					<div class="space-y-1">
-						<p class="text-xs font-medium text-muted-foreground">Location</p>
+				{:else if job.place_of_posting}
+					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+						<span class="shrink-0 text-xs font-medium text-muted-foreground"
+							>Location</span
+						>
 						<MultiValueBadges
 							value={job.place_of_posting}
 							{sort}
 							param="place_of_posting"
+							containerClass="contents"
 							class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
 						/>
 					</div>
 				{/if}
-			</div>
-			<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
 				{#if job.degrees}
-					<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 						<span class="shrink-0 text-xs font-medium text-muted-foreground"
 							>Degrees</span
 						>
-						<MultiValueBadges value={job.degrees} {sort} />
-					</span>
-				{/if}
-				{#if job.degree_area}
-					<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
-						<span class="shrink-0 text-xs font-medium text-muted-foreground"
-							>Specialization</span
-						>
-						<MultiValueBadges value={job.degree_area} {sort} />
-					</span>
+						<MultiValueBadges
+							value={job.degrees}
+							{sort}
+							containerClass="contents"
+						/>
+					</div>
 				{/if}
 				{#if salaryLabel}
 					<span class="inline-flex items-center gap-1.5">

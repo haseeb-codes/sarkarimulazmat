@@ -132,7 +132,8 @@ export function badgeFilterHref(
 		| 'place_of_posting'
 		| 'education_level'
 		| 'department'
-		| 'program' = 'degree_areas'
+		| 'program'
+		| 'grade' = 'degree_areas'
 ): string {
 	const params = new URLSearchParams();
 	params.set(param, value);
@@ -174,7 +175,11 @@ export function getBpsGradeGroup(value: string | null | undefined) {
 	return BPS_GRADE_GROUPS.find((group) => group.key === key) ?? null;
 }
 
-/** Map a URL/legacy grade value onto a BPS group key when possible. */
+/**
+ * Normalize a URL grade value.
+ * Group keys (`bps-01-11`, …) stay as groups; individual BPS codes stay exact
+ * (`BPS-05`) so badge clicks filter that grade only.
+ */
 export function normalizeGradeFilter(value: string | null | undefined): string | null {
 	if (!value) return null;
 	const trimmed = value.trim();
@@ -183,13 +188,9 @@ export function normalizeGradeFilter(value: string | null | undefined): string |
 	const group = getBpsGradeGroup(trimmed);
 	if (group) return group.key;
 
-	const match = /^BPS-?(\d{1,2})$/i.exec(trimmed);
+	const match = /^BPS-?\s*(\d{1,2})$/i.exec(trimmed);
 	if (match) {
-		const code = `BPS-${String(Number(match[1])).padStart(2, '0')}`;
-		const byGrade = BPS_GRADE_GROUPS.find((g) =>
-			g.grades.some((grade) => grade.toLowerCase() === code.toLowerCase())
-		);
-		if (byGrade) return byGrade.key;
+		return `BPS-${String(Number(match[1])).padStart(2, '0')}`;
 	}
 
 	return trimmed;
@@ -258,10 +259,15 @@ export type FilterParams = {
 	women_only?: boolean;
 	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
 	transgender_applicable?: boolean;
+	/** Only jobs with disability quota (`disability_quota` = true). */
+	disability_quota?: boolean;
+	/** Only jobs with minority quota (`minority_quota` = true). */
+	minority_quota?: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary?: number | null;
 	salary_from?: number | null;
 	salary_to?: number | null;
+	/** Include expired/inactive jobs (`is_active` 0 and 1). Default off = active only. */
 	show_expired?: boolean;
 	sort?: JobSort;
 	page?: number;
@@ -344,6 +350,8 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.permanent_only) params.set('permanent', '1');
 	if (filters.women_only) params.set('women', '1');
 	if (filters.transgender_applicable) params.set('transgender', '1');
+	if (filters.disability_quota) params.set('disability', '1');
+	if (filters.minority_quota) params.set('minority', '1');
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));
@@ -519,9 +527,12 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		permanent_only: false,
 		women_only: false,
 		transgender_applicable: false,
+		disability_quota: false,
+		minority_quota: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,
+		show_expired: false,
 		page: 1
 	};
 }
@@ -535,7 +546,10 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
 		(filters.permanent_only ? 1 : 0) +
 		(filters.women_only ? 1 : 0) +
-		(filters.transgender_applicable ? 1 : 0)
+		(filters.transgender_applicable ? 1 : 0) +
+		(filters.disability_quota ? 1 : 0) +
+		(filters.minority_quota ? 1 : 0) +
+		(filters.show_expired ? 1 : 0)
 	);
 }
 
@@ -602,7 +616,10 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 		has_salary: params.get('has_salary') === '1',
 		permanent_only: params.get('permanent') === '1',
 		women_only: params.get('women') === '1',
-		transgender_applicable: params.get('transgender') === '1'
+		transgender_applicable: params.get('transgender') === '1',
+		disability_quota: params.get('disability') === '1',
+		minority_quota: params.get('minority') === '1',
+		show_expired: params.get('show_expired') === '1'
 	};
 }
 

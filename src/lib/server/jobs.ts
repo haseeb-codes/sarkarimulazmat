@@ -66,10 +66,19 @@ export type JobFilters = FilterParams & {
 	women_only: boolean;
 	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
 	transgender_applicable: boolean;
+	/** Only jobs with disability quota (`disability_quota` = true). */
+	disability_quota: boolean;
+	/** Only jobs with minority quota (`minority_quota` = true). */
+	minority_quota: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary: number | null;
 	salary_from: number | null;
 	salary_to: number | null;
+	/**
+	 * Include expired/inactive jobs.
+	 * Off (default): `is_active = 1` and non-past deadlines.
+	 * On: all `is_active` values and past deadlines.
+	 */
 	show_expired: boolean;
 	sort: JobSort;
 	page: number;
@@ -507,6 +516,8 @@ export function parseJobFilters(url: URL): JobFilters {
 		permanent_only: url.searchParams.get('permanent') === '1',
 		women_only: url.searchParams.get('women') === '1',
 		transgender_applicable: url.searchParams.get('transgender') === '1',
+		disability_quota: url.searchParams.get('disability') === '1',
+		minority_quota: url.searchParams.get('minority') === '1',
 		min_salary: parseOptionalPositiveInt(firstParam(url, 'min_salary')),
 		salary_from:
 			parseOptionalPositiveInt(firstParam(url, 'salary_from')) ??
@@ -543,6 +554,8 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.permanent_only ||
 			filters.women_only ||
 			filters.transgender_applicable ||
+			filters.disability_quota ||
+			filters.minority_quota ||
 			filters.min_salary != null ||
 			filters.salary_from != null ||
 			filters.salary_to != null ||
@@ -654,7 +667,10 @@ export const IS_ACTIVE_JOB: Prisma.JobPostingsWhereInput = { is_active: 1 };
 export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput {
 	const and: Prisma.JobPostingsWhereInput[] = [];
 
-	and.push(IS_ACTIVE_JOB);
+	// Active-only unless "Include Expired Job" is on (`show_expired`).
+	if (!filters.show_expired) {
+		and.push(IS_ACTIVE_JOB);
+	}
 	and.push({ row_id: { not: null } });
 
 	// Specialization / degrees — comma-delimited strings; match any selected value
@@ -698,12 +714,17 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		and.push(genderMatchWhere(filters.gender));
 	}
 
-	// Grade — exact match against grade_derived distinct values
+	// Grade — group keys expand to several grade_derived values; single values match exactly
 	if (filters.grade) {
 		const grades = expandGradeFilter(filters.grade);
 		and.push(
 			grades.length === 1
-				? { grade_derived: { equals: grades[0], mode: 'insensitive' } }
+				? {
+						OR: [
+							{ grade_derived: { equals: grades[0], mode: 'insensitive' } },
+							{ grade: { equals: grades[0], mode: 'insensitive' } }
+						]
+					}
 				: { grade_derived: { in: grades } }
 		);
 	}
@@ -831,6 +852,14 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	if (filters.transgender_applicable) {
 		and.push({ gender: { contains: 'Transgender', mode: 'insensitive' } });
+	}
+
+	if (filters.disability_quota) {
+		and.push({ disability_quota: true });
+	}
+
+	if (filters.minority_quota) {
+		and.push({ minority_quota: true });
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -1195,6 +1224,8 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		permanent_only: false,
 		women_only: false,
 		transgender_applicable: false,
+		disability_quota: false,
+		minority_quota: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,

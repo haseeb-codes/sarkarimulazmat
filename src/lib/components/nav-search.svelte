@@ -14,7 +14,13 @@
 	function listingPath(): string {
 		const path = page.url.pathname;
 		if (path === '/') return '/';
-		if (path.startsWith('/jobs/') || path === '/privacy' || path === '/terms') {
+		if (
+			path.startsWith('/jobs/') ||
+			path === '/privacy' ||
+			path === '/terms' ||
+			path === '/about' ||
+			path === '/contact'
+		) {
 			return '/';
 		}
 		return path;

@@ -32,6 +32,7 @@
 		place_of_posting: string | null;
 		domicile: string | null;
 		gender: string | null;
+		disability_quota?: boolean | null;
 		collar: string | null;
 		donor_name: string | null;
 		salary: number | null;
@@ -69,6 +70,8 @@
 		permanent_only?: boolean;
 		women_only?: boolean;
 		transgender_applicable?: boolean;
+		disability_quota?: boolean;
+		minority_quota?: boolean;
 		min_salary?: number | null;
 		salary_from?: number | null;
 		salary_to?: number | null;
@@ -165,6 +168,8 @@
 			filters.permanent_only ? '1' : '0',
 			filters.women_only ? '1' : '0',
 			filters.transgender_applicable ? '1' : '0',
+			filters.disability_quota ? '1' : '0',
+			filters.minority_quota ? '1' : '0',
 			filters.min_salary ?? '',
 			filters.salary_from ?? '',
 			filters.salary_to ?? '',
@@ -326,9 +331,9 @@
 	</div>
 {:else}
 	<div class="space-y-4" aria-live="polite">
-		<!-- Same sticky offset as the filters rail (OLX pattern) -->
+		<!-- Stick under the results-column search field -->
 		<div
-			class="sticky top-[var(--browse-filters-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5"
+			class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5"
 		>
 			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
 				{#if filtered}

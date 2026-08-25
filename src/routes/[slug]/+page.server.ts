@@ -76,6 +76,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		permanent_only: urlFilters.permanent_only,
 		women_only: urlFilters.women_only,
 		transgender_applicable: urlFilters.transgender_applicable,
+		disability_quota: urlFilters.disability_quota,
+		minority_quota: urlFilters.minority_quota,
 		min_salary: urlFilters.min_salary,
 		salary_from: urlFilters.salary_from,
 		salary_to: urlFilters.salary_to
@@ -122,6 +124,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			permanent_only: filters.permanent_only,
 			women_only: filters.women_only,
 			transgender_applicable: filters.transgender_applicable,
+			disability_quota: filters.disability_quota,
+			minority_quota: filters.minority_quota,
 			min_salary: filters.min_salary,
 			salary_from: filters.salary_from,
 			salary_to: filters.salary_to,
@@ -148,6 +152,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				urlFilters.permanent_only ||
 				urlFilters.women_only ||
 				urlFilters.transgender_applicable ||
+				urlFilters.disability_quota ||
+				urlFilters.minority_quota ||
 				urlFilters.min_salary != null ||
 				urlFilters.salary_from != null ||
 				urlFilters.salary_to != null ||

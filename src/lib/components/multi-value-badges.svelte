@@ -7,13 +7,15 @@
 		sort = 'newest',
 		clickable = true,
 		param = 'degree_areas',
-		class: className = ''
+		class: className = '',
+		containerClass = 'flex min-w-0 flex-wrap gap-1.5'
 	}: {
 		value: string | null | undefined;
 		sort?: JobSort;
 		clickable?: boolean;
 		param?: 'degree_areas' | 'domicile' | 'place_of_posting' | 'education_level' | 'program';
 		class?: string;
+		containerClass?: string;
 	} = $props();
 
 	const parts = $derived(
@@ -22,7 +24,7 @@
 </script>
 
 {#if parts.length}
-	<div class="flex flex-wrap gap-1.5">
+	<span class={containerClass}>
 		{#each parts as part (part)}
 			{#if clickable}
 				<Badge
@@ -37,5 +39,5 @@
 				<Badge variant="secondary" class={className}>{part}</Badge>
 			{/if}
 		{/each}
-	</div>
+	</span>
 {/if}

@@ -2,6 +2,7 @@
 	import { navigating, page } from '$app/state';
 	import MultiValueBadges from '$lib/components/multi-value-badges.svelte';
 	import GenderIcons from '$lib/components/gender-icons.svelte';
+	import DisabilityIcon from '$lib/components/disability-icon.svelte';
 	import JobDetailSkeleton from '$lib/components/jobs/job-detail-skeleton.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
@@ -143,7 +144,10 @@
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<h1 class="flex items-start gap-2 text-2xl font-semibold tracking-tight md:text-3xl">
 				<span>{job.title ?? 'Untitled posting'}</span>
-				<GenderIcons gender={job.gender} class="mt-1.5 md:mt-2 md:[&_svg]:size-5" />
+				<span class="mt-1.5 inline-flex items-center gap-0.5 md:mt-2 md:[&_svg]:size-5">
+					<GenderIcons gender={job.gender} />
+					<DisabilityIcon show={Boolean(job.disability_quota)} />
+				</span>
 			</h1>
 			{#if expired}
 				<span
@@ -220,7 +224,16 @@
 					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Grade
 					</dt>
-					<dd class="mt-1"><Badge variant="secondary">{job.grade}</Badge></dd>
+					<dd class="mt-1">
+						<Badge
+							variant="secondary"
+							href={badgeFilterHref(job.grade, undefined, 'grade')}
+							aria-label="Filter by grade {job.grade}"
+							class="underline-offset-2 hover:underline"
+						>
+							{job.grade}
+						</Badge>
+					</dd>
 				</div>
 			{/if}
 			{#if ageLabel}
@@ -286,6 +299,17 @@
 						Employment type
 					</dt>
 					<dd class="mt-1 text-sm">{job.employment_type}</dd>
+				</div>
+			{/if}
+			{#if job.disability_quota}
+				<div>
+					<dt class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+						Disability quota
+					</dt>
+					<dd class="mt-1 flex items-center gap-1.5 text-sm">
+						<DisabilityIcon show={true} />
+						<span>Persons with disabilities encouraged to apply</span>
+					</dd>
 				</div>
 			{/if}
 			{#if applyByLabel}

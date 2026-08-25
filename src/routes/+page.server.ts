@@ -38,6 +38,8 @@ function filtersSnapshot(filters: JobFilters) {
 		permanent_only: filters.permanent_only,
 		women_only: filters.women_only,
 		transgender_applicable: filters.transgender_applicable,
+		disability_quota: filters.disability_quota,
+		minority_quota: filters.minority_quota,
 		min_salary: filters.min_salary,
 		salary_from: filters.salary_from,
 		salary_to: filters.salary_to,
