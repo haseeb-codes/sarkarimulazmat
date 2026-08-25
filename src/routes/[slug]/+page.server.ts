@@ -73,6 +73,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		province: urlFilters.province,
 		program: urlFilters.program,
 		has_salary: urlFilters.has_salary,
+		permanent_only: urlFilters.permanent_only,
 		min_salary: urlFilters.min_salary,
 		salary_from: urlFilters.salary_from,
 		salary_to: urlFilters.salary_to
@@ -116,6 +117,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			keyword: filters.keyword,
 			q: filters.q,
 			has_salary: filters.has_salary,
+			permanent_only: filters.permanent_only,
 			min_salary: filters.min_salary,
 			salary_from: filters.salary_from,
 			salary_to: filters.salary_to,
@@ -139,6 +141,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				urlFilters.department ||
 				urlFilters.collar ||
 				urlFilters.has_salary ||
+				urlFilters.permanent_only ||
 				urlFilters.min_salary != null ||
 				urlFilters.salary_from != null ||
 				urlFilters.salary_to != null ||

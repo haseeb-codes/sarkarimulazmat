@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
-	import TagChipsAsync from '$lib/components/jobs/tag-chips-async.svelte';
 	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
-	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
 
 	let { data } = $props();
 
@@ -42,31 +40,26 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="space-y-2">
-		<h1>Government jobs in Pakistan</h1>
-		<p class="max-w-2xl text-muted-foreground">
+	<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+		<h1 class="shrink-0">Government jobs in Pakistan</h1>
+		<p class="min-w-0 text-muted-foreground">
 			Browse postings by category, education, and more to see what you're eligible for.
 		</p>
 	</div>
 
-	<TagChipsAsync browse={data.browse} />
-
-	<div class="min-w-0 space-y-4">
-		<JobsSearch filters={data.filters} />
-		<FiltersDrawer
+	<FiltersDrawer
+		filters={data.filters}
+		options={data.filterOptions}
+		resultCount={data.total}
+	>
+		<JobList
+			jobs={data.jobs}
+			total={data.total}
+			totalPages={data.totalPages}
 			filters={data.filters}
-			options={data.filterOptions}
-			resultCount={data.total}
-		>
-			<JobList
-				jobs={data.jobs}
-				total={data.total}
-				totalPages={data.totalPages}
-				filters={data.filters}
-				filtered={data.filtered}
-				error={data.error}
-				loading={isNavigating}
-			/>
-		</FiltersDrawer>
-	</div>
+			filtered={data.filtered}
+			error={data.error}
+			loading={isNavigating}
+		/>
+	</FiltersDrawer>
 </div>

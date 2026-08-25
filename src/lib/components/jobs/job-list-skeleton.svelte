@@ -23,7 +23,7 @@
 		<Skeleton class="h-5 w-24" />
 		<Skeleton class="h-4 w-28" />
 	</div>
-	<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
+	<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3">
 		{#each Array(count) as _, i (i)}
 			{@const variant = variants[i % variants.length]}
 			<li class="mb-3 break-inside-avoid">

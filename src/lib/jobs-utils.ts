@@ -58,13 +58,19 @@ export function isJobExpired(lastDate: string | Date | null | undefined): boolea
 	return dateKey < today;
 }
 
+/** Calendar days from today until the deadline (0 = today). Null if missing/invalid. */
+export function daysUntilDate(value: string | Date | null | undefined): number | null {
+	const dateKey = toDateKey(value);
+	if (!dateKey) return null;
+	const deadline = new Date(`${dateKey}T00:00:00.000Z`);
+	if (Number.isNaN(deadline.getTime())) return null;
+	const diffMs = deadline.getTime() - startOfTodayUtc().getTime();
+	return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
 export function isClosingSoon(lastDate: string | Date | null | undefined, withinDays = 7): boolean {
-	const dateKey = toDateKey(lastDate);
-	if (!dateKey || isJobExpired(dateKey)) return false;
-	const today = new Date();
-	const deadline = new Date(dateKey + 'T23:59:59');
-	const diff = (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-	return diff >= 0 && diff <= withinDays;
+	const days = daysUntilDate(lastDate);
+	return days != null && days >= 0 && days <= withinDays;
 }
 
 export type GenderKind = 'male' | 'female' | 'transgender';
@@ -246,6 +252,8 @@ export type FilterParams = {
 	q?: string | null;
 	/** Only jobs with a non-null salary */
 	has_salary?: boolean;
+	/** Only permanent jobs (`employment_type` = Permanent). */
+	permanent_only?: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary?: number | null;
 	salary_from?: number | null;
@@ -329,6 +337,7 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	} else if (filters.has_salary) {
 		params.set('has_salary', '1');
 	}
+	if (filters.permanent_only) params.set('permanent', '1');
 	if (filters.show_expired) params.set('show_expired', '1');
 	if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
 	if (filters.page && filters.page > 1) params.set('page', String(filters.page));
@@ -501,6 +510,7 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		domicile_region: [],
 		tag: [],
 		has_salary: false,
+		permanent_only: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,
@@ -508,15 +518,14 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 	};
 }
 
-export function drawerFilterActiveCount(filters: FilterParams, salaryMax?: number): number {
+export function drawerFilterActiveCount(filters: FilterParams): number {
 	return (
 		(isAgeFilterActive(filters) ? 1 : 0) +
 		(isQualificationFilterActive(filters) ? 1 : 0) +
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
-		(selectedTags(filters).length ? 1 : 0) +
-		(isSalaryFilterActive(filters, salaryMax) ? 1 : 0)
+		(filters.permanent_only ? 1 : 0)
 	);
 }
 
@@ -580,7 +589,8 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 			parseDrawerIntParam(params.get('min_salary'), 1),
 		salary_to: parseDrawerIntParam(params.get('salary_to'), 1),
 		min_salary: null,
-		has_salary: params.get('has_salary') === '1'
+		has_salary: params.get('has_salary') === '1',
+		permanent_only: params.get('permanent') === '1'
 	};
 }
 

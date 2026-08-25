@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import JobsFilterFormAsync from '$lib/components/jobs/jobs-filter-form-async.svelte';
+	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 	import {
@@ -55,34 +56,110 @@
 	});
 </script>
 
-<div class="min-w-0">
+<!--
+  OLX-style scroll model:
+  - The window/document scrolls the listing results.
+  - Search sticks under the site header.
+  - Filters stick under search with their own max-height + overflow-y
+    (long filter lists scroll inside the rail; page still scrolls over results).
+-->
+<div
+	class="flex flex-col gap-4"
+	style="--browse-search-offset: 3.5rem; --browse-filters-offset: 8rem;"
+>
 	<div
-		class="sticky top-14 z-30 -mx-4 mb-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-backdrop-filter:bg-background/80"
+		class="sticky top-[var(--browse-search-offset)] z-30 -mx-4 border-b border-border bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80"
 	>
-		<Drawer.Root bind:open direction="left" handleOnly>
-			<div class="flex flex-wrap items-center gap-2">
-				<Button variant="outline" size="sm" onclick={() => (open = true)}>
-					<FilterIcon data-icon="inline-start" />
-					{filtersLabel}
-				</Button>
-				{#if activeCount}
-					<Button variant="ghost" size="sm" onclick={clearFilters}>Clear</Button>
-				{/if}
+		<div class="flex items-center gap-2">
+			<div class="shrink-0 lg:hidden">
+				<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
+					<div class="flex items-center gap-1">
+						<Button
+							variant="outline"
+							size="sm"
+							class="h-12 gap-1.5 px-3"
+							onclick={() => (open = true)}
+							aria-label={filtersLabel}
+						>
+							<FilterIcon class="size-4" aria-hidden="true" />
+							<span class="text-sm font-medium">
+								{#if activeCount}
+									{activeCount}
+								{:else}
+									Filters
+								{/if}
+							</span>
+						</Button>
+						{#if activeCount}
+							<Button variant="ghost" size="sm" class="h-12 px-2" onclick={clearFilters}>
+								Clear
+							</Button>
+						{/if}
+					</div>
+
+					{#if open}
+						<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
+							<Drawer.Header class="shrink-0 border-b border-border text-left">
+								<Drawer.Title>
+									Filters
+									<span class="font-normal text-muted-foreground">
+										· {resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+									</span>
+								</Drawer.Title>
+								<Drawer.Description>
+									Narrow jobs by age, qualification, degree specialization, BPS grade, permanent
+									jobs, and domicile.
+								</Drawer.Description>
+							</Drawer.Header>
+							<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+								<JobsFilterFormAsync
+									filters={displayFilters}
+									{options}
+									idPrefix="drawer-"
+								/>
+							</div>
+						</Drawer.Content>
+					{/if}
+				</Drawer.Root>
 			</div>
 
-			<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
-				<Drawer.Header class="shrink-0 border-b border-border text-left">
-					<Drawer.Title>Filters</Drawer.Title>
-					<Drawer.Description>Narrow jobs by age, qualification, degree specialization, salary, domicile, tags, and grade.</Drawer.Description>
-				</Drawer.Header>
-				<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-					{#if open}
-						<JobsFilterFormAsync filters={displayFilters} {options} {resultCount} />
-					{/if}
-				</div>
-			</Drawer.Content>
-		</Drawer.Root>
+			<div class="min-w-0 flex-1">
+				<JobsSearch {filters} />
+			</div>
+		</div>
 	</div>
 
-	{@render children?.()}
+	<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+		<!-- Sticky must be on this flex item so its containing block is the tall results row -->
+		<aside
+			class="hidden w-72 shrink-0 self-start overflow-y-auto rounded-lg border border-border bg-muted/40 lg:sticky lg:top-[var(--browse-filters-offset)] lg:block lg:max-h-[calc(100svh-var(--browse-filters-offset)-1rem)] xl:w-80"
+		>
+			<div
+				class="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-muted/80 px-4 py-3"
+			>
+				<h2 class="text-sm font-semibold tracking-tight">
+					Filters
+					<span class="font-normal text-muted-foreground">
+						· {resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+					</span>
+				</h2>
+				{#if activeCount}
+					<Button variant="ghost" size="sm" class="h-7 px-2 text-xs" onclick={clearFilters}>
+						Clear
+					</Button>
+				{/if}
+			</div>
+			<div class="px-4 py-4">
+				<JobsFilterFormAsync
+					filters={displayFilters}
+					{options}
+					idPrefix="sidebar-"
+				/>
+			</div>
+		</aside>
+
+		<div class="min-w-0 flex-1">
+			{@render children?.()}
+		</div>
+	</div>
 </div>

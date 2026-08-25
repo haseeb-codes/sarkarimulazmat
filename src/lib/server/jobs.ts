@@ -60,6 +60,8 @@ export type JobFilters = FilterParams & {
 	q: string | null;
 	/** Only include postings that have a salary value */
 	has_salary: boolean;
+	/** Only permanent jobs (`employment_type` = Permanent). */
+	permanent_only: boolean;
 	/** @deprecated Prefer salary_from */
 	min_salary: number | null;
 	salary_from: number | null;
@@ -498,6 +500,7 @@ export function parseJobFilters(url: URL): JobFilters {
 		keyword: firstParam(url, 'keyword'),
 		q: firstParam(url, 'q'),
 		has_salary: url.searchParams.get('has_salary') === '1',
+		permanent_only: url.searchParams.get('permanent') === '1',
 		min_salary: parseOptionalPositiveInt(firstParam(url, 'min_salary')),
 		salary_from:
 			parseOptionalPositiveInt(firstParam(url, 'salary_from')) ??
@@ -531,6 +534,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.keyword ||
 			filters.q ||
 			filters.has_salary ||
+			filters.permanent_only ||
 			filters.min_salary != null ||
 			filters.salary_from != null ||
 			filters.salary_to != null ||
@@ -807,6 +811,10 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		}
 	} else if (filters.has_salary) {
 		and.push({ salary_estimated: { not: null } });
+	}
+
+	if (filters.permanent_only) {
+		and.push({ employment_type: { equals: 'Permanent', mode: 'insensitive' } });
 	}
 
 	// last_date_to_apply is DateTime (@db.Date) — compare with a Date, not a YYYY-MM-DD string
@@ -1168,6 +1176,7 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		keyword: null,
 		q: null,
 		has_salary: false,
+		permanent_only: false,
 		min_salary: null,
 		salary_from: null,
 		salary_to: null,

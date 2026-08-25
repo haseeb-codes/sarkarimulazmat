@@ -6,7 +6,6 @@
 	import { isJobCategoryShareSlug } from '$lib/job-category-pages';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
-	import NavSearch from '$lib/components/nav-search.svelte';
 
 	let { children } = $props();
 
@@ -39,7 +38,7 @@
 					<img src={logo} alt="" class="h-8 w-8" width="32" height="32" />
 					<span class="hidden sm:inline">Sarkari Mulazmat</span>
 				</a>
-			<div class="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none">
+			<div class="ml-auto flex shrink-0 items-center gap-2">
 				<a
 					href="/tags"
 					class="shrink-0 rounded-full border px-3 py-1 text-sm font-semibold transition-colors {isTagsPage
@@ -49,11 +48,10 @@
 				>
 					Tags
 				</a>
-				<NavSearch />
-					<nav class="flex shrink-0 items-center gap-1" aria-label="Site">
-						<ThemeToggle />
-					</nav>
-				</div>
+				<nav class="flex items-center gap-1" aria-label="Site">
+					<ThemeToggle />
+				</nav>
+			</div>
 			</div>
 		</header>
 

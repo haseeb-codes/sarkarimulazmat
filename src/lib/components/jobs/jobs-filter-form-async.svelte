@@ -12,12 +12,10 @@
 	let {
 		filters,
 		options,
-		resultCount,
 		idPrefix = ''
 	}: {
 		filters: FilterParams;
 		options: Promise<FilterOptions>;
-		resultCount: number;
 		idPrefix?: string;
 	} = $props();
 </script>
@@ -34,7 +32,7 @@
 {#await options}
 	<JobsFilterFormSkeleton />
 {:then resolved}
-	<JobsFilterForm {filters} options={resolved} {resultCount} {idPrefix} />
+	<JobsFilterForm {filters} options={resolved} {idPrefix} />
 {:catch error}
 	{@render failed(error)}
 {/await}

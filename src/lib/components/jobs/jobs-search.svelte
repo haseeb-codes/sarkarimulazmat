@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { filtersToHref, type FilterParams } from '$lib/jobs-utils';
 	import SearchIcon from '@lucide/svelte/icons/search';
@@ -68,31 +69,31 @@
 </script>
 
 <form
-	class="rounded-xl border-2 border-primary/25 bg-primary/5 p-3 shadow-sm sm:p-4"
+	class="flex h-12 overflow-hidden rounded-lg border-2 border-foreground/30 bg-background shadow-sm focus-within:border-primary focus-within:ring-3 focus-within:ring-ring/50"
 	role="search"
 	aria-label="Search jobs"
 	onsubmit={commitNow}
 >
-	<label for="jobs-search" class="mb-2 block text-sm font-semibold text-foreground">
-		Search jobs
-	</label>
-	<div class="relative">
-		<SearchIcon
-			class="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-primary"
-			aria-hidden="true"
-		/>
-		<Input
-			id="jobs-search"
-			type="search"
-			name="q"
-			bind:value={draft}
-			oninput={scheduleCommit}
-			onfocus={onFocus}
-			onblur={onBlur}
-			placeholder="Title, department, grade, donor, degree…"
-			class="h-12 border-primary/30 bg-background pl-11 text-base shadow-none focus-visible:border-primary"
-			autocomplete="off"
-			enterkeyhint="search"
-		/>
-	</div>
+	<label for="jobs-search" class="sr-only">Search jobs</label>
+	<Input
+		id="jobs-search"
+		type="search"
+		name="q"
+		bind:value={draft}
+		oninput={scheduleCommit}
+		onfocus={onFocus}
+		onblur={onBlur}
+		placeholder="Title, department, grade, donor, degree…"
+		class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-4 text-base shadow-none focus-visible:border-0 focus-visible:ring-0"
+		autocomplete="off"
+		enterkeyhint="search"
+	/>
+	<Button
+		type="submit"
+		class="h-full shrink-0 rounded-none px-4 sm:px-5"
+		aria-label="Search"
+	>
+		<SearchIcon class="size-4" aria-hidden="true" />
+		<span class="hidden sm:inline">Search</span>
+	</Button>
 </form>

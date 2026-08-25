@@ -1,11 +1,22 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import JobCard from '$lib/components/job-card.svelte';
 	import JobListSkeleton from '$lib/components/jobs/job-list-skeleton.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { filtersToSearchParams, type FilterParams, type JobSort } from '$lib/jobs-utils';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import {
+		filtersToHref,
+		filtersToSearchParams,
+		type FilterParams,
+		type JobSort
+	} from '$lib/jobs-utils';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+	import ListIcon from '@lucide/svelte/icons/list';
 
 	type Job = {
 		row_id: number;
@@ -55,6 +66,7 @@
 		department?: string | null;
 		collar?: string | null;
 		has_salary?: boolean;
+		permanent_only?: boolean;
 		min_salary?: number | null;
 		salary_from?: number | null;
 		salary_to?: number | null;
@@ -65,6 +77,18 @@
 		page: number;
 		pageSize: number;
 	};
+
+	type ViewMode = 'masonry' | 'list';
+	type ResultsSortOption = 'closing_soon' | 'newest' | 'white' | 'blue';
+
+	const VIEW_STORAGE_KEY = 'jobs-view-mode';
+
+	const RESULTS_SORT_OPTIONS = [
+		{ value: 'closing_soon', label: 'Closing soon' },
+		{ value: 'newest', label: 'Newly Posted' },
+		{ value: 'white', label: 'White Collar jobs' },
+		{ value: 'blue', label: 'Blue collar jobs' }
+	] as const satisfies ReadonlyArray<{ value: ResultsSortOption; label: string }>;
 
 	let {
 		jobs,
@@ -94,10 +118,23 @@
 	/** slugs just appended via infinite scroll — highlighted briefly */
 	let freshIds = $state<Set<string>>(new Set());
 	let freshClearTimer: ReturnType<typeof setTimeout> | null = null;
+	let viewMode = $state<ViewMode>('masonry');
 
 	const HIGHLIGHT_MS = 2800;
 
 	const hasMore = $derived(loadedPage < totalPages && items.length < total);
+
+	const resultsSort = $derived.by((): ResultsSortOption => {
+		const collar = filters.collar?.trim().toLowerCase() ?? '';
+		if (collar === 'white') return 'white';
+		if (collar === 'blue') return 'blue';
+		if (filters.sort === 'closing_soon') return 'closing_soon';
+		return 'newest';
+	});
+
+	const resultsSortLabel = $derived(
+		RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted'
+	);
 
 	/** Stable key for the active result set — ignore page so scroll-loaded pages aren't wiped. */
 	const resultKey = $derived(
@@ -123,6 +160,7 @@
 			filters.department ?? '',
 			filters.collar ?? '',
 			filters.has_salary ? '1' : '0',
+			filters.permanent_only ? '1' : '0',
 			filters.min_salary ?? '',
 			filters.salary_from ?? '',
 			filters.salary_to ?? '',
@@ -134,6 +172,46 @@
 			total
 		].join('|')
 	);
+
+	function readStoredView(): ViewMode {
+		try {
+			const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+			if (stored === 'list' || stored === 'masonry') return stored;
+		} catch {
+			/* ignore */
+		}
+		return 'masonry';
+	}
+
+	function setViewMode(next: ViewMode) {
+		viewMode = next;
+		try {
+			localStorage.setItem(VIEW_STORAGE_KEY, next);
+		} catch {
+			/* ignore */
+		}
+	}
+
+	function setResultsSort(next: string) {
+		const option = next as ResultsSortOption;
+		const patch: Partial<FilterParams> =
+			option === 'white'
+				? { sort: 'newest', collar: 'white', page: 1 }
+				: option === 'blue'
+					? { sort: 'newest', collar: 'blue', page: 1 }
+					: option === 'closing_soon'
+						? { sort: 'closing_soon', collar: null, page: 1 }
+						: { sort: 'newest', collar: null, page: 1 };
+
+		goto(filtersToHref({ ...filters, ...patch }, page.url.pathname), {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
+
+	$effect(() => {
+		viewMode = readStoredView();
+	});
 
 	function clearFreshHighlight() {
 		if (freshClearTimer) {
@@ -223,12 +301,9 @@
 			},
 			{ root: null, rootMargin: '480px 0px', threshold: 0 }
 		);
-
 		observer.observe(el);
 
-		// If the sentinel is already on-screen after a page loads, keep fetching.
-		const rect = el.getBoundingClientRect();
-		if (rect.top < window.innerHeight + 480) {
+		if (el.getBoundingClientRect().top < window.innerHeight + 480) {
 			void loadMore();
 		}
 
@@ -247,19 +322,72 @@
 	</div>
 {:else}
 	<div class="space-y-4" aria-live="polite">
-		<div class="flex items-baseline justify-between gap-2">
-			<h2 class="text-base font-semibold">
-				{total.toLocaleString()} job{total === 1 ? '' : 's'}
-			</h2>
-			<div class="flex items-center gap-3">
-				{#if filtered}
-					<Button href="/" variant="outline" size="sm">← All jobs</Button>
-				{/if}
+		<!-- Same sticky offset as the filters rail (OLX pattern) -->
+		<div
+			class="sticky top-[var(--browse-filters-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/95 py-2.5 backdrop-blur supports-backdrop-filter:bg-background/80"
+		>
+			<div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+				<h2 class="text-base font-semibold">
+					{total.toLocaleString()} job{total === 1 ? '' : 's'}
+				</h2>
 				{#if items.length > 0 && items.length < total}
 					<p class="text-sm text-muted-foreground">
 						Showing {items.length.toLocaleString()} of {total.toLocaleString()}
 					</p>
 				{/if}
+			</div>
+
+			<div class="flex flex-wrap items-center gap-2">
+				{#if filtered}
+					<Button href="/" variant="outline" size="sm">← All jobs</Button>
+				{/if}
+				<div
+					class="inline-flex rounded-md border border-border p-0.5"
+					role="group"
+					aria-label="Results layout"
+				>
+					<Button
+						type="button"
+						variant={viewMode === 'masonry' ? 'secondary' : 'ghost'}
+						size="sm"
+						class="h-8 gap-1.5 px-2.5"
+						aria-pressed={viewMode === 'masonry'}
+						onclick={() => setViewMode('masonry')}
+					>
+						<LayoutGridIcon class="size-4" aria-hidden="true" />
+						<span class="hidden sm:inline">Grid</span>
+					</Button>
+					<Button
+						type="button"
+						variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+						size="sm"
+						class="h-8 gap-1.5 px-2.5"
+						aria-pressed={viewMode === 'list'}
+						onclick={() => setViewMode('list')}
+					>
+						<ListIcon class="size-4" aria-hidden="true" />
+						<span class="hidden sm:inline">List</span>
+					</Button>
+				</div>
+
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-foreground hover:bg-muted"
+					>
+						<span class="text-muted-foreground">Sort by:</span>
+						<span class="font-medium">{resultsSortLabel}</span>
+						<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="min-w-52">
+						<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
+							{#each RESULTS_SORT_OPTIONS as option (option.value)}
+								<DropdownMenu.RadioItem value={option.value}>
+									{option.label}
+								</DropdownMenu.RadioItem>
+							{/each}
+						</DropdownMenu.RadioGroup>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
 			</div>
 		</div>
 
@@ -292,45 +420,84 @@
 
 			{#each pages as group, i (group.page)}
 				{#if i > 0}
-					{@const jobsShownSoFar = pages.slice(0, i).reduce((sum, g) => sum + g.jobs.length, 0) + group.jobs.length}
+					{@const jobsShownSoFar =
+						pages.slice(0, i).reduce((sum, g) => sum + g.jobs.length, 0) + group.jobs.length}
 					{@const jobsLeft = total - jobsShownSoFar}
 					<div class="flex items-center gap-3 py-2">
 						<div class="h-px flex-1 bg-border"></div>
 						<span class="shrink-0 text-xs font-medium text-muted-foreground">
-							Page {group.page} of {totalPages} ({jobsLeft.toLocaleString()} job{jobsLeft === 1 ? '' : 's'} left)
+							Page {group.page} of {totalPages} ({jobsLeft.toLocaleString()} job{jobsLeft === 1
+								? ''
+								: 's'} left)
 						</span>
 						<div class="h-px flex-1 bg-border"></div>
 					</div>
 				{/if}
-				<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
-					{#each group.jobs as job (job.slug)}
-						<li class="mb-3 break-inside-avoid">
-							<JobCard {job} sort={filters.sort} fresh={freshIds.has(job.slug)} />
-						</li>
-					{/each}
-				</ul>
+				{#if viewMode === 'list'}
+					<ul class="flex flex-col gap-3">
+						{#each group.jobs as job (job.slug)}
+							<li>
+								<JobCard
+									{job}
+									sort={filters.sort}
+									fresh={freshIds.has(job.slug)}
+									layout="list"
+								/>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3">
+						{#each group.jobs as job (job.slug)}
+							<li class="mb-3 break-inside-avoid">
+								<JobCard
+									{job}
+									sort={filters.sort}
+									fresh={freshIds.has(job.slug)}
+									layout="masonry"
+								/>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			{/each}
 
 			{#if loadingMore}
-				<ul
-					class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4"
-					aria-hidden="true"
-				>
-					{#each Array(4) as _, i (i)}
-						<li class="mb-3 break-inside-avoid">
-							<Card.Root size="sm">
-								<Card.Header class="gap-1.5 pb-2">
-									<Skeleton class="h-5 w-3/4 max-w-[14rem]" />
-									<Skeleton class="h-4 w-1/2 max-w-[10rem]" />
-								</Card.Header>
-								<Card.Content class="space-y-2 pt-0">
-									<Skeleton class="h-3.5 w-2/3" />
-									<Skeleton class="h-5 w-24 rounded-md" />
-								</Card.Content>
-							</Card.Root>
-						</li>
-					{/each}
-				</ul>
+				{#if viewMode === 'list'}
+					<ul class="flex flex-col gap-3" aria-hidden="true">
+						{#each Array(3) as _, i (i)}
+							<li>
+								<Card.Root size="sm">
+									<div class="flex gap-4 p-3 sm:px-4">
+										<div class="min-w-0 flex-1 space-y-2">
+											<Skeleton class="h-4 w-24" />
+											<Skeleton class="h-5 w-3/4 max-w-[20rem]" />
+											<Skeleton class="h-4 w-1/2 max-w-[14rem]" />
+										</div>
+										<Skeleton class="h-8 w-20 shrink-0" />
+									</div>
+								</Card.Root>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3" aria-hidden="true">
+						{#each Array(4) as _, i (i)}
+							<li class="mb-3 break-inside-avoid">
+								<Card.Root size="sm">
+									<Card.Header class="gap-1.5 pb-2">
+										<Skeleton class="h-5 w-3/4 max-w-[14rem]" />
+										<Skeleton class="h-4 w-1/2 max-w-[10rem]" />
+									</Card.Header>
+									<Card.Content class="space-y-2 pt-0">
+										<Skeleton class="h-3.5 w-2/3" />
+										<Skeleton class="h-5 w-24 rounded-md" />
+									</Card.Content>
+								</Card.Root>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			{/if}
 
 			{#if loadMoreError}
@@ -345,7 +512,7 @@
 					{loadingMore ? 'Loading more jobs' : 'Scroll for more jobs'}
 				</p>
 			{:else if items.length > 0}
-				<p class="pt-2 text-center text-sm text-muted-foreground">
+				<p class="pt-2 pb-2 text-center text-sm text-muted-foreground">
 					You've seen all {total.toLocaleString()} job{total === 1 ? '' : 's'}
 				</p>
 			{/if}

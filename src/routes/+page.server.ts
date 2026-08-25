@@ -35,6 +35,7 @@ function filtersSnapshot(filters: JobFilters) {
 		keyword: filters.keyword,
 		q: filters.q,
 		has_salary: filters.has_salary,
+		permanent_only: filters.permanent_only,
 		min_salary: filters.min_salary,
 		salary_from: filters.salary_from,
 		salary_to: filters.salary_to,

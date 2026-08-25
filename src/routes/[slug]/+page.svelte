@@ -3,7 +3,6 @@
 	import JobCategorySharePage from '$lib/components/jobs/job-category-share-page.svelte';
 	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
-	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
 
 	let { data } = $props();
 
@@ -56,32 +55,32 @@
 	<JobCategorySharePage category={data.category} jobs={data.jobs} updatedAt={data.updatedAt} />
 {:else}
 	<div class="space-y-6">
-		<p class="text-sm text-muted-foreground">
-			<a href="/" class="hover:text-foreground hover:underline">www.sarkarimulazmat.com</a><span>/{data.category.slug}</span>
-		</p>
 		<div class="space-y-3">
+			<p class="text-sm text-muted-foreground">
+				<a href="/" class="hover:text-foreground hover:underline">www.sarkarimulazmat.com</a
+				><span>/{data.category.slug}</span>
+			</p>
 			<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
 			<h1>{data.category.h1}</h1>
-			<p class="max-w-2xl text-muted-foreground leading-relaxed">{data.category.intro_content}</p>
+			<p class="max-w-2xl text-muted-foreground leading-relaxed">
+				{data.category.intro_content}
+			</p>
 		</div>
 
-		<div class="min-w-0 space-y-4">
-			<JobsSearch filters={data.filters} />
-			<FiltersDrawer
+		<FiltersDrawer
+			filters={data.filters}
+			options={data.filterOptions}
+			resultCount={data.total}
+		>
+			<JobList
+				jobs={data.jobs}
+				total={data.total}
+				totalPages={data.totalPages}
 				filters={data.filters}
-				options={data.filterOptions}
-				resultCount={data.total}
-			>
-				<JobList
-					jobs={data.jobs}
-					total={data.total}
-					totalPages={data.totalPages}
-					filters={data.filters}
-					filtered={data.filtered}
-					error={data.error}
-					loading={isNavigating}
-				/>
-			</FiltersDrawer>
-		</div>
+				filtered={data.filtered}
+				error={data.error}
+				loading={isNavigating}
+			/>
+		</FiltersDrawer>
 	</div>
 {/if}
