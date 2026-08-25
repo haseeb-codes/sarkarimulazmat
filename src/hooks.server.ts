@@ -1,6 +1,8 @@
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { handle as authHandle } from './auth';
 import db from '$lib/server/db';
+import { linkVisitorToUser } from '$lib/server/user-profile';
 
 const VISITOR_COOKIE = 'visitor_id';
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
@@ -50,7 +52,6 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 
 	event.locals.visitorId = visitorId;
 
-	// Fire-and-forget page view log
 	db.pageView
 		.create({
 			data: {
@@ -66,4 +67,12 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle = sequence(visitorHandle);
+const linkVisitorHandle: Handle = async ({ event, resolve }) => {
+	const session = await event.locals.auth();
+	if (session?.user?.id && event.locals.visitorId) {
+		linkVisitorToUser(event.locals.visitorId, session.user.id).catch(() => {});
+	}
+	return resolve(event);
+};
+
+export const handle = sequence(authHandle, visitorHandle, linkVisitorHandle);

@@ -96,7 +96,7 @@
 
 	<div class="min-w-0 flex-1 space-y-4">
 		<div
-			class="sticky top-[var(--browse-search-offset)] z-30 border-b border-border bg-background/95 py-3 backdrop-blur supports-backdrop-filter:bg-background/80"
+			class="sticky top-[var(--browse-search-offset)] z-30 isolate border-b border-border bg-background py-3 transform-gpu"
 		>
 			<div class="flex items-center gap-2">
 				<div class="shrink-0 lg:hidden">
@@ -153,6 +153,8 @@
 			</div>
 		</div>
 
-		{@render children?.()}
+		<div class="relative z-0 isolate">
+			{@render children?.()}
+		</div>
 	</div>
 </div>

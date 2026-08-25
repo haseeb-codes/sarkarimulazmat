@@ -257,6 +257,25 @@ model Email {
   @@map("emails")
 }
 
+/// Signed-in user profile (Google OAuth identity + onboarding fields)
+model UserProfile {
+  id               String    @id @default(cuid())
+  google_sub       String    @unique @map("google_sub")
+  email            String    @unique
+  name             String?
+  image            String?
+  date_of_birth    DateTime? @db.Date @map("date_of_birth")
+  highest_degree   String?   @map("highest_degree")
+  graduation_date  DateTime? @db.Date @map("graduation_date")
+  gender           String?
+  email_subscribed Boolean   @default(false) @map("email_subscribed")
+  consent_given_at DateTime? @map("consent_given_at")
+  created_at       DateTime  @default(now()) @map("created_at")
+  updated_at       DateTime  @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
 /// Saved filter sets for anonymous visitors and signed-in users
 model SavedSearch {
   id               String   @id @default(cuid())

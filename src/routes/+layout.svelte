@@ -10,18 +10,22 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import XIcon from '@lucide/svelte/icons/x';
+	import UserIcon from '@lucide/svelte/icons/user';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { signOut } from '@auth/sveltekit/client';
 
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	/** Shareable snapshot pages — no site chrome so the full page fits one screenshot. */
 	const isShareSnapshot = $derived(isJobCategoryShareSlug(page.url.pathname.slice(1)));
 	const isTagsPage = $derived(page.url.pathname === '/tags');
 	const isAboutPage = $derived(page.url.pathname === '/about');
 	const isContactPage = $derived(page.url.pathname === '/contact');
+	const isSignedIn = $derived(Boolean(data.session?.user));
+	const profileHref = $derived(data.profileComplete ? '/profile' : '/onboarding');
 
 	let mobileNavOpen = $state(false);
 
@@ -59,7 +63,7 @@
 		<!-- One shared width shell so header / main / footer edges always match. -->
 		<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4">
 			<header
-				class="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80"
+				class="sticky top-0 z-40 isolate border-b border-border bg-background transform-gpu"
 			>
 				<div class="flex h-14 w-full items-center gap-3">
 					<a
@@ -81,6 +85,19 @@
 								{link.label}
 							</a>
 						{/each}
+						{#if isSignedIn}
+							<a href={profileHref} class={navLinkClass(page.url.pathname.startsWith('/profile') || page.url.pathname === '/onboarding')}>
+								<span class="inline-flex items-center gap-1.5">
+									<UserIcon class="size-4" aria-hidden="true" />
+									Profile
+								</span>
+							</a>
+							<Button variant="ghost" size="sm" onclick={() => signOut({ callbackUrl: '/' })}>
+								Sign out
+							</Button>
+						{:else}
+							<Button href="/login" variant="ghost" size="sm">Sign in</Button>
+						{/if}
 						<div class="ml-1 border-l border-border pl-1">
 							<ThemeToggle />
 						</div>
@@ -120,6 +137,23 @@
 								{link.label}
 							</a>
 						{/each}
+						{#if isSignedIn}
+							<a
+								href={profileHref}
+								class={navLinkClass(page.url.pathname.startsWith('/profile') || page.url.pathname === '/onboarding', true)}
+							>
+								Profile
+							</a>
+							<button
+								type="button"
+								class={navLinkClass(false, true)}
+								onclick={() => signOut({ callbackUrl: '/' })}
+							>
+								Sign out
+							</button>
+						{:else}
+							<a href="/login" class={navLinkClass(page.url.pathname === '/login', true)}>Sign in</a>
+						{/if}
 						<div class="mt-1 flex items-center justify-between rounded-md px-3 py-2">
 							<span class="text-sm font-medium text-muted-foreground">Theme</span>
 							<ThemeToggle />
@@ -128,7 +162,8 @@
 				{/if}
 			</header>
 
-			<main class="w-full flex-1 py-6 md:py-8">
+			<!-- relative z-0 keeps page content (e.g. CSS-column cards) under the sticky header -->
+			<main class="relative z-0 w-full flex-1 py-6 md:py-8">
 				{@render children()}
 			</main>
 

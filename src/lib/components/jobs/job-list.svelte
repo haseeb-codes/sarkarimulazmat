@@ -333,7 +333,7 @@
 	<div class="space-y-4" aria-live="polite">
 		<!-- Stick under the results-column search field -->
 		<div
-			class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5"
+			class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5 transform-gpu"
 		>
 			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
 				{#if filtered}
@@ -401,6 +401,8 @@
 			</div>
 		</div>
 
+		<!-- Keep card rings/borders in a lower stacking context than sticky chrome -->
+		<div class="relative z-0">
 		{#if items.length === 0}
 			<div class="rounded-lg border border-dashed border-border px-6 py-12 text-center">
 				<p class="font-medium">No matching jobs</p>
@@ -444,7 +446,7 @@
 					</div>
 				{/if}
 				{#if viewMode === 'list'}
-					<ul class="flex flex-col gap-3">
+					<ul class="relative z-0 flex flex-col gap-3">
 						{#each group.jobs as job (job.slug)}
 							<li>
 								<JobCard
@@ -457,7 +459,8 @@
 						{/each}
 					</ul>
 				{:else}
-					<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3">
+					<!-- z-0: CSS columns otherwise paint card rings above sticky search/header -->
+					<ul class="relative z-0 columns-1 gap-3 sm:columns-2 lg:columns-3">
 						{#each group.jobs as job (job.slug)}
 							<li class="mb-3 break-inside-avoid">
 								<JobCard
@@ -527,5 +530,6 @@
 				</p>
 			{/if}
 		{/if}
+		</div>
 	</div>
 {/if}

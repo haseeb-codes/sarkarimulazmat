@@ -69,7 +69,7 @@
 </script>
 
 <form
-	class="flex h-12 overflow-hidden rounded-lg border-2 border-foreground/30 bg-background shadow-sm focus-within:border-primary focus-within:ring-3 focus-within:ring-ring/50"
+	class="flex h-12 overflow-hidden rounded-lg border-2 border-border bg-background shadow-sm focus-within:border-primary focus-within:ring-3 focus-within:ring-ring/50"
 	role="search"
 	aria-label="Search jobs"
 	onsubmit={commitNow}

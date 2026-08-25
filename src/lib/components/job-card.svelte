@@ -102,7 +102,6 @@
 	);
 	const hasSalaryHref = $derived(filtersToHref({ has_salary: true, sort }));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
-	const whiteCollar = $derived(job.collar?.trim().toLowerCase() === "white");
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
 	const applyLink = $derived(
 		getJobApplyLink(job.application_online_address, job.email),
@@ -112,9 +111,7 @@
 			? "job-card-fresh ring-2 ring-primary/70"
 			: womenOrTransOnly
 				? "ring-2 ring-pink-400 hover:ring-pink-500 dark:ring-pink-500 dark:hover:ring-pink-400"
-				: whiteCollar
-					? "ring-2 ring-primary/55 hover:ring-primary/75 dark:ring-primary/50 dark:hover:ring-primary/70"
-					: "hover:border-primary/40",
+				: "hover:border-primary/40",
 	);
 
 	let adOpen = $state(false);
