@@ -324,23 +324,24 @@
 	<div class="space-y-4" aria-live="polite">
 		<!-- Same sticky offset as the filters rail (OLX pattern) -->
 		<div
-			class="sticky top-[var(--browse-filters-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background/95 py-2.5 backdrop-blur supports-backdrop-filter:bg-background/80"
+			class="sticky top-[var(--browse-filters-offset,8rem)] z-20 flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5"
 		>
-			<div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-				<h2 class="text-base font-semibold">
-					{total.toLocaleString()} job{total === 1 ? '' : 's'}
-				</h2>
+			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+				{#if filtered}
+					<Button href={page.url.pathname} variant="outline" size="sm">Clear filter</Button>
+				{/if}
 				{#if items.length > 0 && items.length < total}
 					<p class="text-sm text-muted-foreground">
 						Showing {items.length.toLocaleString()} of {total.toLocaleString()}
+					</p>
+				{:else if items.length > 0}
+					<p class="text-sm text-muted-foreground">
+						{total.toLocaleString()} job{total === 1 ? '' : 's'}
 					</p>
 				{/if}
 			</div>
 
 			<div class="flex flex-wrap items-center gap-2">
-				{#if filtered}
-					<Button href="/" variant="outline" size="sm">← All jobs</Button>
-				{/if}
 				<div
 					class="inline-flex rounded-md border border-border p-0.5"
 					role="group"
@@ -399,7 +400,7 @@
 					education, grade, and age often returns zero results.
 				</p>
 				{#if filtered}
-					<Button href="/" variant="outline" class="mt-4">Clear filters</Button>
+					<Button href={page.url.pathname} variant="outline" class="mt-4">Clear filter</Button>
 				{/if}
 			</div>
 		{:else}

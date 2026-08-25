@@ -78,7 +78,9 @@
 	const daysLeft = $derived(daysUntilDate(job.last_date_to_apply));
 	const daysLeftLabel = $derived(
 		!expired && daysLeft != null && daysLeft < 4
-			? `(${daysLeft} ${daysLeft === 1 ? "day" : "days"} left)`
+			? daysLeft === 0
+				? "Expiring Today"
+				: `(${daysLeft} ${daysLeft === 1 ? "day" : "days"} left)`
 			: null,
 	);
 	const salaryLabel = $derived(formatSalary(job.salary));
