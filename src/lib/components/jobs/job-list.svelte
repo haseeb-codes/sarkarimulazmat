@@ -44,38 +44,18 @@
 		email?: string | null;
 	};
 
-	type Filters = {
+	type Filters = FilterParams & {
 		degree_areas: string[];
 		education_level: string | null;
-		ad_date?: string | null;
-		posted_by?: string | null;
-		donor_name?: string | null;
-		gender?: string | null;
-		qualification?: number[];
-		qualification_from?: number | null;
-		qualification_to?: number | null;
 		grade: string | null;
 		age: number | null;
 		age_from: number | null;
 		age_to: number | null;
 		include_no_max_age: boolean;
-		age_max?: string | number | null;
 		place_of_posting: string | null;
 		domicile: string[];
-		domicile_region?: string[];
-		tag?: string[];
-		department?: string | null;
-		collar?: string | null;
-		has_salary?: boolean;
-		permanent_only?: boolean;
-		women_only?: boolean;
-		transgender_applicable?: boolean;
-		disability_quota?: boolean;
-		minority_quota?: boolean;
-		min_salary?: number | null;
-		salary_from?: number | null;
-		salary_to?: number | null;
-		keyword?: string | null;
+		domicile_region: string[];
+		tag: string[];
 		q: string | null;
 		show_expired: boolean;
 		sort: JobSort;
@@ -149,6 +129,7 @@
 			filters.ad_date ?? '',
 			filters.posted_by ?? '',
 			filters.donor_name ?? '',
+			filters.portal ?? '',
 			filters.gender ?? '',
 			(filters.qualification ?? []).join('\0'),
 			filters.qualification_from ?? '',
@@ -337,7 +318,7 @@
 		>
 			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
 				{#if filtered}
-					<Button href={page.url.pathname} variant="outline" size="sm">Clear filter</Button>
+					<Button href={page.url.pathname} variant="destructive" size="sm">Clear filter</Button>
 				{/if}
 				{#if items.length > 0 && items.length < total}
 					<p class="ml-2 text-sm text-muted-foreground">
@@ -411,7 +392,7 @@
 					education, grade, and age often returns zero results.
 				</p>
 				{#if filtered}
-					<Button href={page.url.pathname} variant="outline" class="mt-4">Clear filter</Button>
+					<Button href={page.url.pathname} variant="destructive" class="mt-4">Clear filter</Button>
 				{/if}
 			</div>
 		{:else}

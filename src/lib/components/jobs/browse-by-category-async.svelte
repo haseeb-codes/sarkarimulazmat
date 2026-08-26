@@ -1,12 +1,13 @@
 <script lang="ts">
 	import BrowseByCategory from '$lib/components/jobs/browse-by-category.svelte';
 	import BrowseByCategorySkeleton from '$lib/components/jobs/browse-by-category-skeleton.svelte';
+	import type { GenderKind } from '$lib/jobs-utils';
 
 	type BrowseByCategoryData = {
 		adDates: { value: string; label: string; count: number }[];
 		postedBy: { label: string; count: number }[];
 		donors: { label: string; count: number }[];
-		genders: { value: string; label: string; count: number }[];
+		genders: { value: GenderKind; label: string; count: number }[];
 		degreeAreas: { label: string; count: number }[];
 		educationLevels: { label: string; count: number }[];
 		jobInterestTree: {

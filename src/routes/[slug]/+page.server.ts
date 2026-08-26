@@ -36,6 +36,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		ad_date: urlFilters.ad_date,
 		posted_by: urlFilters.posted_by,
 		donor_name: urlFilters.donor_name,
+		portal: urlFilters.portal,
 		grade: preset.grade ?? urlFilters.grade,
 		qualification: preset.qualification?.length
 			? selectedQualificationLevels(preset)
@@ -100,6 +101,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			ad_date: filters.ad_date,
 			posted_by: filters.posted_by,
 			donor_name: filters.donor_name,
+			portal: filters.portal,
 			gender: filters.gender,
 			qualification: filters.qualification,
 			qualification_from: filters.qualification_from,
@@ -141,6 +143,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			urlFilters.ad_date ||
 				urlFilters.posted_by ||
 				urlFilters.donor_name ||
+				urlFilters.portal ||
 				urlFilters.gender ||
 				urlFilters.place_of_posting ||
 				urlFilters.domicile.length ||

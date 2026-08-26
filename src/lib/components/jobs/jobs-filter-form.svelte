@@ -26,6 +26,7 @@
 
 	type Options = {
 		grades: string[];
+		portals: string[];
 		specializations: string[];
 		salary_max: number;
 	};
@@ -43,6 +44,7 @@
 	let ageMaxDraft = $state<AgeMaxPreset | null>(null);
 	let qualificationDraft = $state<number | null>(null);
 	let gradeDraft = $state<string | null>(null);
+	let portalDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey | null>(null);
 	let degreeAreasDraft = $state<string[]>([]);
 	let specializationSearch = $state('');
@@ -63,6 +65,7 @@
 	$effect(() => {
 		ageMaxDraft = filters.age_max ?? null;
 		gradeDraft = filters.grade ?? null;
+		portalDraft = filters.portal ?? null;
 		const regions = selectedDomicileRegions(filters).filter((key) => key !== 'any');
 		domicileRegionDraft = regions[0] ?? null;
 		degreeAreasDraft = [...(filters.degree_areas ?? [])];
@@ -131,6 +134,11 @@
 	function setGrade(next: string | null) {
 		gradeDraft = next;
 		navigate({ grade: next });
+	}
+
+	function setPortal(next: string | null) {
+		portalDraft = next;
+		navigate({ portal: next });
 	}
 
 	function setDomicileRegion(next: string | null) {
@@ -302,6 +310,30 @@
 				{/each}
 			</Select.Content>
 		</Select.Root>
+	</div>
+
+	<Separator />
+
+	<div class="space-y-2">
+		<Label for="{idPrefix}filter-portal">Portal</Label>
+		<Select.Root
+			type="single"
+			value={portalDraft ?? ''}
+			onValueChange={(v) => setPortal(v || null)}
+		>
+			<Select.Trigger id="{idPrefix}filter-portal" class="w-full">
+				{portalDraft ?? 'Any'}
+			</Select.Trigger>
+			<Select.Content class="max-h-72">
+				<Select.Item value="" label="Any">Any</Select.Item>
+				{#each options.portals as portal (portal)}
+					<Select.Item value={portal} label={portal}>{portal}</Select.Item>
+				{/each}
+			</Select.Content>
+		</Select.Root>
+		<p class="text-xs text-muted-foreground">
+			Match the selected portal against the posting source title.
+		</p>
 	</div>
 
 	<Separator />

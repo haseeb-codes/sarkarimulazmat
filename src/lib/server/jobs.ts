@@ -34,6 +34,7 @@ export type JobFilters = FilterParams & {
 	ad_date: string | null;
 	posted_by: string | null;
 	donor_name: string | null;
+	portal: string | null;
 	gender: GenderKind | null;
 	qualification: number[];
 	qualification_from: number | null;
@@ -94,6 +95,7 @@ export type FilterOptions = {
 	grades: string[];
 	places: string[];
 	domiciles: string[];
+	portals: string[];
 	salary_max: number;
 };
 
@@ -158,6 +160,21 @@ const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_CAP = 50;
 const BROWSE_COUNTS_TTL_MS = 5 * 60 * 1000;
+const PORTAL_OPTIONS = [
+	'Career Testing Services Pakistan (CTSP)',
+	'DGPR Balochistan',
+	'Educational Testing & Evaluation Agency (ETEA)',
+	'Federal Public Service Commission (FPSC)',
+	'HR1384',
+	'IWork4Sindh (IW4S)',
+	'National Jobs Portal (NJP)',
+	'National Testing Service (NTS)',
+	'Open Testing Service (OTS)',
+	'Pakistan Testing Service (PTS)',
+	'Punjab Jobs Portal',
+	'Punjab Public Service Commission (PPSC)',
+	'SIBA Testing Services (STS)'
+] as const;
 const JOB_INTEREST_TAXONOMY: {
 	label: string;
 	children: { label: string; degree_areas?: string[]; q?: string }[];
@@ -490,6 +507,7 @@ export function parseJobFilters(url: URL): JobFilters {
 		ad_date: toDateKey(firstParam(url, 'ad_date')),
 		posted_by: firstParam(url, 'posted_by'),
 		donor_name: firstParam(url, 'donor_name'),
+		portal: firstParam(url, 'portal'),
 		gender: parseGenderFilter(firstParam(url, 'gender')),
 		qualification: parseQualificationLevels(url),
 		qualification_from: parseQualificationFrom(url),
@@ -537,6 +555,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.ad_date ||
 			filters.posted_by ||
 			filters.donor_name ||
+			filters.portal ||
 			filters.gender ||
 			isQualificationFilterActive(filters) ||
 			filters.grade ||
@@ -708,6 +727,10 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	if (filters.donor_name) {
 		and.push({ donor_name: { equals: filters.donor_name, mode: 'insensitive' } });
+	}
+
+	if (filters.portal) {
+		and.push({ url_web_title: { contains: filters.portal, mode: 'insensitive' } });
 	}
 
 	if (filters.gender) {
@@ -1185,6 +1208,7 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 		grades: distinctGradesAlphabetical(gradeRows.map((r) => r.grade_derived)),
 		places: frequencyRank(rows.map((r) => r.place_of_posting ?? '')),
 		domiciles: distinctLabelsAlphabetical(domicileRows.map((r) => r.domicile)),
+		portals: [...PORTAL_OPTIONS],
 		salary_max: salaryAgg._max.salary_estimated ?? 0
 	};
 
@@ -1200,6 +1224,7 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		ad_date: null,
 		posted_by: null,
 		donor_name: null,
+		portal: null,
 		gender: null,
 		qualification: [],
 		qualification_from: null,

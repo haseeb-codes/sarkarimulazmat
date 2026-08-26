@@ -17,6 +17,7 @@
 
 	type FilterOptions = {
 		grades: string[];
+		portals: string[];
 		specializations: string[];
 		salary_max: number;
 	};

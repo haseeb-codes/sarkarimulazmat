@@ -215,6 +215,7 @@ export type FilterParams = {
 	ad_date?: string | null;
 	posted_by?: string | null;
 	donor_name?: string | null;
+	portal?: string | null;
 	gender?: GenderKind | null;
 	/**
 	 * Selected qualification levels (URL: repeated `qualification`).
@@ -307,6 +308,7 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	if (filters.ad_date) params.set('ad_date', filters.ad_date);
 	if (filters.posted_by) params.set('posted_by', filters.posted_by);
 	if (filters.donor_name) params.set('donor_name', filters.donor_name);
+	if (filters.portal) params.set('portal', filters.portal);
 	if (filters.gender) params.set('gender', filters.gender);
 	if (isQualificationFilterActive(filters)) {
 		for (const level of selectedQualificationLevels(filters)) {
@@ -523,6 +525,7 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		domicile: [],
 		domicile_region: [],
 		tag: [],
+		portal: null,
 		has_salary: false,
 		permanent_only: false,
 		women_only: false,
@@ -544,6 +547,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
+		(filters.portal ? 1 : 0) +
 		(filters.permanent_only ? 1 : 0) +
 		(filters.women_only ? 1 : 0) +
 		(filters.transgender_applicable ? 1 : 0) +
@@ -580,6 +584,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 
 	return {
 		keyword: params.get('keyword')?.trim() || null,
+		portal: params.get('portal')?.trim() || null,
 		age_max: parseDrawerAgeMaxParam(params.get('age_max')),
 		age_from: null,
 		age_to: null,

@@ -149,7 +149,7 @@
 						<span
 							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
 						>
-							Closed
+							Expired
 						</span>
 					{:else if closingSoon}
 						<span
@@ -216,6 +216,11 @@
 							>
 								{applyByLabel}{#if daysLeftLabel}&nbsp;{daysLeftLabel}{/if}
 							</span>
+							{#if expired}
+								<span class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed">
+									Expired
+								</span>
+							{/if}
 						</span>
 					{/if}
 					{#if job.max_age != null}
@@ -302,7 +307,7 @@
 							<span
 								class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
 							>
-								Closed
+								Expired
 							</span>
 						{:else if closingSoon}
 							<span
@@ -437,6 +442,11 @@
 						>
 							{applyByLabel}{#if daysLeftLabel}&nbsp;{daysLeftLabel}{/if}
 						</span>
+						{#if expired}
+							<span class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed">
+								Expired
+							</span>
+						{/if}
 					</span>
 				{/if}
 				{#if applyLink}
