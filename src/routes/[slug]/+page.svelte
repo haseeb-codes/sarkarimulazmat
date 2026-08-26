@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
 	import JobCategorySharePage from '$lib/components/jobs/job-category-share-page.svelte';
-	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
-	import JobList from '$lib/components/jobs/job-list.svelte';
+	import JobsBrowseShell from '$lib/components/jobs/jobs-browse-shell.svelte';
 
 	let { data } = $props();
 
@@ -67,20 +66,11 @@
 			</p>
 		</div>
 
-		<FiltersDrawer
+		<JobsBrowseShell
 			filters={data.filters}
-			options={data.filterOptions}
-			resultCount={data.total}
-		>
-			<JobList
-				jobs={data.jobs}
-				total={data.total}
-				totalPages={data.totalPages}
-				filters={data.filters}
-				filtered={data.filtered}
-				error={data.error}
-				loading={isNavigating}
-			/>
-		</FiltersDrawer>
+			filtered={data.filtered}
+			listing={data.listing}
+			loading={isNavigating}
+		/>
 	</div>
 {/if}

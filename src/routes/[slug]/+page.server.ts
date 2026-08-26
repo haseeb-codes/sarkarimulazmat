@@ -84,7 +84,92 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		salary_to: urlFilters.salary_to
 	};
 
-	const result = await listJobs(filters);
+	const filtered = Boolean(
+		urlFilters.ad_date ||
+			urlFilters.posted_by ||
+			urlFilters.donor_name ||
+			urlFilters.portal ||
+			urlFilters.gender ||
+			urlFilters.place_of_posting ||
+			urlFilters.domicile.length ||
+			urlFilters.domicile_region.length ||
+			urlFilters.tag.length ||
+			urlFilters.department ||
+			urlFilters.collar ||
+			urlFilters.has_salary ||
+			urlFilters.permanent_only ||
+			urlFilters.women_only ||
+			urlFilters.transgender_applicable ||
+			urlFilters.disability_quota ||
+			urlFilters.minority_quota ||
+			urlFilters.min_salary != null ||
+			urlFilters.salary_from != null ||
+			urlFilters.salary_to != null ||
+			urlFilters.keyword ||
+			urlFilters.q ||
+			isAgeFilterActive(urlFilters) ||
+			urlFilters.grade ||
+			urlFilters.show_expired
+	);
+
+	const filtersSnapshot = {
+		degree_areas: filters.degree_areas,
+		education_level: filters.education_level,
+		ad_date: filters.ad_date,
+		posted_by: filters.posted_by,
+		donor_name: filters.donor_name,
+		portal: filters.portal,
+		gender: filters.gender,
+		qualification: filters.qualification,
+		qualification_from: filters.qualification_from,
+		qualification_to: filters.qualification_to,
+		grade: filters.grade,
+		age: filters.age,
+		age_from: filters.age_from,
+		age_to: filters.age_to,
+		include_no_max_age: filters.include_no_max_age,
+		age_max: filters.age_max,
+		place_of_posting: filters.place_of_posting,
+		domicile: filters.domicile,
+		domicile_region: filters.domicile_region,
+		tag: filters.tag,
+		department: filters.department,
+		collar: filters.collar,
+		province: filters.province,
+		program: filters.program,
+		keyword: filters.keyword,
+		q: filters.q,
+		has_salary: filters.has_salary,
+		permanent_only: filters.permanent_only,
+		women_only: filters.women_only,
+		transgender_applicable: filters.transgender_applicable,
+		disability_quota: filters.disability_quota,
+		minority_quota: filters.minority_quota,
+		min_salary: filters.min_salary,
+		salary_from: filters.salary_from,
+		salary_to: filters.salary_to,
+		show_expired: filters.show_expired,
+		sort: filters.sort,
+		page: filters.page,
+		pageSize: filters.pageSize
+	};
+
+	const listing = listJobs(filters)
+		.then((result) => ({
+			jobs: result.jobs,
+			total: result.total,
+			totalPages: result.totalPages,
+			error: null as string | null
+		}))
+		.catch((err) => {
+			console.error('Failed to load category jobs', err);
+			return {
+				jobs: [],
+				total: 0,
+				totalPages: 1,
+				error: 'We could not load job listings right now. Please try again shortly.' as string | null
+			};
+		});
 
 	return {
 		kind: 'category' as const,
@@ -95,77 +180,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			meta_description: category.meta_description,
 			intro_content: category.intro_content
 		},
-		filters: {
-			degree_areas: filters.degree_areas,
-			education_level: filters.education_level,
-			ad_date: filters.ad_date,
-			posted_by: filters.posted_by,
-			donor_name: filters.donor_name,
-			portal: filters.portal,
-			gender: filters.gender,
-			qualification: filters.qualification,
-			qualification_from: filters.qualification_from,
-			qualification_to: filters.qualification_to,
-			grade: filters.grade,
-			age: filters.age,
-			age_from: filters.age_from,
-			age_to: filters.age_to,
-			include_no_max_age: filters.include_no_max_age,
-			age_max: filters.age_max,
-			place_of_posting: filters.place_of_posting,
-			domicile: filters.domicile,
-			domicile_region: filters.domicile_region,
-			tag: filters.tag,
-			department: filters.department,
-			collar: filters.collar,
-			province: filters.province,
-			program: filters.program,
-			keyword: filters.keyword,
-			q: filters.q,
-			has_salary: filters.has_salary,
-			permanent_only: filters.permanent_only,
-			women_only: filters.women_only,
-			transgender_applicable: filters.transgender_applicable,
-			disability_quota: filters.disability_quota,
-			minority_quota: filters.minority_quota,
-			min_salary: filters.min_salary,
-			salary_from: filters.salary_from,
-			salary_to: filters.salary_to,
-			show_expired: filters.show_expired,
-			sort: filters.sort,
-			page: filters.page,
-			pageSize: filters.pageSize
-		},
-		jobs: result.jobs,
-		total: result.total,
-		totalPages: result.totalPages,
-		filtered: Boolean(
-			urlFilters.ad_date ||
-				urlFilters.posted_by ||
-				urlFilters.donor_name ||
-				urlFilters.portal ||
-				urlFilters.gender ||
-				urlFilters.place_of_posting ||
-				urlFilters.domicile.length ||
-				urlFilters.domicile_region.length ||
-				urlFilters.tag.length ||
-				urlFilters.department ||
-				urlFilters.collar ||
-				urlFilters.has_salary ||
-				urlFilters.permanent_only ||
-				urlFilters.women_only ||
-				urlFilters.transgender_applicable ||
-				urlFilters.disability_quota ||
-				urlFilters.minority_quota ||
-				urlFilters.min_salary != null ||
-				urlFilters.salary_from != null ||
-				urlFilters.salary_to != null ||
-				urlFilters.keyword ||
-				urlFilters.q ||
-				isAgeFilterActive(urlFilters) ||
-				urlFilters.grade ||
-				urlFilters.show_expired
-		),
-		error: null as string | null
+		filters: filtersSnapshot,
+		filtered,
+		listing
 	};
 };

@@ -1,22 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import {
-	getBrowseByCategoryData,
-	getFilterOptions,
-	type BrowseByCategoryData
-} from '$lib/server/jobs';
 import { getProfileById, isProfileComplete } from '$lib/server/user-profile';
-
-const emptyBrowse: BrowseByCategoryData = {
-	adDates: [],
-	postedBy: [],
-	donors: [],
-	genders: [],
-	degreeAreas: [],
-	educationLevels: [],
-	jobInterestTree: [],
-	topTags: []
-};
 
 const PROFILE_EXEMPT_PREFIXES = ['/auth', '/login', '/privacy', '/terms'];
 
@@ -28,8 +12,8 @@ function isProfileExemptPath(pathname: string): boolean {
 }
 
 /**
- * Filter-independent browse/sidebar data. Lives in the layout so it does not
- * re-run when only search params change — only the page `load` (jobs) updates.
+ * Layout load — await only auth/profile redirects.
+ * Filter UI is static (no DB). Job listings stream from page `load`.
  */
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const session = await locals.auth();
@@ -47,8 +31,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	return {
 		session,
 		profile,
-		profileComplete,
-		browse: getBrowseByCategoryData().catch(() => emptyBrowse),
-		filterOptions: getFilterOptions()
+		profileComplete
 	};
 };

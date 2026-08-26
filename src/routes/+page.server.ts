@@ -54,31 +54,35 @@ function filtersSnapshot(filters: JobFilters) {
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const filters = parseJobFilters(url);
 	const snapshot = filtersSnapshot(filters);
+	const filtered = filtersAreActive(filters);
 
-	try {
-		const result = await listJobs(filters);
+	// Stream listing — only job data for this page; layout shell can flush first.
+	// Default (unfiltered) queries are short-cached inside listJobs.
+	const listing = listJobs(filters)
+		.then((result) => {
+			if (filtered) {
+				logSearch(filters, result.total, locals.visitorId, locals.clientIp);
+			}
+			return {
+				jobs: result.jobs,
+				total: result.total,
+				totalPages: result.totalPages,
+				error: null as string | null
+			};
+		})
+		.catch((err) => {
+			console.error('Failed to load jobs', err);
+			return {
+				jobs: [],
+				total: 0,
+				totalPages: 1,
+				error: 'We could not load job listings right now. Please try again shortly.' as string | null
+			};
+		});
 
-		if (filtersAreActive(filters)) {
-			logSearch(filters, result.total, locals.visitorId, locals.clientIp);
-		}
-
-		return {
-			filters: snapshot,
-			jobs: result.jobs,
-			total: result.total,
-			totalPages: result.totalPages,
-			filtered: filtersAreActive(filters),
-			error: null as string | null
-		};
-	} catch (err) {
-		console.error('Failed to load jobs', err);
-		return {
-			filters: snapshot,
-			jobs: [],
-			total: 0,
-			totalPages: 1,
-			filtered: filtersAreActive(filters),
-			error: 'We could not load job listings right now. Please try again shortly.'
-		};
-	}
+	return {
+		filters: snapshot,
+		filtered,
+		listing
+	};
 };

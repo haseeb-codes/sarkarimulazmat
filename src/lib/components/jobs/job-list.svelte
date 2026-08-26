@@ -333,7 +333,7 @@
 
 			<div class="flex flex-wrap items-center gap-2">
 				<div
-					class="inline-flex rounded-md border border-border p-0.5"
+					class="hidden sm:inline-flex rounded-md border border-border p-0.5"
 					role="group"
 					aria-label="Results layout"
 				>

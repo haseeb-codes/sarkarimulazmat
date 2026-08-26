@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
-	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
-	import JobList from '$lib/components/jobs/job-list.svelte';
+	import JobsBrowseShell from '$lib/components/jobs/jobs-browse-shell.svelte';
 
 	let { data } = $props();
 
@@ -16,24 +15,28 @@
 			: `Government Jobs in Pakistan — Sarkari Mulazmat`
 	);
 
-	const description = $derived(
-		data.filtered
-			? `Browse ${data.total} government job postings matching your filters on Sarkari Mulazmat.`
-			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`
-	);
-
 	const canonical = $derived(new URL('/', page.url.origin).href);
 </script>
 
 <svelte:head>
 	<title>{title}</title>
-	<meta name="description" content={description} />
+	<meta
+		name="description"
+		content={data.filtered
+			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
+			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`}
+	/>
 	<link rel="canonical" href={canonical} />
 	{#if data.filtered}
 		<meta name="robots" content="noindex, follow" />
 	{/if}
 	<meta property="og:title" content={title} />
-	<meta property="og:description" content={description} />
+	<meta
+		property="og:description"
+		content={data.filtered
+			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
+			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`}
+	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={page.url.href} />
 	<meta name="twitter:card" content="summary" />
@@ -47,19 +50,10 @@
 		</p>
 	</div>
 
-	<FiltersDrawer
+	<JobsBrowseShell
 		filters={data.filters}
-		options={data.filterOptions}
-		resultCount={data.total}
-	>
-		<JobList
-			jobs={data.jobs}
-			total={data.total}
-			totalPages={data.totalPages}
-			filters={data.filters}
-			filtered={data.filtered}
-			error={data.error}
-			loading={isNavigating}
-		/>
-	</FiltersDrawer>
+		filtered={data.filtered}
+		listing={data.listing}
+		loading={isNavigating}
+	/>
 </div>

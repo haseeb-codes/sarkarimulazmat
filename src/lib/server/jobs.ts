@@ -3,6 +3,8 @@ import db from '$lib/server/db';
 import { getJobCategoryPage, getJobCategoryTags } from '$lib/job-category-pages';
 import { getDomicileRegion, selectedDomicileRegions } from '$lib/domicile-regions';
 import { countJobCategoryJobs } from '$lib/server/job-category-jobs';
+import { DEGREE_SPECIALIZATIONS } from '$lib/degree-specializations';
+import { PORTAL_OPTIONS } from '$lib/filter-static-options';
 import {
 	splitMultiValue,
 	toDateKey,
@@ -89,7 +91,7 @@ export type JobFilters = FilterParams & {
 export type FilterOptions = {
 	degree_areas: string[];
 	degrees: string[];
-	/** Full unique specialization labels from `degree_area` + `degrees` (A–Z). */
+	/** Curated specialization labels from `src/lib/data/degree-specializations.json`. */
 	specializations: string[];
 	education_levels: string[];
 	grades: string[];
@@ -160,21 +162,28 @@ const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
 const FILTER_OPTIONS_CAP = 50;
 const BROWSE_COUNTS_TTL_MS = 5 * 60 * 1000;
-const PORTAL_OPTIONS = [
-	'Career Testing Services Pakistan (CTSP)',
-	'DGPR Balochistan',
-	'Educational Testing & Evaluation Agency (ETEA)',
-	'Federal Public Service Commission (FPSC)',
-	'HR1384',
-	'IWork4Sindh (IW4S)',
-	'National Jobs Portal (NJP)',
-	'National Testing Service (NTS)',
-	'Open Testing Service (OTS)',
-	'Pakistan Testing Service (PTS)',
-	'Punjab Jobs Portal',
-	'Punjab Public Service Commission (PPSC)',
-	'SIBA Testing Services (STS)'
-] as const;
+/** Short TTL for the default (unfiltered) homepage job list — speeds cold first visits after warm. */
+const DEFAULT_LIST_JOBS_TTL_MS = 60 * 1000;
+
+type ListJobsResult = {
+	jobs: Array<
+		Awaited<ReturnType<typeof db.jobPostings.findMany>>[number] & { row_id: number }
+	>;
+	total: number;
+	page: number;
+	pageSize: number;
+	totalPages: number;
+};
+
+let defaultListJobsCache: { key: string; data: ListJobsResult; expiresAt: number } | null = null;
+const defaultListJobsInflight = new Map<string, Promise<ListJobsResult>>();
+
+/** Cache key for default browse (no user filters). Null when filters are active. */
+function defaultListJobsCacheKey(filters: JobFilters): string | null {
+	if (filtersAreActive(filters)) return null;
+	return `page=${filters.page}|pageSize=${filters.pageSize}|sort=${filters.sort}`;
+}
+
 const JOB_INTEREST_TAXONOMY: {
 	label: string;
 	children: { label: string; degree_areas?: string[]; q?: string }[];
@@ -986,7 +995,38 @@ function searchRankingPhrase(filters: JobFilters): string | null {
 	return keyword || null;
 }
 
-export async function listJobs(filters: JobFilters) {
+export async function listJobs(filters: JobFilters): Promise<ListJobsResult> {
+	const cacheKey = defaultListJobsCacheKey(filters);
+	if (cacheKey) {
+		const now = Date.now();
+		if (defaultListJobsCache && defaultListJobsCache.key === cacheKey && defaultListJobsCache.expiresAt > now) {
+			return defaultListJobsCache.data;
+		}
+		const inflight = defaultListJobsInflight.get(cacheKey);
+		if (inflight) return inflight;
+
+		const pending = queryListJobs(filters)
+			.then((data) => {
+				defaultListJobsCache = {
+					key: cacheKey,
+					data,
+					expiresAt: Date.now() + DEFAULT_LIST_JOBS_TTL_MS
+				};
+				defaultListJobsInflight.delete(cacheKey);
+				return data;
+			})
+			.catch((err) => {
+				defaultListJobsInflight.delete(cacheKey);
+				throw err;
+			});
+		defaultListJobsInflight.set(cacheKey, pending);
+		return pending;
+	}
+
+	return queryListJobs(filters);
+}
+
+async function queryListJobs(filters: JobFilters): Promise<ListJobsResult> {
 	const where = buildJobWhere(filters);
 	const skip = (filters.page - 1) * filters.pageSize;
 	const rankingPhrase = searchRankingPhrase(filters);
@@ -1149,61 +1189,43 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 		return filterOptionsCache.data;
 	}
 
-	const [rows, specializationAreaRows, specializationDegreeRows, gradeRows, domicileRows, salaryAgg] =
-		await Promise.all([
-			db.jobPostings.findMany({
-				where: IS_ACTIVE_JOB,
-				select: {
-					degree_area: true,
-					degrees: true,
-					education_level: true,
-					place_of_posting: true
-				},
-				take: 2000
-			}),
-			db.jobPostings.findMany({
-				where: {
-					AND: [IS_ACTIVE_JOB, { degree_area: { not: null } }]
-				},
-				select: { degree_area: true },
-				distinct: ['degree_area']
-			}),
-			db.jobPostings.findMany({
-				where: {
-					AND: [IS_ACTIVE_JOB, { degrees: { not: null } }]
-				},
-				select: { degrees: true },
-				distinct: ['degrees']
-			}),
-			db.jobPostings.findMany({
-				where: {
-					AND: [IS_ACTIVE_JOB, { grade_derived: { not: null } }]
-				},
-				select: { grade_derived: true },
-				distinct: ['grade_derived']
-			}),
-			db.jobPostings.findMany({
-				where: {
-					AND: [IS_ACTIVE_JOB, { domicile: { not: null } }]
-				},
-				select: { domicile: true },
-				distinct: ['domicile']
-			}),
-			db.jobPostings.aggregate({
-				where: {
-					AND: [IS_ACTIVE_JOB, { salary_estimated: { not: null } }]
-				},
-				_max: { salary_estimated: true }
-			})
-		]);
+	const [rows, gradeRows, domicileRows, salaryAgg] = await Promise.all([
+		db.jobPostings.findMany({
+			where: IS_ACTIVE_JOB,
+			select: {
+				degree_area: true,
+				degrees: true,
+				education_level: true,
+				place_of_posting: true
+			},
+			take: 2000
+		}),
+		db.jobPostings.findMany({
+			where: {
+				AND: [IS_ACTIVE_JOB, { grade_derived: { not: null } }]
+			},
+			select: { grade_derived: true },
+			distinct: ['grade_derived']
+		}),
+		db.jobPostings.findMany({
+			where: {
+				AND: [IS_ACTIVE_JOB, { domicile: { not: null } }]
+			},
+			select: { domicile: true },
+			distinct: ['domicile']
+		}),
+		db.jobPostings.aggregate({
+			where: {
+				AND: [IS_ACTIVE_JOB, { salary_estimated: { not: null } }]
+			},
+			_max: { salary_estimated: true }
+		})
+	]);
 
 	const data: FilterOptions = {
 		degree_areas: frequencyRank(rows.map((r) => r.degree_area ?? '')),
 		degrees: frequencyRank(rows.map((r) => r.degrees ?? '')),
-		specializations: distinctLabelsAlphabetical([
-			...specializationAreaRows.map((r) => r.degree_area),
-			...specializationDegreeRows.map((r) => r.degrees)
-		]),
+		specializations: [...DEGREE_SPECIALIZATIONS],
 		education_levels: frequencyRank(rows.map((r) => r.education_level ?? '')),
 		grades: distinctGradesAlphabetical(gradeRows.map((r) => r.grade_derived)),
 		places: frequencyRank(rows.map((r) => r.place_of_posting ?? '')),

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
-	import JobsFilterFormAsync from '$lib/components/jobs/jobs-filter-form-async.svelte';
+	import JobsFilterForm from '$lib/components/jobs/jobs-filter-form.svelte';
 	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
+	import { STATIC_DRAWER_FILTER_OPTIONS } from '$lib/filter-static-options';
 	import {
 		clearDrawerFilterPatch,
 		drawerFilterActiveCount,
@@ -15,22 +17,14 @@
 	import type { Snippet } from 'svelte';
 	import FilterIcon from '@lucide/svelte/icons/sliders-horizontal';
 
-	type FilterOptions = {
-		grades: string[];
-		portals: string[];
-		specializations: string[];
-		salary_max: number;
-	};
-
 	let {
 		filters,
-		options,
-		resultCount,
+		resultCount = null,
 		children
 	}: {
 		filters: FilterParams;
-		options: Promise<FilterOptions>;
-		resultCount: number;
+		/** null while job listing is still loading */
+		resultCount?: number | null;
 		children?: Snippet;
 	} = $props();
 
@@ -77,7 +71,12 @@
 			<h2 class="text-sm font-semibold tracking-tight">
 				Filters
 				<span class="font-normal text-muted-foreground">
-					· {resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+					·
+					{#if resultCount == null}
+						<Skeleton class="inline-block h-3.5 w-16 align-middle" />
+					{:else}
+						{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+					{/if}
 				</span>
 			</h2>
 			{#if activeCount}
@@ -87,9 +86,9 @@
 			{/if}
 		</div>
 		<div class="px-4 py-4">
-			<JobsFilterFormAsync
+			<JobsFilterForm
 				filters={displayFilters}
-				{options}
+				options={STATIC_DRAWER_FILTER_OPTIONS}
 				idPrefix="sidebar-"
 			/>
 		</div>
@@ -128,7 +127,12 @@
 									<Drawer.Title>
 										Filters
 										<span class="font-normal text-muted-foreground">
-											· {resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+											·
+											{#if resultCount == null}
+												<Skeleton class="inline-block h-3.5 w-16 align-middle" />
+											{:else}
+												{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+											{/if}
 										</span>
 									</Drawer.Title>
 									<Drawer.Description>
@@ -137,9 +141,9 @@
 									</Drawer.Description>
 								</Drawer.Header>
 								<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-									<JobsFilterFormAsync
+									<JobsFilterForm
 										filters={displayFilters}
-										{options}
+										options={STATIC_DRAWER_FILTER_OPTIONS}
 										idPrefix="drawer-"
 									/>
 								</div>

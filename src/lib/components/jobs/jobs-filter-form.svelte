@@ -25,10 +25,8 @@
 	} from '$lib/jobs-utils';
 
 	type Options = {
-		grades: string[];
 		portals: string[];
 		specializations: string[];
-		salary_max: number;
 	};
 
 	let {
@@ -411,7 +409,7 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 		<p class="text-xs text-muted-foreground">
-			All unique degree specializations from current job postings.
+			Filter by degree or degree area listed on the posting.
 		</p>
 	</div>
 

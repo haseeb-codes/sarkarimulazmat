@@ -420,7 +420,7 @@ export const QUALIFICATION_LEVEL_LABELS: Record<number, string> = {
 	1: 'Primary',
 	2: 'Middle',
 	3: 'Matric',
-	4: 'Diploma',
+	4: 'Diploma/Intermediate',
 	5: "Bachelor's",
 	6: "Master's",
 	7: 'PhD'

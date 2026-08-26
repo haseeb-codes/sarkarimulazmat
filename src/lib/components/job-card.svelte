@@ -132,13 +132,13 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<div
-			class="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3"
+			class="flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:gap-4 sm:px-4 sm:py-3"
 		>
-			<div class="min-w-0 flex-1 space-y-1.5">
+			<div class="min-w-0 flex-1 space-y-2">
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
 						<span
-							class="inline-flex h-5 items-center rounded-full bg-red-100 px-2 text-xs font-semibold text-red-700 dark:bg-red-950/70 dark:text-red-300 {isStatic
+							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
 								? ''
 								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
 						>
@@ -205,14 +205,102 @@
 					</a>
 				{/if}
 
-				<div
-					class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
-				>
+				{#if job.project_program_name?.trim()}
+					<div class="space-y-1">
+						<p class="text-xs font-medium text-muted-foreground">Program</p>
+						<MultiValueBadges
+							value={job.project_program_name}
+							{sort}
+							param="program"
+							class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
+						/>
+					</div>
+				{/if}
+				{#if job.degree_area}
+					<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+						<span class="shrink-0 text-xs font-medium text-muted-foreground"
+							>Specialization</span
+						>
+						<MultiValueBadges
+							value={job.degree_area}
+							{sort}
+							containerClass="contents"
+						/>
+					</div>
+				{/if}
+				<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+					{#if job.domicile?.trim()}
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+							<span class="shrink-0 text-xs font-medium text-muted-foreground"
+								>Domicile</span
+							>
+							<MultiValueBadges
+								value={job.domicile}
+								{sort}
+								param="domicile"
+								containerClass="contents"
+							/>
+						</div>
+					{:else if job.place_of_posting}
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+							<span class="shrink-0 text-xs font-medium text-muted-foreground"
+								>Location</span
+							>
+							<MultiValueBadges
+								value={job.place_of_posting}
+								{sort}
+								param="place_of_posting"
+								containerClass="contents"
+								class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
+							/>
+						</div>
+					{/if}
+					{#if job.degrees}
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+							<span class="shrink-0 text-xs font-medium text-muted-foreground"
+								>Degrees</span
+							>
+							<MultiValueBadges
+								value={job.degrees}
+								{sort}
+								containerClass="contents"
+							/>
+						</div>
+					{/if}
+					{#if salaryLabel}
+						<span class="inline-flex items-center gap-1.5">
+							<span class="text-xs font-medium text-muted-foreground">Salary</span>
+							<Badge
+								variant="outline"
+								href={hasSalaryHref}
+								aria-label="Show jobs with salary listed"
+								class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
+							>
+								Rs. {salaryLabel}
+							</Badge>
+						</span>
+					{/if}
+					{#if job.max_age != null}
+						<span class="inline-flex items-center gap-1.5">
+							<span class="text-xs font-medium text-muted-foreground">Max Age</span>
+							<Badge
+								variant="outline"
+								class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+							>
+								{job.max_age}y
+							</Badge>
+						</span>
+					{:else if ageLabel}
+						<span class="inline-flex items-center gap-1.5">
+							<span class="text-xs font-medium text-muted-foreground">Age</span>
+							<span class="text-foreground">{ageLabel}</span>
+						</span>
+					{/if}
 					{#if applyByLabel}
-						<span class="inline-flex items-center gap-1">
-							<span>Deadline</span>
+						<span class="inline-flex items-center gap-1.5">
+							<span class="text-xs font-medium text-muted-foreground">Deadline</span>
 							<span
-								class="rounded-md px-1.5 py-0.5 font-semibold tracking-wide {applyByClass}"
+								class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
 							>
 								{applyByLabel}{#if daysLeftLabel}&nbsp;{daysLeftLabel}{/if}
 							</span>
@@ -223,20 +311,23 @@
 							{/if}
 						</span>
 					{/if}
-					{#if job.max_age != null}
-						<span>Max age {job.max_age}y</span>
-					{:else if ageLabel}
-						<span>Age {ageLabel}</span>
-					{/if}
-					{#if salaryLabel}
-						<span>Rs. {salaryLabel}</span>
-					{/if}
-					{#if job.place_of_posting?.trim() && !job.domicile?.trim()}
-						<span class="truncate" title={job.place_of_posting}
-							>{job.place_of_posting}</span
-						>
-					{:else if job.domicile?.trim()}
-						<span class="truncate" title={job.domicile}>{job.domicile}</span>
+					{#if applyLink}
+						<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+							<span class="text-xs font-medium text-muted-foreground">Apply</span>
+							<a
+								href={applyLink.href}
+								target={applyLink.kind === "url" ? "_blank" : undefined}
+								rel={applyLink.kind === "url" ? "noopener noreferrer" : undefined}
+								class="inline-flex min-w-0 max-w-full items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
+							>
+								{#if applyLink.kind === "email"}
+									<MailIcon class="size-3.5 shrink-0" />
+								{:else}
+									<ExternalLinkIcon class="size-3.5 shrink-0" />
+								{/if}
+								<span class="truncate">{applyLink.label}</span>
+							</a>
+						</span>
 					{/if}
 				</div>
 			</div>
@@ -274,7 +365,7 @@
 					<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
 						{#if recentAd}
 							<span
-								class="inline-flex h-5 items-center rounded-full bg-red-100 px-2 text-xs font-semibold text-red-700 dark:bg-red-950/70 dark:text-red-300 {isStatic
+								class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
 									? ''
 									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
 							>
