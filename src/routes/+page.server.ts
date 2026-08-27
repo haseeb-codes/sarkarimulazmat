@@ -56,33 +56,33 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const snapshot = filtersSnapshot(filters);
 	const filtered = filtersAreActive(filters);
 
-	// Stream listing — only job data for this page; layout shell can flush first.
-	// Default (unfiltered) queries are short-cached inside listJobs.
-	const listing = listJobs(filters)
-		.then((result) => {
-			if (filtered) {
-				logSearch(filters, result.total, locals.visitorId, locals.clientIp);
-			}
-			return {
+	// Await listings so job cards are in initial HTML for SEO.
+	try {
+		const result = await listJobs(filters);
+		if (filtered) {
+			logSearch(filters, result.total, locals.visitorId, locals.clientIp);
+		}
+		return {
+			filters: snapshot,
+			filtered,
+			listing: {
 				jobs: result.jobs,
 				total: result.total,
 				totalPages: result.totalPages,
 				error: null as string | null
-			};
-		})
-		.catch((err) => {
-			console.error('Failed to load jobs', err);
-			return {
+			}
+		};
+	} catch (err) {
+		console.error('Failed to load jobs', err);
+		return {
+			filters: snapshot,
+			filtered,
+			listing: {
 				jobs: [],
 				total: 0,
 				totalPages: 1,
 				error: 'We could not load job listings right now. Please try again shortly.' as string | null
-			};
-		});
-
-	return {
-		filters: snapshot,
-		filtered,
-		listing
-	};
+			}
+		};
+	}
 };

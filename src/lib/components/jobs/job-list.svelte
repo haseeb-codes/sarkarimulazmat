@@ -7,17 +7,13 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import { browseShownCount, browseViewMode } from '$lib/browse-view-mode';
 	import {
-		filtersToHref,
 		filtersToSearchParams,
 		urlHasSearchParams,
 		type FilterParams,
 		type JobSort
 	} from '$lib/jobs-utils';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
-	import ListIcon from '@lucide/svelte/icons/list';
 
 	type Job = {
 		row_id: number;
@@ -64,18 +60,6 @@
 		pageSize: number;
 	};
 
-	type ViewMode = 'masonry' | 'list';
-	type ResultsSortOption = 'closing_soon' | 'newest' | 'white' | 'blue';
-
-	const VIEW_STORAGE_KEY = 'jobs-view-mode';
-
-	const RESULTS_SORT_OPTIONS = [
-		{ value: 'closing_soon', label: 'Closing soon' },
-		{ value: 'newest', label: 'Newly Posted' },
-		{ value: 'white', label: 'White Collar jobs' },
-		{ value: 'blue', label: 'Blue collar jobs' }
-	] as const satisfies ReadonlyArray<{ value: ResultsSortOption; label: string }>;
-
 	let {
 		jobs,
 		total,
@@ -92,21 +76,21 @@
 		loading?: boolean;
 	} = $props();
 
-	let items = $state<Job[]>([]);
-	let loadedPage = $state(1);
+	let items = $state<Job[]>(jobs);
+	let loadedPage = $state(filters.page);
 	/** Maps each job slug to the page it was loaded on */
-	let jobPageMap = $state<Map<string, number>>(new Map());
+	let jobPageMap = $state<Map<string, number>>(new Map(jobs.map((j) => [j.slug, filters.page])));
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
 	/** slugs just appended via infinite scroll — highlighted briefly */
 	let freshIds = $state<Set<string>>(new Set());
 	let freshClearTimer: ReturnType<typeof setTimeout> | null = null;
-	let viewMode = $state<ViewMode>('masonry');
 
 	const HIGHLIGHT_MS = 2800;
 
 	const hasMore = $derived(loadedPage < totalPages && items.length < total);
+	const viewMode = $derived($browseViewMode);
 
 	const browseUrl = $derived(
 		navigating.to?.url.pathname === page.url.pathname ? navigating.to.url : page.url
@@ -114,18 +98,6 @@
 
 	/** Any query param — keep Clear visible for q / sort / tags / etc. */
 	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
-
-	const resultsSort = $derived.by((): ResultsSortOption => {
-		const collar = filters.collar?.trim().toLowerCase() ?? '';
-		if (collar === 'white') return 'white';
-		if (collar === 'blue') return 'blue';
-		if (filters.sort === 'closing_soon') return 'closing_soon';
-		return 'newest';
-	});
-
-	const resultsSortLabel = $derived(
-		RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted'
-	);
 
 	/** Stable key for the active result set — ignore page so scroll-loaded pages aren't wiped. */
 	const resultKey = $derived(
@@ -150,7 +122,7 @@
 			(filters.domicile_region ?? []).join('\0'),
 			(filters.tag ?? []).join('\0'),
 			filters.department ?? '',
-			filters.collar ?? '',
+			(filters.collar ?? []).join('\0'),
 			filters.has_salary ? '1' : '0',
 			filters.permanent_only ? '1' : '0',
 			filters.women_only ? '1' : '0',
@@ -169,52 +141,12 @@
 		].join('|')
 	);
 
-	function readStoredView(): ViewMode {
-		try {
-			const stored = localStorage.getItem(VIEW_STORAGE_KEY);
-			if (stored === 'list' || stored === 'masonry') return stored;
-		} catch {
-			/* ignore */
-		}
-		return 'masonry';
-	}
-
-	function setViewMode(next: ViewMode) {
-		viewMode = next;
-		try {
-			localStorage.setItem(VIEW_STORAGE_KEY, next);
-		} catch {
-			/* ignore */
-		}
-	}
-
-	function setResultsSort(next: string) {
-		const option = next as ResultsSortOption;
-		const patch: Partial<FilterParams> =
-			option === 'white'
-				? { sort: 'newest', collar: 'white', page: 1 }
-				: option === 'blue'
-					? { sort: 'newest', collar: 'blue', page: 1 }
-					: option === 'closing_soon'
-						? { sort: 'closing_soon', collar: null, page: 1 }
-						: { sort: 'newest', collar: null, page: 1 };
-
-		goto(filtersToHref({ ...filters, ...patch }, page.url.pathname), {
-			keepFocus: true,
-			noScroll: true
-		});
-	}
-
 	function clearFilters() {
 		goto(page.url.pathname, {
 			keepFocus: true,
 			noScroll: true
 		});
 	}
-
-	$effect(() => {
-		viewMode = readStoredView();
-	});
 
 	function clearFreshHighlight() {
 		if (freshClearTimer) {
@@ -235,7 +167,12 @@
 	}
 
 	$effect(() => {
+		browseShownCount.set(items.length);
+	});
+
+	$effect(() => {
 		return () => {
+			browseShownCount.set(0);
 			if (freshClearTimer) clearTimeout(freshClearTimer);
 		};
 	});
@@ -315,75 +252,6 @@
 </script>
 
 <div class="space-y-2" aria-live="polite">
-	<!-- Stick under the results-column search field — always mounted to avoid Clear CLS -->
-	<div
-		class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-1 transform-gpu"
-	>
-		<div class="flex min-w-0 flex-nowrap items-center gap-x-2 sm:gap-x-3">
-			{#if loading}
-				<Skeleton class="h-3.5 w-24 shrink-0" />
-			{:else if !error && items.length > 0 && items.length < total}
-				<p class="whitespace-nowrap text-xs text-muted-foreground">
-					Jobs {items.length.toLocaleString()} of {total.toLocaleString()}
-				</p>
-			{:else if !error && items.length > 0}
-				<p class="whitespace-nowrap text-xs text-muted-foreground">
-					{total.toLocaleString()} job{total === 1 ? '' : 's'}
-				</p>
-			{/if}
-		</div>
-
-		<div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-			<div
-				class="hidden sm:inline-flex rounded-md border border-border p-0.5"
-				role="group"
-				aria-label="Results layout"
-			>
-				<Button
-					type="button"
-					variant={viewMode === 'masonry' ? 'secondary' : 'ghost'}
-					size="sm"
-					class="h-7 gap-1 px-2 text-xs"
-					aria-pressed={viewMode === 'masonry'}
-					onclick={() => setViewMode('masonry')}
-				>
-					<LayoutGridIcon class="size-3.5" aria-hidden="true" />
-					<span class="hidden sm:inline">Grid</span>
-				</Button>
-				<Button
-					type="button"
-					variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-					size="sm"
-					class="h-7 gap-1 px-2 text-xs"
-					aria-pressed={viewMode === 'list'}
-					onclick={() => setViewMode('list')}
-				>
-					<ListIcon class="size-3.5" aria-hidden="true" />
-					<span class="hidden sm:inline">List</span>
-				</Button>
-			</div>
-
-			<DropdownMenu.Root>
-				<DropdownMenu.Trigger
-					class="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs text-foreground hover:bg-muted sm:gap-1.5 sm:px-2"
-				>
-					<span class="text-muted-foreground">Sort by:</span>
-					<span class="font-medium">{resultsSortLabel}</span>
-					<ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-				</DropdownMenu.Trigger>
-				<DropdownMenu.Content align="end" class="min-w-52">
-					<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
-						{#each RESULTS_SORT_OPTIONS as option (option.value)}
-							<DropdownMenu.RadioItem value={option.value}>
-								{option.label}
-							</DropdownMenu.RadioItem>
-						{/each}
-					</DropdownMenu.RadioGroup>
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>
-		</div>
-	</div>
-
 	<!-- Keep card rings/borders in a lower stacking context than sticky chrome -->
 	<div class="relative z-0">
 		{#if loading}
@@ -489,16 +357,16 @@
 					</ul>
 				{:else}
 					<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3" aria-hidden="true">
-						{#each Array(4) as _, i (i)}
+						{#each Array(3) as _, i (i)}
 							<li class="mb-3 break-inside-avoid">
-								<Card.Root size="sm">
-									<Card.Header class="gap-1.5 pb-2">
-										<Skeleton class="h-5 w-3/4 max-w-[14rem]" />
-										<Skeleton class="h-4 w-1/2 max-w-[10rem]" />
+								<Card.Root>
+									<Card.Header>
+										<Skeleton class="h-4 w-24" />
+										<Skeleton class="mt-2 h-5 w-3/4" />
 									</Card.Header>
-									<Card.Content class="space-y-2 pt-0">
-										<Skeleton class="h-3.5 w-2/3" />
-										<Skeleton class="h-5 w-24 rounded-md" />
+									<Card.Content class="space-y-2">
+										<Skeleton class="h-4 w-full" />
+										<Skeleton class="h-4 w-2/3" />
 									</Card.Content>
 								</Card.Root>
 							</li>
@@ -507,21 +375,20 @@
 				{/if}
 			{/if}
 
+			{#if hasMore}
+				<div bind:this={sentinel} class="h-4 w-full" aria-hidden="true"></div>
+			{/if}
+
 			{#if loadMoreError}
-				<div class="flex justify-center pt-2">
-					<Button variant="outline" size="sm" onclick={() => void loadMore()}>
+				<div class="py-4 text-center">
+					<button
+						type="button"
+						class="text-sm text-destructive underline-offset-2 hover:underline"
+						onclick={() => void loadMore()}
+					>
 						{loadMoreError}
-					</Button>
+					</button>
 				</div>
-			{:else if hasMore}
-				<div bind:this={sentinel} class="h-8 w-full" aria-hidden="true"></div>
-				<p class="sr-only" aria-live="polite">
-					{loadingMore ? 'Loading more jobs' : 'Scroll for more jobs'}
-				</p>
-			{:else if items.length > 0}
-				<p class="pt-2 pb-2 text-center text-sm text-muted-foreground">
-					You've seen all {total.toLocaleString()} job{total === 1 ? '' : 's'}
-				</p>
 			{/if}
 		{/if}
 	</div>

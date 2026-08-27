@@ -61,7 +61,7 @@
 			</p>
 			<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
 			<h1>{data.category.h1}</h1>
-			<p class="max-w-2xl text-muted-foreground leading-relaxed">
+			<p class="max-w-2xl text-sm text-muted-foreground leading-relaxed lg:text-base">
 				{data.category.intro_content}
 			</p>
 		</div>

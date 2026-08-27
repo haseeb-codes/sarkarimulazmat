@@ -15,15 +15,21 @@
 	import {
 		AGE_MAX_PRESETS,
 		QUALIFICATION_LEVELS,
+		COLLAR_LEVELS,
+		collarLevelDescription,
+		enabledCollarLevels,
 		filtersToHref,
 		formatQualificationLevel,
+		formatCollarLevel,
 		selectedQualificationLevels,
 		type AgeMaxPreset,
+		type CollarLevel,
 		type FilterParams,
 		BPS_GRADE_GROUPS,
-		formatGradeFilter
+		formatGradeFilter,
+		SHOW_COLLAR_LEVEL_FILTERS
 	} from '$lib/jobs-utils';
-
+	import InfoIcon from '@lucide/svelte/icons/info';
 	type Options = {
 		portals: string[];
 		specializations: string[];
@@ -53,6 +59,8 @@
 	let disabilityQuotaDraft = $state(false);
 	let minorityQuotaDraft = $state(false);
 	let showExpiredDraft = $state(false);
+	let collarDraft = $state<CollarLevel[]>([...COLLAR_LEVELS]);
+	let openCollarInfo = $state<CollarLevel | null>(null);
 
 	const specializationOptions = $derived(options.specializations ?? []);
 
@@ -73,6 +81,7 @@
 		disabilityQuotaDraft = Boolean(filters.disability_quota);
 		minorityQuotaDraft = Boolean(filters.minority_quota);
 		showExpiredDraft = Boolean(filters.show_expired);
+		collarDraft = enabledCollarLevels(filters);
 		const levels = selectedQualificationLevels(filters);
 		qualificationDraft = levels.length ? levels[0]! : null;
 	});
@@ -184,6 +193,25 @@
 		navigate({ show_expired: next });
 	}
 
+	function setCollarEnabled(level: CollarLevel, on: boolean) {
+		const next = new Set(collarDraft);
+		if (on) next.add(level);
+		else next.delete(level);
+		// Keep at least one level on so results stay meaningful.
+		if (next.size === 0) return;
+		const enabled = COLLAR_LEVELS.filter((l) => next.has(l));
+		collarDraft = enabled;
+		navigate({
+			collar: enabled.length === COLLAR_LEVELS.length ? [] : enabled
+		});
+	}
+
+	function toggleCollarInfo(level: CollarLevel, event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		openCollarInfo = openCollarInfo === level ? null : level;
+	}
+
 	function switchClass(on: boolean): string {
 		return `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
 			on ? 'bg-primary' : 'bg-input'
@@ -210,7 +238,9 @@
 <div class="space-y-5">
 	<div class="flex items-center justify-between gap-3">
 		<div class="min-w-0 space-y-0.5">
-			<Label for="{idPrefix}filter-permanent" class="cursor-pointer">Permanent jobs only</Label>
+			<Label for="{idPrefix}filter-permanent" class="cursor-pointer text-xs lg:text-sm"
+				>Permanent jobs only</Label
+			>
 			<p class="text-xs text-muted-foreground">Show jobs with employment type Permanent.</p>
 		</div>
 		<button
@@ -228,7 +258,7 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-grade">BPS grade</Label>
+		<Label for="{idPrefix}filter-grade" class="text-xs lg:text-sm">BPS grade</Label>
 		<Select.Root
 			type="single"
 			value={gradeDraft ?? ''}
@@ -249,7 +279,7 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label id="{idPrefix}filter-age-label">Max age</Label>
+		<Label id="{idPrefix}filter-age-label" class="text-xs lg:text-sm">Max age</Label>
 		<div class="flex flex-wrap gap-1.5">
 			<button
 				type="button"
@@ -292,7 +322,7 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-domicile">Domicile</Label>
+		<Label for="{idPrefix}filter-domicile" class="text-xs lg:text-sm">Domicile</Label>
 		<Select.Root
 			type="single"
 			value={domicileRegionDraft ?? ''}
@@ -313,7 +343,7 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-portal">Portal</Label>
+		<Label for="{idPrefix}filter-portal" class="text-xs lg:text-sm">Portal</Label>
 		<Select.Root
 			type="single"
 			value={portalDraft ?? ''}
@@ -337,7 +367,9 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label id="{idPrefix}filter-qualification-label">Qualification level</Label>
+		<Label id="{idPrefix}filter-qualification-label" class="text-xs lg:text-sm"
+			>Qualification level</Label
+		>
 		<div
 			class="flex flex-wrap gap-1.5"
 			role="group"
@@ -374,11 +406,13 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-specialization">Degree specialization</Label>
+		<Label for="{idPrefix}filter-specialization" class="text-xs lg:text-sm"
+			>Degree specialization</Label
+		>
 		<DropdownMenu.Root bind:open={specializationOpen}>
 			<DropdownMenu.Trigger
 				id="{idPrefix}filter-specialization"
-				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 lg:text-sm dark:bg-input/30"
 			>
 				<span class="truncate">{specializationTriggerLabel}</span>
 				<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" />
@@ -413,6 +447,73 @@
 		</p>
 	</div>
 
+	{#if SHOW_COLLAR_LEVEL_FILTERS}
+		<Separator />
+
+		<div class="space-y-2">
+			<Label id="{idPrefix}filter-level-label" class="text-xs lg:text-sm">Level</Label>
+			<div
+				class="flex flex-wrap items-center gap-x-5 gap-y-2"
+				role="group"
+				aria-labelledby="{idPrefix}filter-level-label"
+			>
+				{#each COLLAR_LEVELS as level (level)}
+					{@const on = collarDraft.includes(level)}
+					{@const infoOpen = openCollarInfo === level}
+					<div class="flex items-center gap-2">
+						<button
+							id="{idPrefix}filter-collar-{level}"
+							type="button"
+							role="switch"
+							aria-checked={on}
+							onclick={() => setCollarEnabled(level, !on)}
+							class={switchClass(on)}
+						>
+							<span aria-hidden="true" class={switchThumbClass(on)}></span>
+						</button>
+						<Label
+							for="{idPrefix}filter-collar-{level}"
+							class="cursor-pointer text-xs font-normal lg:text-sm"
+						>
+							{formatCollarLevel(level)}
+						</Label>
+						<span class="group relative inline-flex">
+							<button
+								type="button"
+								class="rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								aria-label="About {formatCollarLevel(level)}"
+								aria-expanded={infoOpen}
+								aria-controls="{idPrefix}collar-info-{level}"
+								onclick={(e) => toggleCollarInfo(level, e)}
+								onblur={() => {
+									if (openCollarInfo === level) openCollarInfo = null;
+								}}
+							>
+								<InfoIcon class="size-3.5" aria-hidden="true" />
+							</button>
+							<span
+								id="{idPrefix}collar-info-{level}"
+								role="tooltip"
+								class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-52 -translate-x-1/2 rounded-md bg-foreground px-2.5 py-1.5 text-left text-xs leading-snug font-normal text-background shadow-sm transition-opacity {infoOpen
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}"
+							>
+								{collarLevelDescription(level)}
+							</span>
+						</span>
+					</div>
+				{/each}
+			</div>
+			<p class="text-xs text-muted-foreground">
+				{#if collarDraft.length === COLLAR_LEVELS.length}
+					All job levels included.
+				{:else}
+					Showing {collarDraft.map(formatCollarLevel).join(', ')}.
+				{/if}
+			</p>
+		</div>
+	{/if}
+
 	<Separator />
 
 	<div class="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -427,7 +528,7 @@
 			>
 				<span aria-hidden="true" class={switchThumbClass(womenOnlyDraft)}></span>
 			</button>
-			<Label for="{idPrefix}filter-women" class="cursor-pointer text-sm font-normal">
+			<Label for="{idPrefix}filter-women" class="cursor-pointer text-xs font-normal lg:text-sm">
 				Women
 			</Label>
 		</div>
@@ -442,7 +543,7 @@
 			>
 				<span aria-hidden="true" class={switchThumbClass(transgenderApplicableDraft)}></span>
 			</button>
-			<Label for="{idPrefix}filter-transgender" class="cursor-pointer text-sm font-normal">
+			<Label for="{idPrefix}filter-transgender" class="cursor-pointer text-xs font-normal lg:text-sm">
 				Transgender
 			</Label>
 		</div>
@@ -457,7 +558,7 @@
 			>
 				<span aria-hidden="true" class={switchThumbClass(minorityQuotaDraft)}></span>
 			</button>
-			<Label for="{idPrefix}filter-minority" class="cursor-pointer text-sm font-normal">
+			<Label for="{idPrefix}filter-minority" class="cursor-pointer text-xs font-normal lg:text-sm">
 				Minority
 			</Label>
 		</div>
@@ -472,7 +573,7 @@
 			>
 				<span aria-hidden="true" class={switchThumbClass(disabilityQuotaDraft)}></span>
 			</button>
-			<Label for="{idPrefix}filter-disability" class="cursor-pointer text-sm font-normal">
+			<Label for="{idPrefix}filter-disability" class="cursor-pointer text-xs font-normal lg:text-sm">
 				Disability
 			</Label>
 		</div>
@@ -482,7 +583,9 @@
 
 	<div class="flex items-center justify-between gap-3">
 		<div class="min-w-0 space-y-0.5">
-			<Label for="{idPrefix}filter-show-expired" class="cursor-pointer">Include Expired Job</Label>
+			<Label for="{idPrefix}filter-show-expired" class="cursor-pointer text-xs lg:text-sm"
+				>Include Expired Job</Label
+			>
 			<p class="text-xs text-muted-foreground">
 				When off, only active jobs are listed. Turn on to include inactive postings too.
 			</p>

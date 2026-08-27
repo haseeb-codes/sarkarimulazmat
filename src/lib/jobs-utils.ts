@@ -280,7 +280,11 @@ export type FilterParams = {
 	/** Job category tag slugs from /tags (URL: repeated `tag` params). */
 	tag?: string | string[] | null;
 	department?: string | null;
-	collar?: string | null;
+	/**
+	 * Included collar levels (URL: repeated `collar`).
+	 * Empty / omitted / all three = no filter (all levels on).
+	 */
+	collar?: string[] | null;
 	province?: boolean | null;
 	program?: string | null;
 	/** Drawer keyword: title, department, project/program name. */
@@ -371,7 +375,11 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 		params.append('tag', tag);
 	}
 	if (filters.department) params.set('department', filters.department);
-	if (filters.collar) params.set('collar', filters.collar);
+	if (isCollarFilterActive(filters)) {
+		for (const level of selectedCollars(filters)) {
+			params.append('collar', level);
+		}
+	}
 	if (filters.province != null) params.set('province', filters.province ? '1' : '0');
 	if (filters.program) params.set('program', filters.program);
 	if (filters.keyword) params.set('keyword', filters.keyword);
@@ -607,18 +615,16 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 		});
 	}
 
-	if (filters.collar) {
-		const collarLabel =
-			filters.collar.toLowerCase() === 'white'
-				? 'White collar'
-				: filters.collar.toLowerCase() === 'blue'
-					? 'Blue collar'
-					: filters.collar;
-		chips.push({
-			id: 'collar',
-			label: collarLabel,
-			clear: { collar: null }
-		});
+	if (isCollarFilterActive(filters)) {
+		for (const level of selectedCollars(filters)) {
+			chips.push({
+				id: `collar:${level}`,
+				label: formatCollarLevel(level),
+				clear: {
+					collar: selectedCollars(filters).filter((c) => c !== level)
+				}
+			});
+		}
 	}
 
 	if (filters.province != null) {
@@ -751,6 +757,70 @@ export function selectedTags(filters: { tag?: string | string[] | null }): strin
 	return result;
 }
 
+/** Collar / job-level values stored on postings (URL uses lowercase). */
+export const COLLAR_LEVELS = ['white', 'grey', 'blue'] as const;
+export type CollarLevel = (typeof COLLAR_LEVELS)[number];
+
+export const COLLAR_LEVEL_LABELS: Record<CollarLevel, string> = {
+	white: 'Officer level',
+	grey: 'Skilled Labor',
+	blue: 'Low Level'
+};
+
+export const COLLAR_LEVEL_DESCRIPTIONS: Record<CollarLevel, string> = {
+	white: 'Officer/Senior level jobs required 16 years of education or above',
+	grey: 'Technical/Skilled labor jobs such as Clerks, Computer Operator, Technician etc',
+	blue: 'Driver, Naib Qasid, Sweeper etc'
+};
+
+export function normalizeCollarLevel(value: string): CollarLevel | null {
+	const key = value.trim().toLowerCase();
+	if (key === 'gray') return 'grey';
+	if (key === 'white' || key === 'blue' || key === 'grey') return key;
+	return null;
+}
+
+export function formatCollarLevel(value: CollarLevel): string {
+	return COLLAR_LEVEL_LABELS[value];
+}
+
+export function collarLevelDescription(value: CollarLevel): string {
+	return COLLAR_LEVEL_DESCRIPTIONS[value];
+}
+
+/** Included collars for filtering; empty means all levels (no filter). */
+export function selectedCollars(filters: FilterParams): CollarLevel[] {
+	const raw = filters.collar;
+	const parts = Array.isArray(raw) ? raw : raw ? [raw] : [];
+	const seen = new Set<CollarLevel>();
+	const result: CollarLevel[] = [];
+	for (const part of parts) {
+		const level = normalizeCollarLevel(String(part));
+		if (!level || seen.has(level)) continue;
+		seen.add(level);
+		result.push(level);
+	}
+	result.sort(
+		(a, b) => COLLAR_LEVELS.indexOf(a) - COLLAR_LEVELS.indexOf(b)
+	);
+	if (result.length === COLLAR_LEVELS.length) return [];
+	return result;
+}
+
+/** Toggle UI state: all on when no collar filter is active. */
+export function enabledCollarLevels(filters: FilterParams): CollarLevel[] {
+	const selected = selectedCollars(filters);
+	if (!selected.length) return [...COLLAR_LEVELS];
+	return selected;
+}
+
+export function isCollarFilterActive(filters: FilterParams): boolean {
+	return selectedCollars(filters).length > 0;
+}
+
+/** Set to true to show Officer / Skilled Labor / Low Level toggles in the filter drawer. */
+export const SHOW_COLLAR_LEVEL_FILTERS = false;
+
 /** Ordered qualification levels stored on job postings (0 = lowest). */
 export const QUALIFICATION_LEVEL_MIN = 0;
 export const QUALIFICATION_LEVEL_MAX = 7;
@@ -867,6 +937,7 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		domicile: [],
 		domicile_region: [],
 		tag: [],
+		collar: [],
 		portal: null,
 		has_salary: false,
 		permanent_only: false,
@@ -889,6 +960,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
+		(isCollarFilterActive(filters) ? 1 : 0) +
 		(filters.portal ? 1 : 0) +
 		(filters.permanent_only ? 1 : 0) +
 		(filters.women_only ? 1 : 0) +
@@ -955,6 +1027,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 			domicile_region: params.getAll('domicile_region')
 		}),
 		tag: selectedTags({ tag: params.getAll('tag') }),
+		collar: selectedCollars({ collar: params.getAll('collar') }),
 		salary_from:
 			parseDrawerIntParam(params.get('salary_from'), 1) ??
 			parseDrawerIntParam(params.get('min_salary'), 1),

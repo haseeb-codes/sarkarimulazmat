@@ -8,6 +8,7 @@ import {
 	resolvedAgeFrom,
 	resolvedAgeTo,
 	selectedQualificationLevels,
+	selectedCollars,
 	selectedDomiciles,
 	selectedTags,
 	formatQualificationLevel,
@@ -116,6 +117,7 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 	return rows.map((row) => {
 		const filters = row.filters as Partial<JobFilters> & {
 			qualification_level?: number | null;
+			collar?: string | string[] | null;
 		};
 		const params = filtersToSearchParams({
 			degree_areas: filters.degree_areas ?? [],
@@ -138,7 +140,13 @@ export async function listSavedSearches(visitorId: string): Promise<SavedSearchR
 			domicile_region: filters.domicile_region ?? [],
 			tag: filters.tag ?? [],
 			department: filters.department,
-			collar: filters.collar,
+			collar: selectedCollars({
+				collar: Array.isArray(filters.collar)
+					? filters.collar
+					: filters.collar
+						? [filters.collar]
+						: []
+			}),
 			province: filters.province,
 			has_salary: filters.has_salary,
 			permanent_only: filters.permanent_only,

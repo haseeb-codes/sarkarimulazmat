@@ -69,7 +69,7 @@
 </script>
 
 <form
-	class="flex h-9 overflow-hidden rounded-md border border-border bg-background shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/50 sm:h-10 sm:rounded-lg sm:border-2 sm:focus-within:ring-3 md:h-12"
+	class="flex h-9 overflow-hidden rounded-md border border-border bg-background shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/50 lg:h-10 lg:rounded-lg lg:border-2 lg:focus-within:ring-3 xl:h-12"
 	role="search"
 	aria-label="Search jobs"
 	onsubmit={commitNow}
@@ -84,16 +84,16 @@
 		onfocus={onFocus}
 		onblur={onBlur}
 		placeholder="Title, department, grade, donor, degree…"
-		class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 text-base shadow-none focus-visible:border-0 focus-visible:ring-0 sm:px-3 md:px-4"
+		class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2.5 text-base shadow-none focus-visible:border-0 focus-visible:ring-0 lg:px-3 xl:px-4"
 		autocomplete="off"
 		enterkeyhint="search"
 	/>
 	<Button
 		type="submit"
-		class="h-full shrink-0 rounded-none px-2.5 sm:px-4 md:px-5"
+		class="h-full shrink-0 rounded-none px-2.5 lg:px-4 xl:px-5"
 		aria-label="Search"
 	>
-		<SearchIcon class="size-3.5 sm:size-4" aria-hidden="true" />
-		<span class="hidden sm:inline">Search</span>
+		<SearchIcon class="size-3.5 lg:size-4" aria-hidden="true" />
+		<span class="hidden lg:inline">Search</span>
 	</Button>
 </form>

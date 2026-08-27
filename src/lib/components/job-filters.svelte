@@ -23,7 +23,7 @@
 		place_of_posting: string | null;
 		domicile: string[];
 		department?: string | null;
-		collar?: string | null;
+		collar?: string[];
 		has_salary?: boolean;
 		min_salary?: number | null;
 		q: string | null;

@@ -153,7 +153,7 @@
 		@apply font-sans;
 	}
 	h1 {
-		@apply text-2xl font-semibold tracking-tight text-balance md:text-3xl;
+		@apply text-2xl font-semibold tracking-tight text-balance lg:text-3xl;
 	}
 	h2 {
 		@apply text-lg font-semibold tracking-tight;

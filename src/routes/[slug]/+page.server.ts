@@ -95,7 +95,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			urlFilters.domicile_region.length ||
 			urlFilters.tag.length ||
 			urlFilters.department ||
-			urlFilters.collar ||
+			urlFilters.collar.length ||
 			urlFilters.has_salary ||
 			urlFilters.permanent_only ||
 			urlFilters.women_only ||
@@ -154,22 +154,24 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		pageSize: filters.pageSize
 	};
 
-	const listing = listJobs(filters)
-		.then((result) => ({
+	let listing;
+	try {
+		const result = await listJobs(filters);
+		listing = {
 			jobs: result.jobs,
 			total: result.total,
 			totalPages: result.totalPages,
 			error: null as string | null
-		}))
-		.catch((err) => {
-			console.error('Failed to load category jobs', err);
-			return {
-				jobs: [],
-				total: 0,
-				totalPages: 1,
-				error: 'We could not load job listings right now. Please try again shortly.' as string | null
-			};
-		});
+		};
+	} catch (err) {
+		console.error('Failed to load category jobs', err);
+		listing = {
+			jobs: [],
+			total: 0,
+			totalPages: 1,
+			error: 'We could not load job listings right now. Please try again shortly.' as string | null
+		};
+	}
 
 	return {
 		kind: 'category' as const,

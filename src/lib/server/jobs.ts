@@ -13,9 +13,11 @@ import {
 	GENDER_BROWSE_LINKS,
 	isAgeFilterActive,
 	isQualificationFilterActive,
+	isCollarFilterActive,
 	resolvedAgeFrom,
 	resolvedAgeTo,
 	selectedQualificationLevels,
+	selectedCollars,
 	clampAgeFilter,
 	selectedDomiciles,
 	selectedTags,
@@ -53,8 +55,8 @@ export type JobFilters = FilterParams & {
 	domicile_region: string[];
 	tag: string[];
 	department: string | null;
-	/** White / Blue / Grey collar */
-	collar: string | null;
+	/** Included White / Blue / Grey collar levels; empty = all. */
+	collar: string[];
 	/** Provincial posting flag (DB column is boolean). */
 	province: boolean | null;
 	/** Filter by project/program name */
@@ -534,7 +536,7 @@ export function parseJobFilters(url: URL): JobFilters {
 		}),
 		tag: selectedTags({ tag: url.searchParams.getAll('tag') }),
 		department: firstParam(url, 'department'),
-		collar: firstParam(url, 'collar'),
+		collar: selectedCollars({ collar: url.searchParams.getAll('collar') }),
 		province: parseOptionalBoolean(firstParam(url, 'province')),
 		program: firstParam(url, 'program'),
 		keyword: firstParam(url, 'keyword'),
@@ -574,7 +576,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.domicile_region.length ||
 			filters.tag.length ||
 			filters.department ||
-			filters.collar ||
+			isCollarFilterActive(filters) ||
 			filters.province != null ||
 			filters.keyword ||
 			filters.q ||
@@ -840,8 +842,13 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		});
 	}
 
-	if (filters.collar) {
-		and.push({ collar: { equals: filters.collar, mode: 'insensitive' } });
+	if (isCollarFilterActive(filters)) {
+		const collars = selectedCollars(filters);
+		and.push({
+			OR: collars.map((level) => ({
+				collar: { equals: level, mode: 'insensitive' as const }
+			}))
+		});
 	}
 
 	if (filters.province != null) {
@@ -1262,7 +1269,7 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		domicile_region: [],
 		tag: [],
 		department: null,
-		collar: null,
+		collar: [],
 		province: null,
 		program: null,
 		keyword: null,

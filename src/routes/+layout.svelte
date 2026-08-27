@@ -42,7 +42,7 @@
 	function navLinkClass(active: boolean, mobile = false) {
 		const base = mobile
 			? 'block rounded-md px-3 py-2.5 text-sm font-medium transition-colors'
-			: 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors';
+			: 'rounded-md px-2.5 py-1 text-xs font-medium transition-colors lg:px-3 lg:py-1.5 lg:text-sm';
 		return active
 			? `${base} bg-primary/10 text-primary`
 			: `${base} text-muted-foreground hover:bg-muted hover:text-foreground`;
@@ -63,12 +63,12 @@
 		<!-- One shared width shell so header / main / footer edges always match. -->
 		<div class="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4">
 			<header
-				class="sticky top-0 z-40 isolate border-b border-border bg-background transform-gpu"
+				class="sticky top-0 z-40 border-b border-border bg-background"
 			>
 				<div class="flex h-14 w-full items-center gap-3">
 					<a
 						href="/"
-						class="flex min-w-0 shrink items-center gap-2 text-base font-semibold tracking-tight text-primary sm:text-lg"
+						class="flex min-w-0 shrink items-center gap-2 text-base font-semibold tracking-tight text-primary lg:text-lg"
 					>
 						<img src={logo} alt="" class="h-8 w-8 shrink-0" width="32" height="32" />
 						<span class="truncate">Sarkari Mulazmat</span>

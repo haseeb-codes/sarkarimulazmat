@@ -45,7 +45,7 @@
 <div class="space-y-6">
 	<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 		<h1 class="shrink-0">Government jobs in Pakistan</h1>
-		<p class="min-w-0 text-muted-foreground">
+		<p class="min-w-0 text-sm text-muted-foreground lg:text-base">
 			Browse postings by category, education, and more to see what you're eligible for.
 		</p>
 	</div>
