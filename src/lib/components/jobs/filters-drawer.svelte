@@ -175,38 +175,17 @@
 			<div class="flex items-center gap-2">
 				<div class="shrink-0 lg:hidden">
 					<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
-						<div class="flex items-center gap-1">
-							<Button
-								variant="outline"
-								size="sm"
-								class="h-12 min-w-12 gap-1.5 px-3"
-								onclick={() => (open = true)}
-								aria-label={filtersLabel}
-							>
-								<FilterIcon class="size-4" aria-hidden="true" />
-								<span
-									class="inline-flex min-w-4 justify-center text-sm font-medium tabular-nums {!activeCount
-										? 'invisible'
-										: ''}"
-									aria-hidden={!activeCount}
-								>
-									{activeCount || 0}
-								</span>
-							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								class="h-12 px-2 text-destructive hover:text-destructive {!hasSearchParams
-									? 'invisible pointer-events-none'
-									: ''}"
-								disabled={!hasSearchParams}
-								tabindex={hasSearchParams ? 0 : -1}
-								aria-hidden={!hasSearchParams}
-								onclick={clearFilters}
-							>
-								Clear
-							</Button>
-						</div>
+						<Button
+							variant="outline"
+							size="sm"
+							class="h-12 w-12 px-0 {hasSearchParams
+								? 'border-primary text-primary hover:bg-primary/10 hover:text-primary'
+								: ''}"
+							onclick={() => (open = true)}
+							aria-label={filtersLabel}
+						>
+							<FilterIcon class="size-4" aria-hidden="true" />
+						</Button>
 
 						{#if open}
 							<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">

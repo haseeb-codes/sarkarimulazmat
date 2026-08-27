@@ -319,27 +319,28 @@
 	<div
 		class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5 transform-gpu"
 	>
-		<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+		<div class="flex min-w-0 flex-nowrap items-center gap-x-2 sm:gap-x-3">
 			<Button
 				type="button"
 				variant="destructive"
 				size="sm"
-				class={!hasSearchParams ? 'invisible pointer-events-none' : ''}
+				class="shrink-0 {!hasSearchParams ? 'invisible pointer-events-none' : ''}"
 				disabled={!hasSearchParams}
 				tabindex={hasSearchParams ? 0 : -1}
 				aria-hidden={!hasSearchParams}
 				onclick={clearFilters}
 			>
-				Clear filter
+				<span class="sm:hidden">Clear</span>
+				<span class="hidden sm:inline">Clear filter</span>
 			</Button>
 			{#if loading}
-				<Skeleton class="h-4 w-28" />
+				<Skeleton class="h-4 w-28 shrink-0" />
 			{:else if !error && items.length > 0 && items.length < total}
-				<p class="text-sm text-muted-foreground">
-					Showing {items.length.toLocaleString()} of {total.toLocaleString()}
+				<p class="whitespace-nowrap text-sm text-muted-foreground">
+					Jobs {items.length.toLocaleString()} of {total.toLocaleString()}
 				</p>
 			{:else if !error && items.length > 0}
-				<p class="text-sm text-muted-foreground">
+				<p class="whitespace-nowrap text-sm text-muted-foreground">
 					{total.toLocaleString()} job{total === 1 ? '' : 's'}
 				</p>
 			{/if}
