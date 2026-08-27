@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
+	import ActiveFilterChips from '$lib/components/jobs/active-filter-chips.svelte';
 	import JobsFilterForm from '$lib/components/jobs/jobs-filter-form.svelte';
 	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -8,6 +9,7 @@
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 	import { STATIC_DRAWER_FILTER_OPTIONS } from '$lib/filter-static-options';
 	import {
+		activeFilterChips,
 		drawerFilterActiveCount,
 		effectiveDrawerFilters,
 		urlHasSearchParams,
@@ -46,6 +48,10 @@
 	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
 
 	const filtersLabel = $derived(activeCount ? `Filters (${activeCount})` : 'Filters');
+
+	const chipFilters = $derived({ ...filters, ...displayFilters });
+	const chipCount = $derived(activeFilterChips(chipFilters).length);
+	const resultsHeaderOffset = $derived(chipCount > 0 ? '10.25rem' : '8rem');
 
 	function isBrowsePath(pathname: string): boolean {
 		return pathname === '/' || /^\/[^/]+$/.test(pathname);
@@ -126,7 +132,7 @@
 -->
 <div
 	class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6"
-	style="--browse-search-offset: 3.5rem; --browse-filters-offset: 3.5rem; --browse-results-header-offset: 8rem;"
+	style="--browse-search-offset: 3.5rem; --browse-filters-offset: 3.5rem; --browse-results-header-offset: {resultsHeaderOffset};"
 >
 	<aside
 		class="hidden w-72 shrink-0 self-start overflow-y-auto rounded-lg border border-border bg-muted/40 lg:sticky lg:top-[var(--browse-filters-offset)] lg:block lg:max-h-[calc(100svh-var(--browse-filters-offset)-1rem)] xl:w-80"
@@ -190,17 +196,29 @@
 						{#if open}
 							<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
 								<Drawer.Header class="shrink-0 border-b border-border text-left">
-									<Drawer.Title>
-										Filters
-										<span class="font-normal text-muted-foreground">
-											·
-											{#if resultCount == null}
-												<Skeleton class="inline-block h-3.5 w-16 align-middle" />
-											{:else}
-												{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
-											{/if}
-										</span>
-									</Drawer.Title>
+									<div class="flex items-start justify-between gap-2">
+										<Drawer.Title>
+											Filters
+											<span class="font-normal text-muted-foreground">
+												·
+												{#if resultCount == null}
+													<Skeleton class="inline-block h-3.5 w-16 align-middle" />
+												{:else}
+													{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+												{/if}
+											</span>
+										</Drawer.Title>
+										{#if hasSearchParams}
+											<Button
+												variant="ghost"
+												size="sm"
+												class="h-7 shrink-0 px-2 text-xs text-destructive hover:text-destructive"
+												onclick={clearFilters}
+											>
+												Clear
+											</Button>
+										{/if}
+									</div>
 									<Drawer.Description>
 										Narrow jobs by age, qualification, degree specialization, BPS grade, permanent
 										jobs, and domicile.
@@ -219,9 +237,10 @@
 				</div>
 
 				<div class="min-w-0 flex-1">
-					<JobsSearch {filters} />
+					<JobsSearch filters={chipFilters} />
 				</div>
 			</div>
+			<ActiveFilterChips filters={chipFilters} />
 		</div>
 
 		<div

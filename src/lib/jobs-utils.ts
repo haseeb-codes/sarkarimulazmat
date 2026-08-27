@@ -1,6 +1,6 @@
 /** Shared job-display / URL helpers — safe for client and server. */
 
-import { selectedDomicileRegions } from '$lib/domicile-regions';
+import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
 
 export type JobSort = 'newest' | 'closing_soon';
 
@@ -371,6 +371,308 @@ export function filtersToHref(filters: FilterParams, path = '/'): string {
 /** True when the URL has any query params (filters, search, sort, pagination, …). */
 export function urlHasSearchParams(url: URL): boolean {
 	return url.searchParams.keys().next().done === false;
+}
+
+export type ActiveFilterChip = {
+	id: string;
+	label: string;
+	/** Merge into current filters to remove this chip (always resets page to 1). */
+	clear: Partial<FilterParams>;
+};
+
+function titleCaseSlug(slug: string): string {
+	return slug
+		.split(/[-_]+/)
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(' ');
+}
+
+/**
+ * Removable chips for active browse filters (excludes pagination).
+ * Sort is included only when not the default `newest`.
+ */
+export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
+	const chips: ActiveFilterChip[] = [];
+
+	const q = filters.q?.trim();
+	if (q) {
+		chips.push({ id: 'q', label: `Search: ${q}`, clear: { q: null } });
+	}
+
+	const keyword = filters.keyword?.trim();
+	if (keyword) {
+		chips.push({
+			id: 'keyword',
+			label: `Keyword: ${keyword}`,
+			clear: { keyword: null }
+		});
+	}
+
+	for (const area of filters.degree_areas ?? []) {
+		chips.push({
+			id: `degree:${area.toLowerCase()}`,
+			label: area,
+			clear: {
+				degree_areas: (filters.degree_areas ?? []).filter(
+					(a) => a.toLowerCase() !== area.toLowerCase()
+				)
+			}
+		});
+	}
+
+	if (filters.education_level) {
+		chips.push({
+			id: 'education_level',
+			label: filters.education_level,
+			clear: { education_level: null }
+		});
+	}
+
+	if (filters.ad_date) {
+		chips.push({
+			id: 'ad_date',
+			label: `Posted: ${filters.ad_date}`,
+			clear: { ad_date: null }
+		});
+	}
+
+	if (filters.posted_by) {
+		chips.push({
+			id: 'posted_by',
+			label: filters.posted_by,
+			clear: { posted_by: null }
+		});
+	}
+
+	if (filters.donor_name) {
+		chips.push({
+			id: 'donor_name',
+			label: filters.donor_name,
+			clear: { donor_name: null }
+		});
+	}
+
+	if (filters.portal) {
+		chips.push({
+			id: 'portal',
+			label: filters.portal,
+			clear: { portal: null }
+		});
+	}
+
+	if (filters.gender) {
+		const genderLabel =
+			GENDER_BROWSE_LINKS.find((g) => g.value === filters.gender)?.label ?? filters.gender;
+		chips.push({
+			id: 'gender',
+			label: genderLabel,
+			clear: { gender: null }
+		});
+	}
+
+	if (isQualificationFilterActive(filters)) {
+		for (const level of selectedQualificationLevels(filters)) {
+			chips.push({
+				id: `qualification:${level}`,
+				label: formatQualificationLevel(level),
+				clear: {
+					qualification: selectedQualificationLevels(filters).filter((l) => l !== level),
+					qualification_from: null,
+					qualification_to: null,
+					qualification_level: null
+				}
+			});
+		}
+	}
+
+	if (filters.grade) {
+		chips.push({
+			id: 'grade',
+			label: formatGradeFilter(filters.grade) ?? filters.grade,
+			clear: { grade: null }
+		});
+	}
+
+	if (filters.age_max != null) {
+		const ageLabel = filters.age_max === '60plus' ? '60+' : String(filters.age_max);
+		chips.push({
+			id: 'age_max',
+			label: `Max age ${ageLabel}`,
+			clear: { age_max: null, age: null, age_from: null, age_to: null }
+		});
+	} else if (isAgeFilterActive(filters)) {
+		const from = resolvedAgeFrom(filters);
+		const to = resolvedAgeTo(filters);
+		chips.push({
+			id: 'age_range',
+			label: `Age ${from}–${to}`,
+			clear: {
+				age: null,
+				age_from: null,
+				age_to: null,
+				include_no_max_age: true
+			}
+		});
+	}
+
+	if (filters.place_of_posting) {
+		chips.push({
+			id: 'place_of_posting',
+			label: filters.place_of_posting,
+			clear: { place_of_posting: null }
+		});
+	}
+
+	for (const domicile of selectedDomiciles(filters)) {
+		chips.push({
+			id: `domicile:${domicile.toLowerCase()}`,
+			label: domicile,
+			clear: {
+				domicile: selectedDomiciles(filters).filter(
+					(d) => d.toLowerCase() !== domicile.toLowerCase()
+				)
+			}
+		});
+	}
+
+	for (const region of selectedDomicileRegions(filters)) {
+		chips.push({
+			id: `domicile_region:${region}`,
+			label: getDomicileRegionLabel(region),
+			clear: {
+				domicile_region: selectedDomicileRegions(filters).filter((r) => r !== region)
+			}
+		});
+	}
+
+	for (const tag of selectedTags(filters)) {
+		chips.push({
+			id: `tag:${tag.toLowerCase()}`,
+			label: titleCaseSlug(tag),
+			clear: {
+				tag: selectedTags(filters).filter((t) => t.toLowerCase() !== tag.toLowerCase())
+			}
+		});
+	}
+
+	if (filters.department) {
+		chips.push({
+			id: 'department',
+			label: filters.department,
+			clear: { department: null }
+		});
+	}
+
+	if (filters.program) {
+		chips.push({
+			id: 'program',
+			label: filters.program,
+			clear: { program: null }
+		});
+	}
+
+	if (filters.collar) {
+		const collarLabel =
+			filters.collar.toLowerCase() === 'white'
+				? 'White collar'
+				: filters.collar.toLowerCase() === 'blue'
+					? 'Blue collar'
+					: filters.collar;
+		chips.push({
+			id: 'collar',
+			label: collarLabel,
+			clear: { collar: null }
+		});
+	}
+
+	if (filters.province != null) {
+		chips.push({
+			id: 'province',
+			label: filters.province ? 'Provincial' : 'Federal',
+			clear: { province: null }
+		});
+	}
+
+	if (filters.has_salary) {
+		chips.push({
+			id: 'has_salary',
+			label: 'Has salary',
+			clear: { has_salary: false }
+		});
+	}
+
+	if (isSalaryRangeActive(filters)) {
+		const from = resolvedSalaryFrom(filters);
+		const to = filters.salary_to;
+		const label =
+			to != null
+				? `Salary ${from.toLocaleString('en-PK')}–${to.toLocaleString('en-PK')}`
+				: `Salary ${from.toLocaleString('en-PK')}+`;
+		chips.push({
+			id: 'salary_range',
+			label,
+			clear: { salary_from: null, salary_to: null, min_salary: null }
+		});
+	}
+
+	if (filters.permanent_only) {
+		chips.push({
+			id: 'permanent',
+			label: 'Permanent',
+			clear: { permanent_only: false }
+		});
+	}
+
+	if (filters.women_only) {
+		chips.push({
+			id: 'women',
+			label: 'Women',
+			clear: { women_only: false }
+		});
+	}
+
+	if (filters.transgender_applicable) {
+		chips.push({
+			id: 'transgender',
+			label: 'Transgender',
+			clear: { transgender_applicable: false }
+		});
+	}
+
+	if (filters.disability_quota) {
+		chips.push({
+			id: 'disability',
+			label: 'Disability quota',
+			clear: { disability_quota: false }
+		});
+	}
+
+	if (filters.minority_quota) {
+		chips.push({
+			id: 'minority',
+			label: 'Minority quota',
+			clear: { minority_quota: false }
+		});
+	}
+
+	if (filters.show_expired) {
+		chips.push({
+			id: 'show_expired',
+			label: 'Include expired',
+			clear: { show_expired: false }
+		});
+	}
+
+	if (filters.sort && filters.sort !== 'newest') {
+		chips.push({
+			id: 'sort',
+			label: filters.sort === 'closing_soon' ? 'Closing soon' : filters.sort,
+			clear: { sort: 'newest' }
+		});
+	}
+
+	return chips;
 }
 
 /** Public job detail path — jobs are addressed by slug, not row id. */

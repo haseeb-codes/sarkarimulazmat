@@ -314,25 +314,12 @@
 	});
 </script>
 
-<div class="space-y-4" aria-live="polite">
+<div class="space-y-2" aria-live="polite">
 	<!-- Stick under the results-column search field — always mounted to avoid Clear CLS -->
 	<div
-		class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5 transform-gpu"
+		class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-1 transform-gpu"
 	>
 		<div class="flex min-w-0 flex-nowrap items-center gap-x-2 sm:gap-x-3">
-			<Button
-				type="button"
-				variant="destructive"
-				size="sm"
-				class="shrink-0 {!hasSearchParams ? 'invisible pointer-events-none' : ''}"
-				disabled={!hasSearchParams}
-				tabindex={hasSearchParams ? 0 : -1}
-				aria-hidden={!hasSearchParams}
-				onclick={clearFilters}
-			>
-				<span class="sm:hidden">Clear</span>
-				<span class="hidden sm:inline">Clear filter</span>
-			</Button>
 			{#if loading}
 				<Skeleton class="h-4 w-28 shrink-0" />
 			{:else if !error && items.length > 0 && items.length < total}
@@ -415,17 +402,11 @@
 					Try clearing some eligibility filters — a narrow combination of degree,
 					education, grade, and age often returns zero results.
 				</p>
-				<Button
-					type="button"
-					variant="destructive"
-					class="mt-4 {!hasSearchParams ? 'invisible pointer-events-none' : ''}"
-					disabled={!hasSearchParams}
-					tabindex={hasSearchParams ? 0 : -1}
-					aria-hidden={!hasSearchParams}
-					onclick={clearFilters}
-				>
-					Clear filter
-				</Button>
+				{#if hasSearchParams}
+					<Button type="button" variant="destructive" class="mt-4" onclick={clearFilters}>
+						Clear all filters
+					</Button>
+				{/if}
 			</div>
 		{:else}
 			{@const pages = (() => {
