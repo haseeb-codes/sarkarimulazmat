@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { filtersToHref, type GenderKind } from '$lib/jobs-utils';
+	import { onFilterLinkClick } from '$lib/filter-nav';
 
 	type AdDateLink = {
 		value: string;
@@ -75,6 +76,8 @@
 {#snippet navLink(href: string, label: string, count: number, active: boolean)}
 	<a
 		{href}
+		data-sveltekit-noscroll
+		onclick={onFilterLinkClick}
 		class={active ? linkActiveClass : linkClass}
 		aria-current={active ? 'page' : undefined}
 	>

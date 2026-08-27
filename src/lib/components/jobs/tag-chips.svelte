@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onFilterLinkClick } from '$lib/filter-nav';
+
 	let {
 		tags
 	}: {
@@ -21,7 +23,12 @@
 		<ul class="flex flex-wrap gap-2">
 			{#each tags as tag (tag.slug)}
 				<li>
-					<a href="/{tag.slug}" class={chipClass}>
+					<a
+						href="/{tag.slug}"
+						data-sveltekit-noscroll
+						onclick={onFilterLinkClick}
+						class={chipClass}
+					>
 						{tag.label}
 						<span class="text-muted-foreground tabular-nums">({formatCount(tag.count)})</span>
 					</a>

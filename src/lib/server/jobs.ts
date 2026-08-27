@@ -61,7 +61,7 @@ export type JobFilters = FilterParams & {
 	program: string | null;
 	keyword: string | null;
 	q: string | null;
-	/** Only include postings that have a salary value */
+	/** Only include postings that have a non-null `salary` column value */
 	has_salary: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only: boolean;
@@ -871,7 +871,7 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 			and.push(listed);
 		}
 	} else if (filters.has_salary) {
-		and.push({ salary_estimated: { not: null } });
+		and.push({ salary: { not: null } });
 	}
 
 	if (filters.permanent_only) {

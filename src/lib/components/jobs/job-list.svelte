@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import JobCard from '$lib/components/job-card.svelte';
 	import JobListSkeleton from '$lib/components/jobs/job-list-skeleton.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -11,6 +11,7 @@
 	import {
 		filtersToHref,
 		filtersToSearchParams,
+		urlHasSearchParams,
 		type FilterParams,
 		type JobSort
 	} from '$lib/jobs-utils';
@@ -80,7 +81,6 @@
 		total,
 		totalPages,
 		filters,
-		filtered,
 		error,
 		loading = false
 	}: {
@@ -88,7 +88,6 @@
 		total: number;
 		totalPages: number;
 		filters: Filters;
-		filtered: boolean;
 		error: string | null;
 		loading?: boolean;
 	} = $props();
@@ -108,6 +107,13 @@
 	const HIGHLIGHT_MS = 2800;
 
 	const hasMore = $derived(loadedPage < totalPages && items.length < total);
+
+	const browseUrl = $derived(
+		navigating.to?.url.pathname === page.url.pathname ? navigating.to.url : page.url
+	);
+
+	/** Any query param — keep Clear visible for q / sort / tags / etc. */
+	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
 
 	const resultsSort = $derived.by((): ResultsSortOption => {
 		const collar = filters.collar?.trim().toLowerCase() ?? '';
@@ -308,103 +314,117 @@
 	});
 </script>
 
-{#if loading}
-	<JobListSkeleton />
-{:else if error}
+<div class="space-y-4" aria-live="polite">
+	<!-- Stick under the results-column search field — always mounted to avoid Clear CLS -->
 	<div
-		class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-		role="alert"
+		class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5 transform-gpu"
 	>
-		{error}
-	</div>
-{:else}
-	<div class="space-y-4" aria-live="polite">
-		<!-- Stick under the results-column search field -->
-		<div
-			class="sticky top-[var(--browse-results-header-offset,8rem)] z-20 isolate flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background py-2.5 transform-gpu"
-		>
-			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-				{#if filtered}
-					<Button type="button" variant="destructive" size="sm" onclick={clearFilters}>
-						Clear filter
-					</Button>
-				{/if}
-				{#if items.length > 0 && items.length < total}
-					<p class="ml-2 text-sm text-muted-foreground">
-						Showing {items.length.toLocaleString()} of {total.toLocaleString()}
-					</p>
-				{:else if items.length > 0}
-					<p class="ml-2 text-sm text-muted-foreground">
-						{total.toLocaleString()} job{total === 1 ? '' : 's'}
-					</p>
-				{/if}
-			</div>
-
-			<div class="flex flex-wrap items-center gap-2">
-				<div
-					class="hidden sm:inline-flex rounded-md border border-border p-0.5"
-					role="group"
-					aria-label="Results layout"
-				>
-					<Button
-						type="button"
-						variant={viewMode === 'masonry' ? 'secondary' : 'ghost'}
-						size="sm"
-						class="h-8 gap-1.5 px-2.5"
-						aria-pressed={viewMode === 'masonry'}
-						onclick={() => setViewMode('masonry')}
-					>
-						<LayoutGridIcon class="size-4" aria-hidden="true" />
-						<span class="hidden sm:inline">Grid</span>
-					</Button>
-					<Button
-						type="button"
-						variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-						size="sm"
-						class="h-8 gap-1.5 px-2.5"
-						aria-pressed={viewMode === 'list'}
-						onclick={() => setViewMode('list')}
-					>
-						<ListIcon class="size-4" aria-hidden="true" />
-						<span class="hidden sm:inline">List</span>
-					</Button>
-				</div>
-
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger
-						class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-foreground hover:bg-muted"
-					>
-						<span class="text-muted-foreground">Sort by:</span>
-						<span class="font-medium">{resultsSortLabel}</span>
-						<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end" class="min-w-52">
-						<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
-							{#each RESULTS_SORT_OPTIONS as option (option.value)}
-								<DropdownMenu.RadioItem value={option.value}>
-									{option.label}
-								</DropdownMenu.RadioItem>
-							{/each}
-						</DropdownMenu.RadioGroup>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</div>
+		<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+			<Button
+				type="button"
+				variant="destructive"
+				size="sm"
+				class={!hasSearchParams ? 'invisible pointer-events-none' : ''}
+				disabled={!hasSearchParams}
+				tabindex={hasSearchParams ? 0 : -1}
+				aria-hidden={!hasSearchParams}
+				onclick={clearFilters}
+			>
+				Clear filter
+			</Button>
+			{#if loading}
+				<Skeleton class="h-4 w-28" />
+			{:else if !error && items.length > 0 && items.length < total}
+				<p class="text-sm text-muted-foreground">
+					Showing {items.length.toLocaleString()} of {total.toLocaleString()}
+				</p>
+			{:else if !error && items.length > 0}
+				<p class="text-sm text-muted-foreground">
+					{total.toLocaleString()} job{total === 1 ? '' : 's'}
+				</p>
+			{/if}
 		</div>
 
-		<!-- Keep card rings/borders in a lower stacking context than sticky chrome -->
-		<div class="relative z-0">
-		{#if items.length === 0}
+		<div class="flex flex-wrap items-center gap-2">
+			<div
+				class="hidden sm:inline-flex rounded-md border border-border p-0.5"
+				role="group"
+				aria-label="Results layout"
+			>
+				<Button
+					type="button"
+					variant={viewMode === 'masonry' ? 'secondary' : 'ghost'}
+					size="sm"
+					class="h-8 gap-1.5 px-2.5"
+					aria-pressed={viewMode === 'masonry'}
+					onclick={() => setViewMode('masonry')}
+				>
+					<LayoutGridIcon class="size-4" aria-hidden="true" />
+					<span class="hidden sm:inline">Grid</span>
+				</Button>
+				<Button
+					type="button"
+					variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+					size="sm"
+					class="h-8 gap-1.5 px-2.5"
+					aria-pressed={viewMode === 'list'}
+					onclick={() => setViewMode('list')}
+				>
+					<ListIcon class="size-4" aria-hidden="true" />
+					<span class="hidden sm:inline">List</span>
+				</Button>
+			</div>
+
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger
+					class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-foreground hover:bg-muted"
+				>
+					<span class="text-muted-foreground">Sort by:</span>
+					<span class="font-medium">{resultsSortLabel}</span>
+					<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" class="min-w-52">
+					<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
+						{#each RESULTS_SORT_OPTIONS as option (option.value)}
+							<DropdownMenu.RadioItem value={option.value}>
+								{option.label}
+							</DropdownMenu.RadioItem>
+						{/each}
+					</DropdownMenu.RadioGroup>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+		</div>
+	</div>
+
+	<!-- Keep card rings/borders in a lower stacking context than sticky chrome -->
+	<div class="relative z-0">
+		{#if loading}
+			<JobListSkeleton showHeader={false} />
+		{:else if error}
+			<div
+				class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+				role="alert"
+			>
+				{error}
+			</div>
+		{:else if items.length === 0}
 			<div class="rounded-lg border border-dashed border-border px-6 py-12 text-center">
 				<p class="font-medium">No matching jobs</p>
 				<p class="mt-1 text-sm text-muted-foreground">
 					Try clearing some eligibility filters — a narrow combination of degree,
 					education, grade, and age often returns zero results.
 				</p>
-				{#if filtered}
-					<Button type="button" variant="destructive" class="mt-4" onclick={clearFilters}>
-						Clear filter
-					</Button>
-				{/if}
+				<Button
+					type="button"
+					variant="destructive"
+					class="mt-4 {!hasSearchParams ? 'invisible pointer-events-none' : ''}"
+					disabled={!hasSearchParams}
+					tabindex={hasSearchParams ? 0 : -1}
+					aria-hidden={!hasSearchParams}
+					onclick={clearFilters}
+				>
+					Clear filter
+				</Button>
 			</div>
 		{:else}
 			{@const pages = (() => {
@@ -522,6 +542,5 @@
 				</p>
 			{/if}
 		{/if}
-		</div>
 	</div>
-{/if}
+</div>

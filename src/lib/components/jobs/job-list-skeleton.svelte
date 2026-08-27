@@ -2,7 +2,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 
-	let { count = 9 }: { count?: number } = $props();
+	let { count = 9, showHeader = true }: { count?: number; showHeader?: boolean } = $props();
 
 	/** Alternate block counts so the skeleton already reads as masonry. */
 	const variants = [
@@ -19,10 +19,12 @@
 </script>
 
 <div class="space-y-4" aria-hidden="true">
-	<div class="flex items-baseline justify-between gap-2">
-		<Skeleton class="h-5 w-24" />
-		<Skeleton class="h-4 w-28" />
-	</div>
+	{#if showHeader}
+		<div class="flex items-baseline justify-between gap-2">
+			<Skeleton class="h-5 w-24" />
+			<Skeleton class="h-4 w-28" />
+		</div>
+	{/if}
 	<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3">
 		{#each Array(count) as _, i (i)}
 			{@const variant = variants[i % variants.length]}

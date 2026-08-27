@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { filtersToHref } from '$lib/jobs-utils';
+	import { onFilterLinkClick } from '$lib/filter-nav';
 
 	let {
 		educationLevels
@@ -30,6 +31,8 @@
 				<li>
 					<a
 						href={filtersToHref({ education_level: level.label })}
+						data-sveltekit-noscroll
+						onclick={onFilterLinkClick}
 						class={activeEducation === level.label ? chipActiveClass : chipClass}
 						aria-current={activeEducation === level.label ? 'page' : undefined}
 					>

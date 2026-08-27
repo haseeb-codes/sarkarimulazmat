@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { filtersToHref } from '$lib/jobs-utils';
+	import { onFilterLinkClick } from '$lib/filter-nav';
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 
@@ -93,6 +94,8 @@
 									degree_areas: leaf.degree_areas ?? [],
 									q: leaf.q ?? null
 								})}
+								data-sveltekit-noscroll
+								onclick={onFilterLinkClick}
 								class={active
 									? 'flex items-center justify-between gap-3 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary'
 									: 'flex items-center justify-between gap-3 rounded-md px-3 py-1.5 text-sm hover:bg-sidebar-accent'}

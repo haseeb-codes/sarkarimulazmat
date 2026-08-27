@@ -36,7 +36,7 @@
 
 		const qs = params.toString();
 		const href = qs ? `${listingPath()}?${qs}` : listingPath();
-		goto(href, { keepFocus: true, noScroll: false });
+		goto(href, { keepFocus: true, noScroll: true });
 	}
 </script>
 

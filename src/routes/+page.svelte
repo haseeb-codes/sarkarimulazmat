@@ -52,7 +52,6 @@
 
 	<JobsBrowseShell
 		filters={data.filters}
-		filtered={data.filtered}
 		listing={data.listing}
 		loading={isNavigating}
 	/>

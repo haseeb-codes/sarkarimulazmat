@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { onFilterLinkClick } from '$lib/filter-nav';
 	import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
@@ -42,6 +43,8 @@
 				<li class="flex items-center gap-2">
 					<a
 						href={item.href}
+						data-sveltekit-noscroll
+						onclick={onFilterLinkClick}
 						class="min-h-11 flex-1 truncate rounded-md px-2 py-2 text-sm hover:bg-muted"
 					>
 						{item.label}

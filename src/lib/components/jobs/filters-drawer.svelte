@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import JobsFilterForm from '$lib/components/jobs/jobs-filter-form.svelte';
 	import JobsSearch from '$lib/components/jobs/jobs-search.svelte';
@@ -8,10 +8,9 @@
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
 	import { STATIC_DRAWER_FILTER_OPTIONS } from '$lib/filter-static-options';
 	import {
-		clearDrawerFilterPatch,
 		drawerFilterActiveCount,
 		effectiveDrawerFilters,
-		filtersToHref,
+		urlHasSearchParams,
 		type FilterParams
 	} from '$lib/jobs-utils';
 	import type { Snippet } from 'svelte';
@@ -30,14 +29,27 @@
 
 	let open = $state(false);
 	let resultsRegion = $state<HTMLElement | null>(null);
+	/** Keep results height while listing swaps so the window doesn't clamp to top. */
+	let resultsMinHeight = $state<number | null>(null);
+
+	const browseUrl = $derived(
+		navigating.to?.url.pathname === page.url.pathname ? navigating.to.url : page.url
+	);
 
 	const displayFilters = $derived(
-		effectiveDrawerFilters(filters, navigating.to?.url ?? page.url, page.url.pathname)
+		effectiveDrawerFilters(filters, browseUrl, page.url.pathname)
 	);
 
 	const activeCount = $derived(drawerFilterActiveCount(displayFilters));
 
+	/** Any query param — show Clear even for q / sort / tags outside the drawer form. */
+	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
+
 	const filtersLabel = $derived(activeCount ? `Filters (${activeCount})` : 'Filters');
+
+	function isBrowsePath(pathname: string): boolean {
+		return pathname === '/' || /^\/[^/]+$/.test(pathname);
+	}
 
 	/** Bring results back under sticky search/header — never jump the whole page to y=0. */
 	function scrollResultsToTop() {
@@ -50,18 +62,50 @@
 		}
 	}
 
+	function lockResultsHeight() {
+		const el = resultsRegion;
+		if (!el) return;
+		resultsMinHeight = Math.max(el.offsetHeight, Math.ceil(window.innerHeight * 0.5));
+	}
+
 	function clearFilters() {
-		goto(filtersToHref({ ...filters, ...clearDrawerFilterPatch() }, page.url.pathname), {
+		goto(page.url.pathname, {
 			keepFocus: true,
 			noScroll: true
 		});
 	}
 
+	beforeNavigate(({ from, to }) => {
+		if (!from || !to) return;
+		const sameBrowse =
+			isBrowsePath(from.url.pathname) &&
+			isBrowsePath(to.url.pathname) &&
+			(from.url.pathname === to.url.pathname
+				? from.url.search !== to.url.search
+				: true);
+		if (!sameBrowse) return;
+		// Path-only change to a different browse page (e.g. tag chip) still locks height.
+		if (from.url.pathname === to.url.pathname && from.url.search === to.url.search) return;
+		lockResultsHeight();
+	});
+
 	$effect(() => {
 		const to = navigating.to;
-		if (!to) return;
+		if (!to) {
+			// Navigation finished — release height lock after layout settles.
+			if (resultsMinHeight != null) {
+				const id = requestAnimationFrame(() => {
+					resultsMinHeight = null;
+				});
+				return () => cancelAnimationFrame(id);
+			}
+			return;
+		}
 		if (to.url.pathname !== page.url.pathname) {
 			open = false;
+			if (isBrowsePath(to.url.pathname) && isBrowsePath(page.url.pathname)) {
+				scrollResultsToTop();
+			}
 			return;
 		}
 		// Same path, query changed (filter / search / clear) — reset results scroll only.
@@ -101,16 +145,19 @@
 					{/if}
 				</span>
 			</h2>
-			{#if activeCount}
-				<Button
-					variant="ghost"
-					size="sm"
-					class="h-7 px-2 text-xs text-destructive hover:text-destructive"
-					onclick={clearFilters}
-				>
-					Clear
-				</Button>
-			{/if}
+			<Button
+				variant="ghost"
+				size="sm"
+				class="h-7 px-2 text-xs text-destructive hover:text-destructive {!hasSearchParams
+					? 'invisible pointer-events-none'
+					: ''}"
+				disabled={!hasSearchParams}
+				tabindex={hasSearchParams ? 0 : -1}
+				aria-hidden={!hasSearchParams}
+				onclick={clearFilters}
+			>
+				Clear
+			</Button>
 		</div>
 		<div class="px-4 py-4">
 			<JobsFilterForm
@@ -132,25 +179,33 @@
 							<Button
 								variant="outline"
 								size="sm"
-								class="h-12 gap-1.5 {activeCount ? 'px-3' : 'w-12 px-0'}"
+								class="h-12 min-w-12 gap-1.5 px-3"
 								onclick={() => (open = true)}
 								aria-label={filtersLabel}
 							>
 								<FilterIcon class="size-4" aria-hidden="true" />
-								{#if activeCount}
-									<span class="text-sm font-medium tabular-nums">{activeCount}</span>
-								{/if}
-							</Button>
-							{#if activeCount}
-								<Button
-									variant="ghost"
-									size="sm"
-									class="h-12 px-2 text-destructive hover:text-destructive"
-									onclick={clearFilters}
+								<span
+									class="inline-flex min-w-4 justify-center text-sm font-medium tabular-nums {!activeCount
+										? 'invisible'
+										: ''}"
+									aria-hidden={!activeCount}
 								>
-									Clear
-								</Button>
-							{/if}
+									{activeCount || 0}
+								</span>
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								class="h-12 px-2 text-destructive hover:text-destructive {!hasSearchParams
+									? 'invisible pointer-events-none'
+									: ''}"
+								disabled={!hasSearchParams}
+								tabindex={hasSearchParams ? 0 : -1}
+								aria-hidden={!hasSearchParams}
+								onclick={clearFilters}
+							>
+								Clear
+							</Button>
 						</div>
 
 						{#if open}
@@ -193,6 +248,7 @@
 		<div
 			bind:this={resultsRegion}
 			class="relative z-0 isolate scroll-mt-[var(--browse-results-header-offset,8rem)]"
+			style:min-height={resultsMinHeight != null ? `${resultsMinHeight}px` : undefined}
 		>
 			{@render children?.()}
 		</div>

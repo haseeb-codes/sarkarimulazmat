@@ -7,6 +7,7 @@
 	import DisabilityIcon from "$lib/components/disability-icon.svelte";
 	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
 	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
+	import { onFilterLinkClick } from "$lib/filter-nav";
 	import { page } from "$app/state";
 	import {
 		badgeFilterHref,
@@ -178,24 +179,28 @@
 					{/if}
 				</div>
 
-				<a
-					{href}
-					class="group flex items-start gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-				>
-					<span
-						class="text-base font-semibold tracking-tight text-foreground group-hover:text-primary"
+				<div class="flex items-start gap-1.5">
+					<a
+						{href}
+						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
-						{job.title ?? "Untitled posting"}
-					</span>
+						<span
+							class="text-base font-semibold tracking-tight text-foreground group-hover:text-primary"
+						>
+							{job.title ?? "Untitled posting"}
+						</span>
+					</a>
 					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
 						<GenderIcons gender={job.gender} />
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
 					</span>
-				</a>
+				</div>
 
 				{#if job.department && departmentHref}
 					<a
 						href={departmentHref}
+						data-sveltekit-noscroll
+						onclick={onFilterLinkClick}
 						title={job.department}
 						class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline sm:text-sm"
 						aria-label="Filter by department {job.department}"
@@ -357,72 +362,74 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<Card.Header class="gap-1.5 pb-2">
-			<a
-				{href}
-				class="block outline-none focus-visible:ring-2 focus-visible:ring-ring"
-			>
-				{#if recentAd || job.donor_name}
-					<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
-						{#if recentAd}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-									? ''
-									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-							>
-								New
-							</span>
-						{/if}
-						{#if job.donor_name}
-							<span
-								class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
-									? ''
-									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-							>
-								{job.donor_name}
-							</span>
-						{/if}
-					</div>
-				{/if}
-				<div class="flex flex-wrap items-start justify-between gap-2">
-					<Card.Title
-						class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
-					>
-						<span>{job.title ?? "Untitled posting"}</span>
-						<span class="mt-0.5 inline-flex items-center gap-0.5">
-							<GenderIcons gender={job.gender} />
-							<DisabilityIcon show={Boolean(job.disability_quota)} />
+			{#if recentAd || job.donor_name}
+				<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+					{#if recentAd}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+								? ''
+								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+						>
+							New
 						</span>
-					</Card.Title>
-					<div class="flex flex-wrap gap-1.5">
-						{#if expired}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
-							>
-								Expired
-							</span>
-						{:else if closingSoon}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
-							>
-								Closing soon
-							</span>
-						{/if}
-						{#if job.grade}
-							<Badge
-								variant="secondary"
-								href={badgeFilterHref(job.grade, sort, "grade")}
-								aria-label="Filter by grade {job.grade}"
-								class="underline-offset-2 hover:underline"
-							>
-								{job.grade}
-							</Badge>
-						{/if}
-					</div>
+					{/if}
+					{#if job.donor_name}
+						<span
+							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+								? ''
+								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+						>
+							{job.donor_name}
+						</span>
+					{/if}
 				</div>
-			</a>
+			{/if}
+			<div class="flex flex-wrap items-start justify-between gap-2">
+				<Card.Title
+					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+				>
+					<a
+						{href}
+						class="min-w-0 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						{job.title ?? "Untitled posting"}
+					</a>
+					<span class="mt-0.5 inline-flex items-center gap-0.5">
+						<GenderIcons gender={job.gender} />
+						<DisabilityIcon show={Boolean(job.disability_quota)} />
+					</span>
+				</Card.Title>
+				<div class="flex flex-wrap gap-1.5">
+					{#if expired}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
+						>
+							Expired
+						</span>
+					{:else if closingSoon}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
+						>
+							Closing soon
+						</span>
+					{/if}
+					{#if job.grade}
+						<Badge
+							variant="secondary"
+							href={badgeFilterHref(job.grade, sort, "grade")}
+							aria-label="Filter by grade {job.grade}"
+							class="underline-offset-2 hover:underline"
+						>
+							{job.grade}
+						</Badge>
+					{/if}
+				</div>
+			</div>
 			{#if job.department && departmentHref}
 				<a
 					href={departmentHref}
+					data-sveltekit-noscroll
+					onclick={onFilterLinkClick}
 					title={job.department}
 					class="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline md:text-sm"
 					aria-label="Filter by department {job.department}"

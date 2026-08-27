@@ -13,46 +13,51 @@
 
 	let {
 		filters,
-		filtered,
 		listing,
 		loading = false
 	}: {
 		filters: FilterParams;
-		filtered: boolean;
 		listing: Promise<ListingResult>;
 		loading?: boolean;
 	} = $props();
 
-	/** Keep last known total so the shell count doesn't flash on each listing fetch. */
+	/** Keep last listing so Clear / results chrome stay mounted across fetches. */
+	let result = $state<ListingResult | null>(null);
 	let resultCount = $state<number | null>(null);
+	let listingPending = $state(true);
 
 	$effect(() => {
 		let cancelled = false;
-		listing.then((result) => {
-			if (!cancelled) resultCount = result.total;
+		listingPending = true;
+		listing.then((next) => {
+			if (cancelled) return;
+			result = next;
+			resultCount = next.total;
+			listingPending = false;
 		});
 		return () => {
 			cancelled = true;
 		};
 	});
+
+	const showLoading = $derived(loading || listingPending);
 </script>
 
 <!--
   Keep FiltersDrawer mounted across listing updates so mobile drawer open state,
-  sticky search, and window scroll aren't reset when {#await} flips pending/then.
+  sticky search, and window scroll aren't reset when listing refetches.
 -->
 <FiltersDrawer {filters} {resultCount}>
-	{#await listing}
-		<JobListSkeleton />
-	{:then result}
+	{#if result}
 		<JobList
 			jobs={result.jobs}
 			total={result.total}
 			totalPages={result.totalPages}
 			filters={filters as any}
-			{filtered}
 			error={result.error}
-			{loading}
+			loading={showLoading}
 		/>
-	{/await}
+	{:else}
+		<JobListSkeleton />
+	{/if}
 </FiltersDrawer>

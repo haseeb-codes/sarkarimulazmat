@@ -252,7 +252,7 @@ export type FilterParams = {
 	keyword?: string | null;
 	/** Global search (`q`): title, department, grades, donors, addresses, notes, etc. */
 	q?: string | null;
-	/** Only jobs with a non-null salary */
+	/** Only jobs with a non-null `salary` column */
 	has_salary?: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only?: boolean;
@@ -366,6 +366,11 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 export function filtersToHref(filters: FilterParams, path = '/'): string {
 	const qs = filtersToSearchParams(filters).toString();
 	return qs ? `${path}?${qs}` : path;
+}
+
+/** True when the URL has any query params (filters, search, sort, pagination, …). */
+export function urlHasSearchParams(url: URL): boolean {
+	return url.searchParams.keys().next().done === false;
 }
 
 /** Public job detail path — jobs are addressed by slug, not row id. */

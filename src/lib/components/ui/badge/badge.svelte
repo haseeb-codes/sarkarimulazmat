@@ -23,7 +23,8 @@
 
 <script lang="ts">
 	import { cn, type WithElementRef } from "$lib/utils.js";
-	import type { HTMLAnchorAttributes } from "svelte/elements";
+	import { onFilterLinkClick } from "$lib/filter-nav";
+	import type { HTMLAnchorAttributes, MouseEventHandler } from "svelte/elements";
 
 	let {
 		ref = $bindable(null),
@@ -31,19 +32,27 @@
 		class: className,
 		variant = "default",
 		children,
+		onclick,
 		...restProps
 	}: WithElementRef<HTMLAnchorAttributes> & {
 		variant?: BadgeVariant;
 	} = $props();
+
+	const handleClick: MouseEventHandler<HTMLAnchorElement> = (event) => {
+		onclick?.(event);
+		if (href) onFilterLinkClick(event);
+	};
 </script>
 
 <svelte:element
 	this={href ? "a" : "span"}
 	bind:this={ref}
 	data-slot="badge"
-	{href}
-	class={cn(badgeVariants({ variant }), className)}
 	{...restProps}
+	{href}
+	data-sveltekit-noscroll={href ? true : undefined}
+	class={cn(badgeVariants({ variant }), className)}
+	onclick={href ? handleClick : onclick}
 >
 	{@render children?.()}
 </svelte:element>

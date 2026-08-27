@@ -7,6 +7,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { onFilterLinkClick } from '$lib/filter-nav';
 	import {
 		badgeFilterHref,
 		filtersToHref,
@@ -174,6 +175,8 @@
 			<p class="mt-2">
 				<a
 					href={departmentHref}
+					data-sveltekit-noscroll
+					onclick={onFilterLinkClick}
 					class="text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
 					aria-label="Filter by department {job.department}"
 				>
