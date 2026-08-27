@@ -51,7 +51,7 @@
 
 	const chipFilters = $derived({ ...filters, ...displayFilters });
 	const chipCount = $derived(activeFilterChips(chipFilters).length);
-	const resultsHeaderOffset = $derived(chipCount > 0 ? '10.25rem' : '8rem');
+	const resultsHeaderOffset = $derived(chipCount > 0 ? '9rem' : '6.75rem');
 
 	function isBrowsePath(pathname: string): boolean {
 		return pathname === '/' || /^\/[^/]+$/.test(pathname);
@@ -176,21 +176,21 @@
 
 	<div class="min-w-0 flex-1 space-y-4">
 		<div
-			class="sticky top-[var(--browse-search-offset)] z-30 isolate border-b border-border bg-background py-3 transform-gpu"
+			class="sticky top-[var(--browse-search-offset)] z-30 isolate border-b border-border bg-background py-2 sm:py-3 transform-gpu"
 		>
-			<div class="flex items-center gap-2">
+			<div class="flex items-center gap-1.5 sm:gap-2">
 				<div class="shrink-0 lg:hidden">
 					<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
 						<Button
 							variant="outline"
 							size="sm"
-							class="h-12 w-12 px-0 {hasSearchParams
+							class="h-9 w-9 px-0 sm:h-10 sm:w-10 {hasSearchParams
 								? 'border-primary text-primary hover:bg-primary/10 hover:text-primary'
 								: ''}"
 							onclick={() => (open = true)}
 							aria-label={filtersLabel}
 						>
-							<FilterIcon class="size-4" aria-hidden="true" />
+							<FilterIcon class="size-3.5 sm:size-4" aria-hidden="true" />
 						</Button>
 
 						{#if open}

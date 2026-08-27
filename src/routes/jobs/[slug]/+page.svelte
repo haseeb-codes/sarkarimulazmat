@@ -10,7 +10,7 @@
 	import { onFilterLinkClick } from '$lib/filter-nav';
 	import {
 		badgeFilterHref,
-		filtersToHref,
+		mergeFilterFlagHref,
 		formatAgeRange,
 		formatDateLabel,
 		formatSalary,
@@ -34,7 +34,7 @@
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
 	const salaryLabel = $derived(formatSalary(job.salary));
-	const hasSalaryHref = $derived(filtersToHref({ has_salary: true }));
+	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, 'has_salary'));
 	const applyByClass = $derived(
 		expired
 			? 'bg-status-closed-bg text-status-closed'
@@ -45,7 +45,9 @@
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
 	const adKind = $derived(getJobAdKind(job.supabase_file_path));
 	const departmentHref = $derived(
-		job.department ? badgeFilterHref(job.department, undefined, 'department') : null
+		job.department
+			? badgeFilterHref(job.department, undefined, 'department', page.url)
+			: null
 	);
 
 	const title = $derived(
@@ -230,7 +232,7 @@
 					<dd class="mt-1">
 						<Badge
 							variant="secondary"
-							href={badgeFilterHref(job.grade, undefined, 'grade')}
+							href={badgeFilterHref(job.grade, undefined, 'grade', page.url)}
 							aria-label="Filter by grade {job.grade}"
 							class="underline-offset-2 hover:underline"
 						>

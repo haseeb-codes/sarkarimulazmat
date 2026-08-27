@@ -11,7 +11,7 @@
 	import { page } from "$app/state";
 	import {
 		badgeFilterHref,
-		filtersToHref,
+		mergeFilterFlagHref,
 		formatAgeRange,
 		daysUntilDate,
 		formatDateLabel,
@@ -98,10 +98,10 @@
 	const shareUrl = $derived(new URL(href, page.url.origin).href);
 	const departmentHref = $derived(
 		job.department
-			? badgeFilterHref(job.department, sort, "department")
+			? badgeFilterHref(job.department, sort, "department", page.url)
 			: null,
 	);
-	const hasSalaryHref = $derived(filtersToHref({ has_salary: true, sort }));
+	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
 	const applyLink = $derived(
@@ -162,7 +162,7 @@
 					{#if job.grade}
 						<Badge
 							variant="secondary"
-							href={badgeFilterHref(job.grade, sort, "grade")}
+							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
 							class="underline-offset-2 hover:underline"
 						>
@@ -416,7 +416,7 @@
 					{#if job.grade}
 						<Badge
 							variant="secondary"
-							href={badgeFilterHref(job.grade, sort, "grade")}
+							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
 							class="underline-offset-2 hover:underline"
 						>

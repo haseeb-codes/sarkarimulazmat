@@ -122,7 +122,11 @@ export function formatSalary(value: number | null | undefined): string | null {
 	return Math.round(value).toLocaleString('en-PK');
 }
 
-/** Link for clicking an eligibility badge — resets other filters, preserves sort. */
+/**
+ * Link for clicking an eligibility badge — merges into the current query so
+ * multiple filters stack (e.g. place_of_posting + domicile → two chips).
+ * Job-detail paths navigate to `/` while preserving/merging search params.
+ */
 export function badgeFilterHref(
 	value: string,
 	sort?: JobSort,
@@ -133,13 +137,44 @@ export function badgeFilterHref(
 		| 'education_level'
 		| 'department'
 		| 'program'
-		| 'grade' = 'degree_areas'
+		| 'grade' = 'degree_areas',
+	baseUrl?: URL
 ): string {
-	const params = new URLSearchParams();
-	params.set(param, value);
+	const onJobDetail = baseUrl?.pathname.startsWith('/jobs/') ?? false;
+	const path = onJobDetail ? '/' : (baseUrl?.pathname ?? '/');
+	const params = new URLSearchParams(baseUrl?.searchParams);
+	params.delete('page');
+
+	if (param === 'degree_areas' || param === 'domicile') {
+		const key = value.toLowerCase();
+		const existing = params.getAll(param);
+		if (!existing.some((entry) => entry.toLowerCase() === key)) {
+			params.append(param, value);
+		}
+	} else {
+		params.set(param, value);
+	}
+
+	if (sort && sort !== 'newest') params.set('sort', sort);
+
+	const qs = params.toString();
+	return qs ? `${path}?${qs}` : path;
+}
+
+/** Merge a single flag/query into the current browse URL (stacks with existing filters). */
+export function mergeFilterFlagHref(
+	baseUrl: URL,
+	flag: 'has_salary',
+	sort?: JobSort
+): string {
+	const onJobDetail = baseUrl.pathname.startsWith('/jobs/');
+	const path = onJobDetail ? '/' : baseUrl.pathname;
+	const params = new URLSearchParams(baseUrl.searchParams);
+	params.delete('page');
+	if (flag === 'has_salary') params.set('has_salary', '1');
 	if (sort && sort !== 'newest') params.set('sort', sort);
 	const qs = params.toString();
-	return qs ? `/?${qs}` : '/';
+	return qs ? `${path}?${qs}` : path;
 }
 
 /** Default bounds for the age range filter UI. */
@@ -519,7 +554,7 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	if (filters.place_of_posting) {
 		chips.push({
 			id: 'place_of_posting',
-			label: filters.place_of_posting,
+			label: `Location: ${filters.place_of_posting}`,
 			clear: { place_of_posting: null }
 		});
 	}
@@ -527,7 +562,7 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	for (const domicile of selectedDomiciles(filters)) {
 		chips.push({
 			id: `domicile:${domicile.toLowerCase()}`,
-			label: domicile,
+			label: `Domicile: ${domicile}`,
 			clear: {
 				domicile: selectedDomiciles(filters).filter(
 					(d) => d.toLowerCase() !== domicile.toLowerCase()

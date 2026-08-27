@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { badgeFilterHref, splitMultiValue, type JobSort } from '$lib/jobs-utils';
 
@@ -29,7 +30,7 @@
 			{#if clickable}
 				<Badge
 					variant="outline"
-					href={badgeFilterHref(part, sort, param)}
+					href={badgeFilterHref(part, sort, param, page.url)}
 					aria-label="Filter by {part}"
 					class="underline-offset-2 hover:underline {className}"
 				>

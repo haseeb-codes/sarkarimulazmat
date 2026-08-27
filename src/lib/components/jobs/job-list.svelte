@@ -321,19 +321,19 @@
 	>
 		<div class="flex min-w-0 flex-nowrap items-center gap-x-2 sm:gap-x-3">
 			{#if loading}
-				<Skeleton class="h-4 w-28 shrink-0" />
+				<Skeleton class="h-3.5 w-24 shrink-0" />
 			{:else if !error && items.length > 0 && items.length < total}
-				<p class="whitespace-nowrap text-sm text-muted-foreground">
+				<p class="whitespace-nowrap text-xs text-muted-foreground">
 					Jobs {items.length.toLocaleString()} of {total.toLocaleString()}
 				</p>
 			{:else if !error && items.length > 0}
-				<p class="whitespace-nowrap text-sm text-muted-foreground">
+				<p class="whitespace-nowrap text-xs text-muted-foreground">
 					{total.toLocaleString()} job{total === 1 ? '' : 's'}
 				</p>
 			{/if}
 		</div>
 
-		<div class="flex flex-wrap items-center gap-2">
+		<div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
 			<div
 				class="hidden sm:inline-flex rounded-md border border-border p-0.5"
 				role="group"
@@ -343,33 +343,33 @@
 					type="button"
 					variant={viewMode === 'masonry' ? 'secondary' : 'ghost'}
 					size="sm"
-					class="h-8 gap-1.5 px-2.5"
+					class="h-7 gap-1 px-2 text-xs"
 					aria-pressed={viewMode === 'masonry'}
 					onclick={() => setViewMode('masonry')}
 				>
-					<LayoutGridIcon class="size-4" aria-hidden="true" />
+					<LayoutGridIcon class="size-3.5" aria-hidden="true" />
 					<span class="hidden sm:inline">Grid</span>
 				</Button>
 				<Button
 					type="button"
 					variant={viewMode === 'list' ? 'secondary' : 'ghost'}
 					size="sm"
-					class="h-8 gap-1.5 px-2.5"
+					class="h-7 gap-1 px-2 text-xs"
 					aria-pressed={viewMode === 'list'}
 					onclick={() => setViewMode('list')}
 				>
-					<ListIcon class="size-4" aria-hidden="true" />
+					<ListIcon class="size-3.5" aria-hidden="true" />
 					<span class="hidden sm:inline">List</span>
 				</Button>
 			</div>
 
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger
-					class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-foreground hover:bg-muted"
+					class="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs text-foreground hover:bg-muted sm:gap-1.5 sm:px-2"
 				>
 					<span class="text-muted-foreground">Sort by:</span>
 					<span class="font-medium">{resultsSortLabel}</span>
-					<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+					<ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" class="min-w-52">
 					<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
