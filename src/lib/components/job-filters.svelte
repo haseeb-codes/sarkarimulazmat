@@ -92,7 +92,7 @@
 	}
 
 	function clearAll() {
-		goto('/', { keepFocus: true });
+		goto('/', { keepFocus: true, noScroll: true });
 	}
 
 	const activeCount = $derived(

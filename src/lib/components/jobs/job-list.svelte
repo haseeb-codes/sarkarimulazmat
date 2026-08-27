@@ -199,6 +199,13 @@
 		});
 	}
 
+	function clearFilters() {
+		goto(page.url.pathname, {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
+
 	$effect(() => {
 		viewMode = readStoredView();
 	});
@@ -318,7 +325,9 @@
 		>
 			<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
 				{#if filtered}
-					<Button href={page.url.pathname} variant="destructive" size="sm">Clear filter</Button>
+					<Button type="button" variant="destructive" size="sm" onclick={clearFilters}>
+						Clear filter
+					</Button>
 				{/if}
 				{#if items.length > 0 && items.length < total}
 					<p class="ml-2 text-sm text-muted-foreground">
@@ -392,7 +401,9 @@
 					education, grade, and age often returns zero results.
 				</p>
 				{#if filtered}
-					<Button href={page.url.pathname} variant="destructive" class="mt-4">Clear filter</Button>
+					<Button type="button" variant="destructive" class="mt-4" onclick={clearFilters}>
+						Clear filter
+					</Button>
 				{/if}
 			</div>
 		{:else}

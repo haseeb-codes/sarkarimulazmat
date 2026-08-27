@@ -319,10 +319,10 @@
 			value={portalDraft ?? ''}
 			onValueChange={(v) => setPortal(v || null)}
 		>
-			<Select.Trigger id="{idPrefix}filter-portal" class="w-full">
-				{portalDraft ?? 'Any'}
+			<Select.Trigger id="{idPrefix}filter-portal" class="w-full min-w-0">
+				<span class="min-w-0 flex-1 truncate">{portalDraft ?? 'Any'}</span>
 			</Select.Trigger>
-			<Select.Content class="max-h-72">
+			<Select.Content class="max-h-72 w-(--bits-select-anchor-width)">
 				<Select.Item value="" label="Any">Any</Select.Item>
 				{#each options.portals as portal (portal)}
 					<Select.Item value={portal} label={portal}>{portal}</Select.Item>

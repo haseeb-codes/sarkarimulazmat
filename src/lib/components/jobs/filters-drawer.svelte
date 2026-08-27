@@ -29,6 +29,7 @@
 	} = $props();
 
 	let open = $state(false);
+	let resultsRegion = $state<HTMLElement | null>(null);
 
 	const displayFilters = $derived(
 		effectiveDrawerFilters(filters, navigating.to?.url ?? page.url, page.url.pathname)
@@ -37,6 +38,17 @@
 	const activeCount = $derived(drawerFilterActiveCount(displayFilters));
 
 	const filtersLabel = $derived(activeCount ? `Filters (${activeCount})` : 'Filters');
+
+	/** Bring results back under sticky search/header — never jump the whole page to y=0. */
+	function scrollResultsToTop() {
+		const el = resultsRegion;
+		if (!el) return;
+		const margin = Number.parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+		const targetY = window.scrollY + el.getBoundingClientRect().top - margin;
+		if (window.scrollY > targetY + 1) {
+			window.scrollTo({ top: Math.max(0, targetY), behavior: 'auto' });
+		}
+	}
 
 	function clearFilters() {
 		goto(filtersToHref({ ...filters, ...clearDrawerFilterPatch() }, page.url.pathname), {
@@ -47,7 +59,15 @@
 
 	$effect(() => {
 		const to = navigating.to;
-		if (to && to.url.pathname !== page.url.pathname) open = false;
+		if (!to) return;
+		if (to.url.pathname !== page.url.pathname) {
+			open = false;
+			return;
+		}
+		// Same path, query changed (filter / search / clear) — reset results scroll only.
+		if (to.url.search !== page.url.search) {
+			scrollResultsToTop();
+		}
 	});
 </script>
 
@@ -57,6 +77,8 @@
   - Two columns: filters (left) | search + results (right).
   - Window scrolls results; search sticks under the site header;
     results header sticks under search; filters stick under the header.
+  - On filter/search URL changes, scroll only enough to bring the results
+    region under the sticky chrome (not document top).
 -->
 <div
 	class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6"
@@ -80,7 +102,12 @@
 				</span>
 			</h2>
 			{#if activeCount}
-				<Button variant="ghost" size="sm" class="h-7 px-2 text-xs" onclick={clearFilters}>
+				<Button
+					variant="ghost"
+					size="sm"
+					class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+					onclick={clearFilters}
+				>
 					Clear
 				</Button>
 			{/if}
@@ -115,7 +142,12 @@
 								{/if}
 							</Button>
 							{#if activeCount}
-								<Button variant="ghost" size="sm" class="h-12 px-2" onclick={clearFilters}>
+								<Button
+									variant="ghost"
+									size="sm"
+									class="h-12 px-2 text-destructive hover:text-destructive"
+									onclick={clearFilters}
+								>
 									Clear
 								</Button>
 							{/if}
@@ -158,7 +190,10 @@
 			</div>
 		</div>
 
-		<div class="relative z-0 isolate">
+		<div
+			bind:this={resultsRegion}
+			class="relative z-0 isolate scroll-mt-[var(--browse-results-header-offset,8rem)]"
+		>
 			{@render children?.()}
 		</div>
 	</div>

@@ -29,7 +29,7 @@
 				<CheckIcon class="cn-select-item-indicator-icon" />
 			{/if}
 		</span>
-		<span class="flex flex-1 gap-2 shrink-0 whitespace-nowrap">
+		<span class="min-w-0 flex-1 truncate">
 			{#if childrenProp}
 				{@render childrenProp({ selected, highlighted })}
 			{:else}
