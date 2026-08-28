@@ -10,16 +10,24 @@
 		setBrowseViewMode,
 		type BrowseViewMode
 	} from '$lib/browse-view-mode';
-	import { filtersToHref, type FilterParams } from '$lib/jobs-utils';
+	import { filtersToHref, selectedCollars, type FilterParams } from '$lib/jobs-utils';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
 	import ListIcon from '@lucide/svelte/icons/list';
 
 	type ResultsSortOption = 'closing_soon' | 'newest';
+	type CollarFilterOption = 'white' | 'grey' | 'blue';
+	type ToolbarDropdownOption = ResultsSortOption | CollarFilterOption;
 
 	const RESULTS_SORT_OPTIONS = [
 		{ value: 'closing_soon', label: 'Closing soon' },
 		{ value: 'newest', label: 'Newly Posted' }
+	] as const;
+
+	const COLLAR_FILTER_OPTIONS = [
+		{ value: 'white', label: 'White Collar' },
+		{ value: 'grey', label: 'Grey Collar' },
+		{ value: 'blue', label: 'Blue Collar' }
 	] as const;
 
 	let {
@@ -42,21 +50,56 @@
 		return 'newest';
 	});
 
-	const resultsSortLabel = $derived(
-		RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted'
-	);
+	const activeCollar = $derived.by((): CollarFilterOption | null => {
+		const collars = selectedCollars(filters);
+		return collars.length === 1 ? collars[0] : null;
+	});
+
+	const dropdownValue = $derived.by((): ToolbarDropdownOption => {
+		if (activeCollar) return activeCollar;
+		return resultsSort;
+	});
+
+	const dropdownLabel = $derived.by(() => {
+		if (activeCollar) {
+			return (
+				COLLAR_FILTER_OPTIONS.find((o) => o.value === activeCollar)?.label ?? 'White Collar'
+			);
+		}
+		return RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted';
+	});
 
 	function setViewMode(next: BrowseViewMode) {
 		setBrowseViewMode(next);
 	}
 
-	function setResultsSort(next: string) {
+	function onDropdownChange(next: string) {
+		const collarOption = COLLAR_FILTER_OPTIONS.find((o) => o.value === next);
+		if (collarOption) {
+			goto(
+				filtersToHref(
+					{
+						...filters,
+						collar: [collarOption.value],
+						page: 1
+					},
+					page.url.pathname
+				),
+				{
+					keepFocus: true,
+					noScroll: true
+				}
+			);
+			return;
+		}
+
 		const option = next as ResultsSortOption;
 		goto(
 			filtersToHref(
 				{
 					...filters,
 					sort: option === 'closing_soon' ? 'closing_soon' : 'newest',
+					collar: [],
 					page: 1
 				},
 				page.url.pathname
@@ -124,12 +167,18 @@
 				class="inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs text-foreground hover:bg-muted lg:gap-1.5 lg:px-2"
 			>
 				<span class="text-muted-foreground">Sort by:</span>
-				<span class="font-medium">{resultsSortLabel}</span>
+				<span class="font-medium">{dropdownLabel}</span>
 				<ChevronDownIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content align="end" class="min-w-52">
-				<DropdownMenu.RadioGroup value={resultsSort} onValueChange={setResultsSort}>
+				<DropdownMenu.RadioGroup value={dropdownValue} onValueChange={onDropdownChange}>
 					{#each RESULTS_SORT_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>
+							{option.label}
+						</DropdownMenu.RadioItem>
+					{/each}
+					<DropdownMenu.Separator />
+					{#each COLLAR_FILTER_OPTIONS as option (option.value)}
 						<DropdownMenu.RadioItem value={option.value}>
 							{option.label}
 						</DropdownMenu.RadioItem>
