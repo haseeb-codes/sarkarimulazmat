@@ -1,6 +1,8 @@
 import db from '$lib/server/db';
+import { adDetailHref } from '$lib/ads-utils';
 import { JOB_CATEGORY_PAGES, JOB_CATEGORY_SLUGS } from '$lib/job-category-pages';
 import { jobDetailHref } from '$lib/jobs-utils';
+import { IS_ACTIVE_AD } from '$lib/server/ads';
 import { IS_ACTIVE_JOB } from '$lib/server/jobs';
 import type { RequestHandler } from './$types';
 
@@ -9,7 +11,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	const startOfToday = new Date();
 	startOfToday.setUTCHours(0, 0, 0, 0);
 
-	const [activeJobs, categories] = await Promise.all([
+	const [activeJobs, activeAds, categories] = await Promise.all([
 		db.jobPostings.findMany({
 			where: {
 				AND: [
@@ -21,6 +23,12 @@ export const GET: RequestHandler = async ({ url }) => {
 			},
 			select: { slug: true, file_creation_date: true },
 			orderBy: { row_id: 'desc' },
+			take: 5000
+		}),
+		db.ads.findMany({
+			where: IS_ACTIVE_AD,
+			select: { ad_slug: true, file_creation_date: true },
+			orderBy: { file_creation_date: 'desc' },
 			take: 5000
 		}),
 		db.categoryPage
@@ -50,6 +58,11 @@ export const GET: RequestHandler = async ({ url }) => {
 			lastmod: today,
 			priority: '0.9'
 		},
+		{
+			loc: `${base}/ads`,
+			lastmod: today,
+			priority: '0.9'
+		},
 		...JOB_CATEGORY_PAGES.map((c) => ({
 			loc: `${base}/${c.slug}`,
 			lastmod: today,
@@ -66,6 +79,13 @@ export const GET: RequestHandler = async ({ url }) => {
 			loc: `${base}${jobDetailHref(j.slug)}`,
 			lastmod: j.file_creation_date
 				? new Date(j.file_creation_date).toISOString().slice(0, 10)
+				: undefined,
+			priority: '0.8'
+		})),
+		...activeAds.map((ad) => ({
+			loc: `${base}${adDetailHref(ad.ad_slug)}`,
+			lastmod: ad.file_creation_date
+				? new Date(ad.file_creation_date).toISOString().slice(0, 10)
 				: undefined,
 			priority: '0.8'
 		}))

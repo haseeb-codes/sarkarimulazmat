@@ -167,10 +167,10 @@ const BROWSE_COUNTS_TTL_MS = 5 * 60 * 1000;
 /** Short TTL for the default (unfiltered) homepage job list — speeds cold first visits after warm. */
 const DEFAULT_LIST_JOBS_TTL_MS = 60 * 1000;
 
+import { toListJobs, type ListJob } from '$lib/server/job-list-dto';
+
 type ListJobsResult = {
-	jobs: Array<
-		Awaited<ReturnType<typeof db.jobPostings.findMany>>[number] & { row_id: number }
-	>;
+	jobs: ListJob[];
 	total: number;
 	page: number;
 	pageSize: number;
@@ -1083,10 +1083,12 @@ async function queryListJobs(filters: JobFilters): Promise<ListJobsResult> {
 				.filter((job): job is typeof job & { row_id: number } => job.row_id != null)
 				.map((job) => [job.row_id, job])
 		);
-		const jobs = pageIds.map((id) => byId.get(id)).filter((job) => job != null);
+		const jobs = pageIds
+			.map((id) => byId.get(id))
+			.filter((job): job is NonNullable<typeof job> & { row_id: number } => job != null);
 
 		return {
-			jobs,
+			jobs: toListJobs(jobs),
 			total,
 			page: filters.page,
 			pageSize: filters.pageSize,
@@ -1109,7 +1111,7 @@ async function queryListJobs(filters: JobFilters): Promise<ListJobsResult> {
 	);
 
 	return {
-		jobs,
+		jobs: toListJobs(jobs),
 		total,
 		page: filters.page,
 		pageSize: filters.pageSize,

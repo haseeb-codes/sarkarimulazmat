@@ -1,6 +1,7 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
 import type { JobCategoryColumn } from '$lib/job-category-pages';
+import { toListJobs } from '$lib/server/job-list-dto';
 
 function startOfTodayUtc(): Date {
 	const today = new Date();
@@ -38,7 +39,7 @@ export async function loadJobCategoryJobs(column: JobCategoryColumn) {
 	);
 
 	return {
-		jobs,
+		jobs: toListJobs(jobs),
 		updatedAt: new Date().toISOString()
 	};
 }

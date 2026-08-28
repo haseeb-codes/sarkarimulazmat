@@ -122,10 +122,15 @@ export function formatSalary(value: number | null | undefined): string | null {
 	return Math.round(value).toLocaleString('en-PK');
 }
 
+function filterLinksUseHome(baseUrl: URL | undefined): boolean {
+	const path = baseUrl?.pathname ?? '/';
+	return path.startsWith('/jobs/') || path.startsWith('/ad/');
+}
+
 /**
  * Link for clicking an eligibility badge — merges into the current query so
  * multiple filters stack (e.g. place_of_posting + domicile → two chips).
- * Job-detail paths navigate to `/` while preserving/merging search params.
+ * Job-detail and ad-detail paths navigate to `/` while preserving/merging search params.
  */
 export function badgeFilterHref(
 	value: string,
@@ -140,8 +145,7 @@ export function badgeFilterHref(
 		| 'grade' = 'degree_areas',
 	baseUrl?: URL
 ): string {
-	const onJobDetail = baseUrl?.pathname.startsWith('/jobs/') ?? false;
-	const path = onJobDetail ? '/' : (baseUrl?.pathname ?? '/');
+	const path = filterLinksUseHome(baseUrl) ? '/' : (baseUrl?.pathname ?? '/');
 	const params = new URLSearchParams(baseUrl?.searchParams);
 	params.delete('page');
 
@@ -167,8 +171,7 @@ export function mergeFilterFlagHref(
 	flag: 'has_salary',
 	sort?: JobSort
 ): string {
-	const onJobDetail = baseUrl.pathname.startsWith('/jobs/');
-	const path = onJobDetail ? '/' : baseUrl.pathname;
+	const path = filterLinksUseHome(baseUrl) ? '/' : baseUrl.pathname;
 	const params = new URLSearchParams(baseUrl.searchParams);
 	params.delete('page');
 	if (flag === 'has_salary') params.set('has_salary', '1');
