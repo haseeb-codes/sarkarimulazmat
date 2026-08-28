@@ -81,6 +81,7 @@ model JobPostings {
   is_transgender_only_job             Int?
   is_law_enforcement_job              Int?
   is_management_job                   Int?
+  is_admin_job                        Int?
   is_driver_job                       Int?
   is_nursing_job                      Int?
   is_allied_health_job                Int?

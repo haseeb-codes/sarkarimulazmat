@@ -1,7 +1,6 @@
 <script lang="ts">
 	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
-	import JobListSkeleton from '$lib/components/jobs/job-list-skeleton.svelte';
 	import type { FilterParams } from '$lib/jobs-utils';
 
 	type ListingResult = {
@@ -32,16 +31,12 @@
 	listingLoading={loading}
 	listingError={listing.error}
 >
-	{#if loading}
-		<JobListSkeleton showHeader={false} />
-	{:else}
-		<JobList
-			jobs={listing.jobs}
-			total={listing.total}
-			totalPages={listing.totalPages}
-			filters={filters as any}
-			error={listing.error}
-			loading={loading}
-		/>
-	{/if}
+	<JobList
+		jobs={listing.jobs}
+		total={listing.total}
+		totalPages={listing.totalPages}
+		filters={filters as any}
+		error={listing.error}
+		{loading}
+	/>
 </FiltersDrawer>

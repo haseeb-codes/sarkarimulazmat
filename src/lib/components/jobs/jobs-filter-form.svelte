@@ -13,7 +13,9 @@
 		type DomicileRegionKey
 	} from '$lib/domicile-regions';
 	import {
-		AGE_MAX_PRESETS,
+		AGE_FILTER_DEFAULT,
+		AGE_FILTER_MAX,
+		AGE_FILTER_MIN,
 		QUALIFICATION_LEVELS,
 		COLLAR_LEVELS,
 		collarLevelDescription,
@@ -21,8 +23,9 @@
 		filtersToHref,
 		formatQualificationLevel,
 		formatCollarLevel,
+		isAgeFilterActive,
+		resolvedUserAge,
 		selectedQualificationLevels,
-		type AgeMaxPreset,
 		type CollarLevel,
 		type FilterParams,
 		BPS_GRADE_GROUPS,
@@ -45,7 +48,8 @@
 		idPrefix?: string;
 	} = $props();
 
-	let ageMaxDraft = $state<AgeMaxPreset | null>(null);
+	let ageEnabledDraft = $state(false);
+	let ageSliderDraft = $state(AGE_FILTER_DEFAULT);
 	let qualificationDraft = $state<number | null>(null);
 	let gradeDraft = $state<string | null>(null);
 	let portalDraft = $state<string | null>(null);
@@ -69,7 +73,8 @@
 	});
 
 	$effect(() => {
-		ageMaxDraft = filters.age_max ?? null;
+		ageEnabledDraft = isAgeFilterActive(filters);
+		ageSliderDraft = isAgeFilterActive(filters) ? resolvedUserAge(filters) : AGE_FILTER_DEFAULT;
 		gradeDraft = filters.grade ?? null;
 		portalDraft = filters.portal ?? null;
 		const regions = selectedDomicileRegions(filters).filter((key) => key !== 'any');
@@ -121,11 +126,34 @@
 		});
 	}
 
-	function setAgeMax(next: AgeMaxPreset | null) {
-		ageMaxDraft = next;
+	function setAgeFilterEnabled(on: boolean) {
+		ageEnabledDraft = on;
+		if (on) {
+			navigate({
+				age: ageSliderDraft,
+				age_max: null,
+				age_from: null,
+				age_to: null,
+				include_no_max_age: true
+			});
+		} else {
+			navigate({
+				age: null,
+				age_max: null,
+				age_from: null,
+				age_to: null,
+				include_no_max_age: true
+			});
+		}
+	}
+
+	function setUserAge(next: number) {
+		const age = Math.min(AGE_FILTER_MAX, Math.max(AGE_FILTER_MIN, Math.round(next)));
+		ageSliderDraft = age;
+		if (!ageEnabledDraft) return;
 		navigate({
-			age_max: next,
-			age: null,
+			age,
+			age_max: null,
 			age_from: null,
 			age_to: null,
 			include_no_max_age: true
@@ -247,6 +275,7 @@
 			id="{idPrefix}filter-permanent"
 			type="button"
 			role="switch"
+			aria-label="Permanent jobs only"
 			aria-checked={permanentOnlyDraft}
 			onclick={() => setPermanentOnly(!permanentOnlyDraft)}
 			class={switchClass(permanentOnlyDraft)}
@@ -278,45 +307,57 @@
 
 	<Separator />
 
-	<div class="space-y-2">
-		<Label id="{idPrefix}filter-age-label" class="text-xs lg:text-sm">Max age</Label>
-		<div class="flex flex-wrap gap-1.5">
-			<button
-				type="button"
-				class={chipClass(ageMaxDraft == null)}
-				aria-pressed={ageMaxDraft == null}
-				onclick={() => setAgeMax(null)}
-			>
-				Any
-			</button>
-			{#each AGE_MAX_PRESETS as years (years)}
-				<button
-					type="button"
-					class={chipClass(ageMaxDraft === years)}
-					aria-pressed={ageMaxDraft === years}
-					onclick={() => setAgeMax(years)}
+	<div class="space-y-3">
+		<div class="flex items-center justify-between gap-3">
+			<div class="min-w-0 space-y-0.5">
+				<Label for="{idPrefix}filter-age-toggle" class="cursor-pointer text-xs lg:text-sm"
+					>Filter by my age</Label
 				>
-					{years}y
-				</button>
-			{/each}
+				<p class="text-xs text-muted-foreground">
+					Show jobs with no age limit, or where you meet the posting’s age requirements.
+				</p>
+			</div>
 			<button
+				id="{idPrefix}filter-age-toggle"
 				type="button"
-				class={chipClass(ageMaxDraft === '60plus')}
-				aria-pressed={ageMaxDraft === '60plus'}
-				onclick={() => setAgeMax('60plus')}
+				role="switch"
+				aria-label="Filter by my age"
+				aria-checked={ageEnabledDraft}
+				onclick={() => setAgeFilterEnabled(!ageEnabledDraft)}
+				class={switchClass(ageEnabledDraft)}
 			>
-				60+
+				<span aria-hidden="true" class={switchThumbClass(ageEnabledDraft)}></span>
 			</button>
 		</div>
-		<p class="text-xs text-muted-foreground">
-			{#if ageMaxDraft === '60plus'}
-				Jobs whose listed maximum age is 60 or above.
-			{:else if ageMaxDraft}
-				Jobs whose listed maximum age is {ageMaxDraft} or under.
-			{:else}
-				Filter by the posting’s maximum age limit.
-			{/if}
-		</p>
+
+		{#if ageEnabledDraft}
+			<div class="space-y-2">
+				<div class="flex items-center justify-between gap-2 text-xs lg:text-sm">
+					<Label for="{idPrefix}filter-age-slider" class="text-xs lg:text-sm">Your age</Label>
+					<span class="font-medium tabular-nums">{ageSliderDraft}</span>
+				</div>
+				<input
+					id="{idPrefix}filter-age-slider"
+					type="range"
+					min={AGE_FILTER_MIN}
+					max={AGE_FILTER_MAX}
+					step="1"
+					value={ageSliderDraft}
+					aria-valuemin={AGE_FILTER_MIN}
+					aria-valuemax={AGE_FILTER_MAX}
+					aria-valuenow={ageSliderDraft}
+					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+					oninput={(e) => {
+						ageSliderDraft = Number(e.currentTarget.value);
+					}}
+					onchange={(e) => setUserAge(Number(e.currentTarget.value))}
+				/>
+				<div class="flex justify-between text-xs text-muted-foreground tabular-nums">
+					<span>{AGE_FILTER_MIN}</span>
+					<span>{AGE_FILTER_MAX}</span>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<Separator />
@@ -349,8 +390,8 @@
 			value={portalDraft ?? ''}
 			onValueChange={(v) => setPortal(v || null)}
 		>
-			<Select.Trigger id="{idPrefix}filter-portal" class="w-full min-w-0">
-				<span class="min-w-0 flex-1 truncate">{portalDraft ?? 'Any'}</span>
+			<Select.Trigger id="{idPrefix}filter-portal" class="w-full min-w-0 text-left">
+				<span class="min-w-0 flex-1 truncate text-left">{portalDraft ?? 'Any'}</span>
 			</Select.Trigger>
 			<Select.Content class="max-h-72 w-(--bits-select-anchor-width)">
 				<Select.Item value="" label="Any">Any</Select.Item>
@@ -465,6 +506,7 @@
 							id="{idPrefix}filter-collar-{level}"
 							type="button"
 							role="switch"
+							aria-label={formatCollarLevel(level)}
 							aria-checked={on}
 							onclick={() => setCollarEnabled(level, !on)}
 							class={switchClass(on)}
@@ -522,6 +564,7 @@
 				id="{idPrefix}filter-women"
 				type="button"
 				role="switch"
+				aria-label="Women"
 				aria-checked={womenOnlyDraft}
 				onclick={() => setWomenOnly(!womenOnlyDraft)}
 				class={switchClass(womenOnlyDraft)}
@@ -537,6 +580,7 @@
 				id="{idPrefix}filter-transgender"
 				type="button"
 				role="switch"
+				aria-label="Transgender"
 				aria-checked={transgenderApplicableDraft}
 				onclick={() => setTransgenderApplicable(!transgenderApplicableDraft)}
 				class={switchClass(transgenderApplicableDraft)}
@@ -552,6 +596,7 @@
 				id="{idPrefix}filter-minority"
 				type="button"
 				role="switch"
+				aria-label="Minority"
 				aria-checked={minorityQuotaDraft}
 				onclick={() => setMinorityQuota(!minorityQuotaDraft)}
 				class={switchClass(minorityQuotaDraft)}
@@ -567,6 +612,7 @@
 				id="{idPrefix}filter-disability"
 				type="button"
 				role="switch"
+				aria-label="Disability"
 				aria-checked={disabilityQuotaDraft}
 				onclick={() => setDisabilityQuota(!disabilityQuotaDraft)}
 				class={switchClass(disabilityQuotaDraft)}
@@ -594,6 +640,7 @@
 			id="{idPrefix}filter-show-expired"
 			type="button"
 			role="switch"
+			aria-label="Include Expired Job"
 			aria-checked={showExpiredDraft}
 			onclick={() => setShowExpired(!showExpiredDraft)}
 			class={switchClass(showExpiredDraft)}

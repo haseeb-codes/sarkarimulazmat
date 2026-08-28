@@ -82,7 +82,7 @@
 	const daysLeftLabel = $derived(
 		!expired && daysLeft != null && daysLeft < 4
 			? daysLeft === 0
-				? "Expiring Today"
+				? "(Expiring Today)"
 				: `(${daysLeft} ${daysLeft === 1 ? "day" : "days"} left)`
 			: null,
 	);

@@ -9,7 +9,7 @@
 
 	let { filters }: { filters: FilterParams } = $props();
 
-	let draft = $state(filters.q ?? '');
+	let draft = $state('');
 	let focused = $state(false);
 	/** Trimmed q we navigated to; blocks stale/in-flight URL sync from wiping the input. */
 	let pendingCommit: string | null = null;

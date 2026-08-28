@@ -14,8 +14,6 @@ import {
 	isAgeFilterActive,
 	isQualificationFilterActive,
 	isCollarFilterActive,
-	resolvedAgeFrom,
-	resolvedAgeTo,
 	selectedQualificationLevels,
 	selectedCollars,
 	clampAgeFilter,
@@ -454,33 +452,9 @@ function parseDegreeAreas(url: URL): string[] {
 	return parseMultiParam(url, 'degree_areas');
 }
 
-function parseAgeFrom(url: URL): number | null {
-	const fromParam = parseOptionalPositiveInt(firstParam(url, 'age_from'));
-	if (fromParam != null) return clampAgeFilter(fromParam);
-	const legacy = parseOptionalPositiveInt(firstParam(url, 'age'));
-	return legacy != null ? clampAgeFilter(legacy) : null;
-}
-
-function parseAgeTo(url: URL): number | null {
-	const toParam = parseOptionalPositiveInt(firstParam(url, 'age_to'));
-	if (toParam != null) return clampAgeFilter(toParam);
-	const legacy = parseOptionalPositiveInt(firstParam(url, 'age'));
-	return legacy != null ? clampAgeFilter(legacy) : null;
-}
-
-function parseAgeMax(url: URL): AgeMaxPreset | null {
-	const value = firstParam(url, 'age_max');
-	if (!value) return null;
-	const key = value.trim().toLowerCase();
-	if (key === '60plus' || key === '60+') return '60plus';
-	const n = Number.parseInt(value, 10);
-	if (n === 30 || n === 45 || n === 60) return n;
-	return null;
-}
-
-function parseIncludeNoMaxAge(url: URL): boolean {
-	const value = firstParam(url, 'include_no_max_age');
-	return value !== '0' && value !== 'false';
+function parseUserAge(url: URL): number | null {
+	const value = parseOptionalPositiveInt(firstParam(url, 'age'));
+	return value != null ? clampAgeFilter(value) : null;
 }
 
 function parseQualificationFrom(url: URL): number | null {
@@ -509,8 +483,7 @@ function parseQualificationLevels(url: URL): number[] {
 export function parseJobFilters(url: URL): JobFilters {
 	const sortParam = firstParam(url, 'sort');
 	const sort: JobSort = sortParam === 'closing_soon' ? 'closing_soon' : 'newest';
-	const ageFrom = parseAgeFrom(url);
-	const ageTo = parseAgeTo(url);
+	const userAge = parseUserAge(url);
 
 	return {
 		degree_areas: parseDegreeAreas(url),
@@ -524,11 +497,11 @@ export function parseJobFilters(url: URL): JobFilters {
 		qualification_from: parseQualificationFrom(url),
 		qualification_to: parseQualificationTo(url),
 		grade: normalizeGradeFilter(firstParam(url, 'grade')),
-		age: parseOptionalPositiveInt(firstParam(url, 'age')),
-		age_from: ageFrom,
-		age_to: ageTo,
-		include_no_max_age: parseIncludeNoMaxAge(url),
-		age_max: parseAgeMax(url),
+		age: userAge,
+		age_from: null,
+		age_to: null,
+		include_no_max_age: true,
+		age_max: null,
 		place_of_posting: firstParam(url, 'place_of_posting'),
 		domicile: parseMultiParam(url, 'domicile'),
 		domicile_region: selectedDomicileRegions({
@@ -763,39 +736,20 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		);
 	}
 
-	// Age: badge presets (job max_age) first, then legacy slider / single age
-	if (filters.age_max === '60plus') {
-		and.push({ max_age: { gte: 60 } });
-	} else if (filters.age_max != null) {
-		and.push({ max_age: { lte: filters.age_max } });
-	} else if (isAgeFilterActive(filters)) {
-		const ageFrom = resolvedAgeFrom(filters);
-		const ageTo = resolvedAgeTo(filters);
-		const includeNoMaxAge = filters.include_no_max_age !== false;
-
-		const withMaxAge: Prisma.JobPostingsWhereInput = {
-			AND: [
-				{ max_age: { not: null } },
-				{ OR: [{ min_age: null }, { min_age: { lte: ageTo } }] },
-				{ max_age: { gte: ageFrom } }
+	// Age: show jobs with no age limit, or where the user meets min/max requirements.
+	if (filters.age != null) {
+		const userAge = clampAgeFilter(filters.age);
+		and.push({
+			OR: [
+				{ AND: [{ min_age: null }, { max_age: null }] },
+				{
+					AND: [
+						{ OR: [{ min_age: null }, { min_age: { lte: userAge } }] },
+						{ OR: [{ max_age: null }, { max_age: { gte: userAge } }] }
+					]
+				}
 			]
-		};
-
-		if (includeNoMaxAge) {
-			and.push({
-				OR: [
-					withMaxAge,
-					{
-						AND: [
-							{ max_age: null },
-							{ OR: [{ min_age: null }, { min_age: { lte: ageTo } }] }
-						]
-					}
-				]
-			});
-		} else {
-			and.push(withMaxAge);
-		}
+		});
 	}
 
 	if (filters.place_of_posting) {

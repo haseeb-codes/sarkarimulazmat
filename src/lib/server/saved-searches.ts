@@ -5,8 +5,7 @@ import {
 	filtersToSearchParams,
 	isAgeFilterActive,
 	isQualificationFilterActive,
-	resolvedAgeFrom,
-	resolvedAgeTo,
+	resolvedUserAge,
 	selectedQualificationLevels,
 	selectedCollars,
 	selectedDomiciles,
@@ -31,13 +30,8 @@ function filtersToLabel(filters: Partial<JobFilters>): string {
 	if (filters.degree_areas?.length) parts.push(filters.degree_areas.join(', '));
 	if (filters.education_level) parts.push(filters.education_level);
 	if (filters.grade) parts.push(formatGradeFilter(filters.grade) ?? filters.grade);
-	if (filters.age_max === '60plus') parts.push('age 60+');
-	else if (filters.age_max) parts.push(`age ≤${filters.age_max}`);
-	else if (isAgeFilterActive(filters)) {
-		const from = resolvedAgeFrom(filters);
-		const to = resolvedAgeTo(filters);
-		parts.push(`age ${from}–${to}`);
-		if (filters.include_no_max_age === false) parts.push('max age required');
+	if (isAgeFilterActive(filters)) {
+		parts.push(`my age ${resolvedUserAge(filters)}`);
 	}
 	if (filters.place_of_posting) parts.push(filters.place_of_posting);
 	const domiciles = selectedDomiciles(filters);

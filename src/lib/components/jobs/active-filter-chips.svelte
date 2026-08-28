@@ -29,15 +29,10 @@
 </script>
 
 {#if chips.length}
-	<div
-		class="mt-2 flex flex-wrap items-center gap-1.5"
-		role="list"
-		aria-label="Active filters"
-	>
+	<div class="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Active filters">
 		{#each chips as chip (chip.id)}
 			<button
 				type="button"
-				role="listitem"
 				class="inline-flex h-7 max-w-full items-center gap-1 rounded-full border border-border bg-muted/60 py-0 pr-1 pl-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
 				onclick={() => clearChip(chip.clear)}
 				aria-label="Remove filter {chip.label}"

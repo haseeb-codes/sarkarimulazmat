@@ -180,12 +180,15 @@ export function mergeFilterFlagHref(
 	return qs ? `${path}?${qs}` : path;
 }
 
-/** Default bounds for the age range filter UI. */
-export const AGE_FILTER_MIN = 16;
-export const AGE_FILTER_MAX = 70;
+/** Bounds for the “my age” filter slider. */
+export const AGE_FILTER_MIN = 18;
+export const AGE_FILTER_MAX = 80;
+/** Default slider value when the age filter is first enabled. */
+export const AGE_FILTER_DEFAULT = 21;
 
-/** Job max-age badge presets (Pakistan govt postings commonly cap at 30 / 45 / 60). */
+/** @deprecated Replaced by the my-age slider (`age` param). */
 export const AGE_MAX_PRESETS = [30, 45, 60] as const;
+/** @deprecated Replaced by the my-age slider (`age` param). */
 export type AgeMaxPreset = (typeof AGE_MAX_PRESETS)[number] | '60plus';
 
 function bpsGradeCodes(from: number, to: number): string[] {
@@ -267,13 +270,15 @@ export type FilterParams = {
 	/** @deprecated Legacy range filter — use `qualification` multi-select */
 	qualification_to?: number | null;
 	grade?: string | null;
-	/** @deprecated Legacy single-age filter — use age_from / age_to */
+	/** User's age (18–80); when set, only jobs they are eligible for are shown. */
 	age?: number | null;
+	/** @deprecated Legacy range filter */
 	age_from?: number | null;
+	/** @deprecated Legacy range filter */
 	age_to?: number | null;
-	/** Include postings that do not specify a maximum age (default true). */
+	/** @deprecated Legacy flag */
 	include_no_max_age?: boolean;
-	/** Filter by the posting's listed maximum age: 30 / 45 / 60, or 60+. */
+	/** @deprecated Replaced by `age` slider */
 	age_max?: AgeMaxPreset | null;
 	place_of_posting?: string | null;
 	/** One or more domicile values (URL: repeated `domicile` params). */
@@ -321,24 +326,23 @@ export function clampAgeFilter(value: number): number {
 	return Math.min(AGE_FILTER_MAX, Math.max(AGE_FILTER_MIN, Math.round(value)));
 }
 
+/** @deprecated Legacy range filter */
 export function resolvedAgeFrom(filters: FilterParams): number {
 	return clampAgeFilter(filters.age_from ?? filters.age ?? AGE_FILTER_MIN);
 }
 
+/** @deprecated Legacy range filter */
 export function resolvedAgeTo(filters: FilterParams): number {
 	return clampAgeFilter(filters.age_to ?? filters.age ?? AGE_FILTER_MAX);
 }
 
-/** True when any age filter is set (badge preset, slider, or legacy age). */
+export function resolvedUserAge(filters: FilterParams): number {
+	return clampAgeFilter(filters.age ?? AGE_FILTER_DEFAULT);
+}
+
+/** True when the my-age slider filter is enabled. */
 export function isAgeFilterActive(filters: FilterParams): boolean {
-	if (filters.age_max != null) return true;
-	const from = resolvedAgeFrom(filters);
-	const to = resolvedAgeTo(filters);
-	return (
-		from > AGE_FILTER_MIN ||
-		to < AGE_FILTER_MAX ||
-		filters.include_no_max_age === false
-	);
+	return filters.age != null;
 }
 
 export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
@@ -358,14 +362,8 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 		}
 	}
 	if (filters.grade) params.set('grade', filters.grade);
-	if (filters.age_max === '60plus') {
-		params.set('age_max', '60plus');
-	} else if (filters.age_max != null) {
-		params.set('age_max', String(filters.age_max));
-	} else if (isAgeFilterActive(filters)) {
-		params.set('age_from', String(resolvedAgeFrom(filters)));
-		params.set('age_to', String(resolvedAgeTo(filters)));
-		if (filters.include_no_max_age === false) params.set('include_no_max_age', '0');
+	if (isAgeFilterActive(filters)) {
+		params.set('age', String(resolvedUserAge(filters)));
 	}
 	if (filters.place_of_posting) params.set('place_of_posting', filters.place_of_posting);
 	for (const domicile of selectedDomiciles(filters)) {
@@ -540,23 +538,15 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 		});
 	}
 
-	if (filters.age_max != null) {
-		const ageLabel = filters.age_max === '60plus' ? '60+' : String(filters.age_max);
+	if (isAgeFilterActive(filters)) {
 		chips.push({
-			id: 'age_max',
-			label: `Max age ${ageLabel}`,
-			clear: { age_max: null, age: null, age_from: null, age_to: null }
-		});
-	} else if (isAgeFilterActive(filters)) {
-		const from = resolvedAgeFrom(filters);
-		const to = resolvedAgeTo(filters);
-		chips.push({
-			id: 'age_range',
-			label: `Age ${from}–${to}`,
+			id: 'age',
+			label: `My age ${resolvedUserAge(filters)}`,
 			clear: {
 				age: null,
 				age_from: null,
 				age_to: null,
+				age_max: null,
 				include_no_max_age: true
 			}
 		});
@@ -986,15 +976,6 @@ function parseDrawerIntParam(
 	return n;
 }
 
-function parseDrawerAgeMaxParam(value: string | null): AgeMaxPreset | null {
-	if (!value) return null;
-	const key = value.trim().toLowerCase();
-	if (key === '60plus' || key === '60+') return '60plus';
-	const n = Number.parseInt(value, 10);
-	if (n === 30 || n === 45 || n === 60) return n;
-	return null;
-}
-
 /** Parse drawer-managed filters from a URL — client-safe for optimistic UI during navigation. */
 export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 	const params = url.searchParams;
@@ -1002,10 +983,10 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 	return {
 		keyword: params.get('keyword')?.trim() || null,
 		portal: params.get('portal')?.trim() || null,
-		age_max: parseDrawerAgeMaxParam(params.get('age_max')),
+		age: parseDrawerIntParam(params.get('age'), AGE_FILTER_MIN, AGE_FILTER_MAX),
 		age_from: null,
 		age_to: null,
-		age: null,
+		age_max: null,
 		include_no_max_age: true,
 		qualification: selectedQualificationLevels({
 			qualification: params.getAll('qualification').map((v) => Number.parseInt(v, 10)),

@@ -5,6 +5,7 @@ export const JOB_CATEGORY_COLUMNS = [
 	'is_transgender_only_job',
 	'is_law_enforcement_job',
 	'is_management_job',
+	'is_admin_job',
 	'is_driver_job',
 	'is_nursing_job',
 	'is_allied_health_job',
@@ -100,6 +101,15 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		metaDescription:
 			'Government management and administrative job openings in Pakistan.',
 		emptyMessage: 'No active management job openings right now'
+	},
+	{
+		slug: 'admin-jobs',
+		column: 'is_admin_job',
+		title: 'Admin & Office Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Admin & office government jobs in Pakistan',
+		metaDescription:
+			'Government admin, administrative, and office support job openings in Pakistan for business administration and social sciences graduates.',
+		emptyMessage: 'No active admin job openings right now'
 	},
 	{
 		slug: 'driver-jobs',
@@ -454,6 +464,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'transgender-only-jobs': 'Transgender Only',
 	'law-enforcement-jobs': 'Law Enforcement',
 	'management-jobs': 'Management',
+	'admin-jobs': 'Admin',
 	'driver-jobs': 'Driver',
 	'nursing-jobs': 'Nursing',
 	'allied-health-jobs': 'Allied Health',

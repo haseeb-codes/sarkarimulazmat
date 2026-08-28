@@ -46,6 +46,8 @@
 
 <div
 	class="space-y-3"
+	role="group"
+	aria-label="Range slider"
 	data-vaul-no-drag
 	onpointerdown={(e) => e.stopPropagation()}
 	ontouchstart={(e) => e.stopPropagation()}

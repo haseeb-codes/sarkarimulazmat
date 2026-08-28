@@ -76,10 +76,10 @@
 		loading?: boolean;
 	} = $props();
 
-	let items = $state<Job[]>(jobs);
-	let loadedPage = $state(filters.page);
+	let items = $state<Job[]>([]);
+	let loadedPage = $state(1);
 	/** Maps each job slug to the page it was loaded on */
-	let jobPageMap = $state<Map<string, number>>(new Map(jobs.map((j) => [j.slug, filters.page])));
+	let jobPageMap = $state<Map<string, number>>(new Map());
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
@@ -89,7 +89,10 @@
 
 	const HIGHLIGHT_MS = 2800;
 
-	const hasMore = $derived(loadedPage < totalPages && items.length < total);
+	/** Until scroll state syncs, fall back to the server-provided first page. */
+	const listItems = $derived(items.length > 0 || jobs.length === 0 ? items : jobs);
+
+	const hasMore = $derived(loadedPage < totalPages && listItems.length < total);
 	const viewMode = $derived($browseViewMode);
 
 	const browseUrl = $derived(
@@ -113,10 +116,7 @@
 			filters.qualification_from ?? '',
 			filters.qualification_to ?? '',
 			filters.grade ?? '',
-			filters.age_from ?? filters.age ?? '',
-			filters.age_to ?? filters.age ?? '',
-			filters.include_no_max_age ? '1' : '0',
-			filters.age_max ?? '',
+			filters.age ?? '',
 			filters.place_of_posting ?? '',
 			filters.domicile.join('\0'),
 			(filters.domicile_region ?? []).join('\0'),
@@ -167,7 +167,7 @@
 	}
 
 	$effect(() => {
-		browseShownCount.set(items.length);
+		browseShownCount.set(listItems.length);
 	});
 
 	$effect(() => {
@@ -178,7 +178,7 @@
 	});
 
 	/** Reset accumulated list when filters / totals change (not when appending pages). */
-	$effect(() => {
+	$effect.pre(() => {
 		void resultKey;
 		const initialJobs = untrack(() => jobs);
 		const initialPage = untrack(() => filters.page);
@@ -263,7 +263,7 @@
 			>
 				{error}
 			</div>
-		{:else if items.length === 0}
+		{:else if listItems.length === 0}
 			<div class="rounded-lg border border-dashed border-border px-6 py-12 text-center">
 				<p class="font-medium">No matching jobs</p>
 				<p class="mt-1 text-sm text-muted-foreground">
@@ -280,7 +280,7 @@
 			{@const pages = (() => {
 				const grouped: { page: number; jobs: Job[] }[] = [];
 				let currentPage = -1;
-				for (const job of items) {
+				for (const job of listItems) {
 					const p = jobPageMap.get(job.slug) ?? 1;
 					if (p !== currentPage) {
 						grouped.push({ page: p, jobs: [job] });

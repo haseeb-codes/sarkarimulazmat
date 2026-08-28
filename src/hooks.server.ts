@@ -8,12 +8,16 @@ const VISITOR_COOKIE = 'visitor_id';
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
 
 function getClientIp(event: Parameters<Handle>[0]['event']): string | undefined {
-	return (
+	const fromHeaders =
 		event.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-		event.request.headers.get('x-real-ip') ||
-		event.getClientAddress?.() ||
-		undefined
-	);
+		event.request.headers.get('x-real-ip');
+	if (fromHeaders) return fromHeaders;
+
+	try {
+		return event.getClientAddress();
+	} catch {
+		return undefined;
+	}
 }
 
 const visitorHandle: Handle = async ({ event, resolve }) => {
