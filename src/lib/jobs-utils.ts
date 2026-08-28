@@ -755,9 +755,9 @@ export const COLLAR_LEVELS = ['white', 'grey', 'blue'] as const;
 export type CollarLevel = (typeof COLLAR_LEVELS)[number];
 
 export const COLLAR_LEVEL_LABELS: Record<CollarLevel, string> = {
-	white: 'Officer level',
-	grey: 'Skilled Labor',
-	blue: 'Low Level'
+	white: 'Educated Jobs',
+	grey: 'Skilled Jobs',
+	blue: 'Labor Jobs'
 };
 
 export const COLLAR_LEVEL_DESCRIPTIONS: Record<CollarLevel, string> = {

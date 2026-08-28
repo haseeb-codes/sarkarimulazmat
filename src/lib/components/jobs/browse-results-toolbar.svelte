@@ -25,9 +25,9 @@
 	] as const;
 
 	const COLLAR_FILTER_OPTIONS = [
-		{ value: 'white', label: 'White Collar' },
-		{ value: 'grey', label: 'Grey Collar' },
-		{ value: 'blue', label: 'Blue Collar' }
+		{ value: 'white', label: 'Educated Jobs' },
+		{ value: 'grey', label: 'Skilled Jobs' },
+		{ value: 'blue', label: 'Labor Jobs' }
 	] as const;
 
 	let {
@@ -63,7 +63,7 @@
 	const dropdownLabel = $derived.by(() => {
 		if (activeCollar) {
 			return (
-				COLLAR_FILTER_OPTIONS.find((o) => o.value === activeCollar)?.label ?? 'White Collar'
+				COLLAR_FILTER_OPTIONS.find((o) => o.value === activeCollar)?.label ?? 'Educated Jobs'
 			);
 		}
 		return RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted';
