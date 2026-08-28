@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import { filtersToHref, selectedDomiciles, type FilterParams, type JobSort } from '$lib/jobs-utils';
 
 	type Options = {
@@ -41,10 +43,9 @@
 		resultCount: number;
 	} = $props();
 
-	// Local draft for the keyword input (debounced); everything else navigates on change.
+	// Local draft for text inputs (debounced); everything else navigates on change.
 	let qDraft = $state('');
 	let ageDraft = $state('');
-	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	$effect(() => {
 		qDraft = filters.q ?? '';
@@ -74,12 +75,28 @@
 		goto(filtersToHref(merged), { keepFocus: true, noScroll: true });
 	}
 
+	const scheduleQCommit = debounce((value: string) => {
+		navigate({ q: value.trim() || null, page: 1 });
+	}, SEARCH_DEBOUNCE_MS);
+
+	const scheduleAgeCommit = debounce((value: string) => {
+		const n = Number.parseInt(value, 10);
+		navigate({ age: Number.isFinite(n) && n > 0 ? n : null, page: 1 });
+	}, SEARCH_DEBOUNCE_MS);
+
+	onDestroy(() => {
+		scheduleQCommit.cancel();
+		scheduleAgeCommit.cancel();
+	});
+
 	function onQInput(value: string) {
 		qDraft = value;
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			navigate({ q: value.trim() || null, page: 1 });
-		}, 300);
+		scheduleQCommit(value);
+	}
+
+	function onAgeInput(value: string) {
+		ageDraft = value;
+		scheduleAgeCommit(value);
 	}
 
 	function toggleDegree(area: string) {
@@ -226,8 +243,10 @@
 				max="80"
 				inputmode="numeric"
 				placeholder="e.g. 28"
-				bind:value={ageDraft}
+				value={ageDraft}
+				oninput={(e) => onAgeInput(e.currentTarget.value)}
 				onblur={() => {
+					scheduleAgeCommit.cancel();
 					const n = Number.parseInt(ageDraft, 10);
 					navigate({ age: Number.isFinite(n) && n > 0 ? n : null, page: 1 });
 				}}

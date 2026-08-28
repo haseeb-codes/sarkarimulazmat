@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onDestroy } from 'svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import {
 		DOMICILE_REGIONS,
 		selectedDomicileRegions,
@@ -56,6 +58,7 @@
 	let domicileRegionDraft = $state<DomicileRegionKey | null>(null);
 	let degreeAreasDraft = $state<string[]>([]);
 	let specializationSearch = $state('');
+	let debouncedSpecializationSearch = $state('');
 	let specializationOpen = $state(false);
 	let permanentOnlyDraft = $state(false);
 	let womenOnlyDraft = $state(false);
@@ -68,8 +71,30 @@
 
 	const specializationOptions = $derived(options.specializations ?? []);
 
+	const syncSpecializationSearch = debounce((value: string) => {
+		debouncedSpecializationSearch = value;
+	}, SEARCH_DEBOUNCE_MS);
+
+	const scheduleAgeCommit = debounce((next: number) => {
+		setUserAge(next);
+	}, SEARCH_DEBOUNCE_MS);
+
+	onDestroy(() => {
+		syncSpecializationSearch.cancel();
+		scheduleAgeCommit.cancel();
+	});
+
+	function onSpecializationSearchInput(value: string) {
+		specializationSearch = value;
+		syncSpecializationSearch(value);
+	}
+
 	$effect(() => {
-		if (!specializationOpen) specializationSearch = '';
+		if (!specializationOpen) {
+			specializationSearch = '';
+			debouncedSpecializationSearch = '';
+			syncSpecializationSearch.cancel();
+		}
 	});
 
 	$effect(() => {
@@ -92,7 +117,7 @@
 	});
 
 	const filteredSpecializationOptions = $derived.by(() => {
-		const query = specializationSearch.trim().toLowerCase();
+		const query = debouncedSpecializationSearch.trim().toLowerCase();
 		const selected = new Set(degreeAreasDraft.map((v) => v.toLowerCase()));
 		const base = new Map<string, string>();
 		for (const label of specializationOptions) {
@@ -348,9 +373,14 @@
 					aria-valuenow={ageSliderDraft}
 					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
 					oninput={(e) => {
-						ageSliderDraft = Number(e.currentTarget.value);
+						const age = Number(e.currentTarget.value);
+						ageSliderDraft = age;
+						scheduleAgeCommit(age);
 					}}
-					onchange={(e) => setUserAge(Number(e.currentTarget.value))}
+					onchange={(e) => {
+						scheduleAgeCommit.cancel();
+						setUserAge(Number(e.currentTarget.value));
+					}}
 				/>
 				<div class="flex justify-between text-xs text-muted-foreground tabular-nums">
 					<span>{AGE_FILTER_MIN}</span>
@@ -466,7 +496,8 @@
 						placeholder="Search specializations..."
 						aria-label="Search degree specializations"
 						class="h-8"
-						bind:value={specializationSearch}
+						value={specializationSearch}
+						oninput={(e) => onSpecializationSearchInput(e.currentTarget.value)}
 						onkeydown={(e) => e.stopPropagation()}
 					/>
 				</div>

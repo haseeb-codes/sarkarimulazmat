@@ -4,6 +4,7 @@
 	import { onDestroy } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import { filtersToHref, type FilterParams } from '$lib/jobs-utils';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
@@ -13,7 +14,6 @@
 	let focused = $state(false);
 	/** Trimmed q we navigated to; blocks stale/in-flight URL sync from wiping the input. */
 	let pendingCommit: string | null = null;
-	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	$effect(() => {
 		const urlQ = filters.q ?? '';
@@ -30,7 +30,12 @@
 		draft = urlQ;
 	});
 
-	onDestroy(() => clearTimeout(debounceTimer));
+	const scheduleCommit = debounce(
+		() => navigate(draft.trim() || null),
+		SEARCH_DEBOUNCE_MS
+	);
+
+	onDestroy(() => scheduleCommit.cancel());
 
 	function navigate(q: string | null) {
 		const committed = q ?? '';
@@ -46,14 +51,9 @@
 		});
 	}
 
-	function scheduleCommit() {
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => navigate(draft.trim() || null), 300);
-	}
-
 	function commitNow(event?: Event) {
 		event?.preventDefault();
-		clearTimeout(debounceTimer);
+		scheduleCommit.cancel();
 		navigate(draft.trim() || null);
 	}
 
@@ -62,7 +62,7 @@
 	}
 
 	function onBlur() {
-		clearTimeout(debounceTimer);
+		scheduleCommit.cancel();
 		navigate(draft.trim() || null);
 		focused = false;
 	}

@@ -1,14 +1,29 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onDestroy } from 'svelte';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
 	let draft = $state('');
+	let focused = $state(false);
+	let pendingCommit: string | null = null;
 
 	$effect(() => {
-		draft = page.url.searchParams.get('q') ?? '';
+		const urlQ = page.url.searchParams.get('q') ?? '';
+
+		if (pendingCommit !== null) {
+			if (urlQ === pendingCommit) {
+				pendingCommit = null;
+				if (!focused) draft = urlQ;
+			}
+			return;
+		}
+
+		if (focused) return;
+		draft = urlQ;
 	});
 
 	function listingPath(): string {
@@ -26,17 +41,41 @@
 		return path;
 	}
 
-	function submit(event: Event) {
-		event.preventDefault();
-		const q = draft.trim();
+	function navigate(q: string | null) {
+		const committed = q ?? '';
+		const urlQ = page.url.searchParams.get('q') ?? '';
+		if (committed === urlQ) {
+			pendingCommit = null;
+			return;
+		}
+		pendingCommit = committed;
 		const params = new URLSearchParams(page.url.search);
-		if (q) params.set('q', q);
+		if (committed) params.set('q', committed);
 		else params.delete('q');
 		params.delete('page');
 
 		const qs = params.toString();
 		const href = qs ? `${listingPath()}?${qs}` : listingPath();
-		goto(href, { keepFocus: true, noScroll: true });
+		goto(href, { keepFocus: true, noScroll: true, replaceState: true });
+	}
+
+	const scheduleCommit = debounce(
+		() => navigate(draft.trim() || null),
+		SEARCH_DEBOUNCE_MS
+	);
+
+	onDestroy(() => scheduleCommit.cancel());
+
+	function submit(event: Event) {
+		event.preventDefault();
+		scheduleCommit.cancel();
+		navigate(draft.trim() || null);
+	}
+
+	function onBlur() {
+		scheduleCommit.cancel();
+		navigate(draft.trim() || null);
+		focused = false;
 	}
 </script>
 
@@ -54,8 +93,10 @@
 		<Input
 			type="search"
 			name="q"
-			value={draft}
-			oninput={(e) => (draft = e.currentTarget.value)}
+			bind:value={draft}
+			oninput={scheduleCommit}
+			onfocus={() => (focused = true)}
+			onblur={onBlur}
 			placeholder="Search jobs…"
 			class="h-9 w-full pl-8"
 			autocomplete="off"

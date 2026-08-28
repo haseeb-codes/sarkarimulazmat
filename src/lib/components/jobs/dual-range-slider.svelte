@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
+
 	let {
 		min,
 		max,
@@ -32,14 +35,23 @@
 	function onLoInput(event: Event) {
 		const nextLo = Number((event.currentTarget as HTMLInputElement).value);
 		value = clampPair(nextLo, value[1]);
+		scheduleCommit();
 	}
 
 	function onHiInput(event: Event) {
 		const nextHi = Number((event.currentTarget as HTMLInputElement).value);
 		value = clampPair(value[0], nextHi);
+		scheduleCommit();
 	}
 
+	const scheduleCommit = debounce(() => {
+		onValueCommit?.(value);
+	}, SEARCH_DEBOUNCE_MS);
+
+	onDestroy(() => scheduleCommit.cancel());
+
 	function commit() {
+		scheduleCommit.cancel();
 		onValueCommit?.(value);
 	}
 </script>

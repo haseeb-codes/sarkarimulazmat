@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { SITE_NAME } from '$lib/job-category-pages';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
 	let { data } = $props();
@@ -12,10 +14,22 @@
 	const canonical = $derived(new URL('/tags', page.url.origin).href);
 
 	const tags = $derived(data.tags);
-	let query = $state('');
+	let queryInput = $state('');
+	let debouncedQuery = $state('');
+
+	const syncDebouncedQuery = debounce((value: string) => {
+		debouncedQuery = value;
+	}, SEARCH_DEBOUNCE_MS);
+
+	onDestroy(() => syncDebouncedQuery.cancel());
+
+	function onQueryInput(value: string) {
+		queryInput = value;
+		syncDebouncedQuery(value);
+	}
 
 	const filteredTags = $derived.by(() => {
-		const q = query.trim().toLowerCase();
+		const q = debouncedQuery.trim().toLowerCase();
 		if (!q) return tags;
 		return tags.filter(
 			(tag) => tag.label.toLowerCase().includes(q) || tag.slug.toLowerCase().includes(q)
@@ -55,8 +69,8 @@
 			<Input
 				id="tag-search"
 				type="search"
-				value={query}
-				oninput={(e) => (query = e.currentTarget.value)}
+				value={queryInput}
+				oninput={(e) => onQueryInput(e.currentTarget.value)}
 				placeholder="Search tags by name or slug…"
 				class="h-12 w-full rounded-xl border-border bg-card pl-11 text-base shadow-sm md:text-base"
 				autocomplete="off"
@@ -68,7 +82,7 @@
 
 	<section aria-labelledby="job-tags-heading">
 		<h2 id="job-tags-heading" class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
-			{#if query.trim()}
+			{#if debouncedQuery.trim()}
 				{filteredTags.length} of {tags.length} job tags
 			{:else}
 				{tags.length} job tags
@@ -76,7 +90,7 @@
 		</h2>
 
 		{#if filteredTags.length === 0}
-			<p class="mt-3 text-sm text-muted-foreground">No tags match “{query.trim()}”.</p>
+			<p class="mt-3 text-sm text-muted-foreground">No tags match “{debouncedQuery.trim()}”.</p>
 		{:else}
 			<ul id="job-tags-list" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{#each filteredTags as tag (tag.slug)}

@@ -1,6 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onDestroy } from 'svelte';
 	import { adDetailHref } from '$lib/ads-utils';
+	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import { formatDateLabel } from '$lib/jobs-utils';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -10,17 +13,68 @@
 
 	let { data } = $props();
 
-	const isFiltered = $derived(Boolean(data.q) || data.page > 1);
+	let draft = $state('');
+	let focused = $state(false);
+	let pendingCommit: string | null = null;
+
+	const urlQ = $derived(page.url.searchParams.get('q') ?? '');
+
+	$effect(() => {
+		if (pendingCommit !== null) {
+			if (urlQ === pendingCommit) {
+				pendingCommit = null;
+				if (!focused) draft = urlQ;
+			}
+			return;
+		}
+
+		if (focused) return;
+		draft = urlQ;
+	});
+
+	function navigate(q: string | null) {
+		const committed = q ?? '';
+		if (committed === urlQ) {
+			pendingCommit = null;
+			return;
+		}
+		pendingCommit = committed;
+		const params = new URLSearchParams();
+		if (committed) params.set('q', committed);
+		const qs = params.toString();
+		goto(qs ? `/ads?${qs}` : '/ads', { keepFocus: true, noScroll: true, replaceState: true });
+	}
+
+	const scheduleCommit = debounce(
+		() => navigate(draft.trim() || null),
+		SEARCH_DEBOUNCE_MS
+	);
+
+	onDestroy(() => scheduleCommit.cancel());
+
+	function commitNow(event?: Event) {
+		event?.preventDefault();
+		scheduleCommit.cancel();
+		navigate(draft.trim() || null);
+	}
+
+	function onBlur() {
+		scheduleCommit.cancel();
+		navigate(draft.trim() || null);
+		focused = false;
+	}
+
+	const isFiltered = $derived(Boolean(urlQ) || data.page > 1);
 
 	const title = $derived(
-		data.q
-			? `Job ads matching “${data.q}” — Sarkari Mulazmat`
+		urlQ
+			? `Job ads matching “${urlQ}” — Sarkari Mulazmat`
 			: 'Job Advertisements — Sarkari Mulazmat'
 	);
 
 	const description = $derived(
-		data.q
-			? `Search results for “${data.q}” in government job newspaper advertisements on Sarkari Mulazmat.`
+		urlQ
+			? `Search results for “${urlQ}” in government job newspaper advertisements on Sarkari Mulazmat.`
 			: 'Browse government job newspaper advertisements in Pakistan — ad codes, headlines, and vacancy counts.'
 	);
 
@@ -68,7 +122,7 @@
 
 	function pageHref(nextPage: number) {
 		const params = new URLSearchParams();
-		if (data.q) params.set('q', data.q);
+		if (urlQ) params.set('q', urlQ);
 		if (nextPage > 1) params.set('page', String(nextPage));
 		const qs = params.toString();
 		return qs ? `/ads?${qs}` : '/ads';
@@ -124,11 +178,10 @@
 		</div>
 
 		<form
-			method="GET"
-			action="/ads"
 			class="relative max-w-2xl"
 			role="search"
 			aria-label="Search advertisements"
+			onsubmit={commitNow}
 		>
 			<SearchIcon
 				class="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-primary"
@@ -138,16 +191,19 @@
 				id="ads-search"
 				type="search"
 				name="q"
-				value={data.q ?? ''}
+				bind:value={draft}
+				oninput={scheduleCommit}
+				onfocus={() => (focused = true)}
+				onblur={onBlur}
 				placeholder="Search by headline, ad code, or description…"
-				class="h-12 w-full rounded-xl border-border bg-card pl-11 text-base shadow-sm md:text-base {data.q
+				class="h-12 w-full rounded-xl border-border bg-card pl-11 text-base shadow-sm md:text-base {urlQ
 					? 'pr-36'
 					: 'pr-24'}"
 				autocomplete="off"
 				enterkeyhint="search"
 				aria-controls="ads-results"
 			/>
-			{#if data.q}
+			{#if urlQ}
 				<a
 					href="/ads"
 					class="absolute top-1/2 right-[5.75rem] inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -165,9 +221,9 @@
 			</Button>
 		</form>
 
-		{#if data.q}
+		{#if urlQ}
 			<p class="text-sm text-muted-foreground">
-				Showing results for “{data.q}”.
+				Showing results for “{urlQ}”.
 				<a href="/ads" class="font-medium text-primary underline-offset-2 hover:underline">
 					View all advertisements
 				</a>
@@ -187,8 +243,8 @@
 			id="ads-results"
 			class="rounded-lg border border-dashed border-border px-4 py-10 text-center sm:px-6 sm:py-12"
 		>
-			{#if data.q}
-				<p class="font-medium">No advertisements match “{data.q}”</p>
+			{#if urlQ}
+				<p class="font-medium">No advertisements match “{urlQ}”</p>
 				<p class="mt-1 text-sm text-muted-foreground">
 					Try a shorter phrase, ad code, or department name from the headline.
 				</p>
@@ -200,8 +256,8 @@
 		</div>
 	{:else}
 		<p id="ads-results" class="text-sm text-muted-foreground">
-			{#if data.q}
-				{data.total.toLocaleString('en-PK')} result{data.total === 1 ? '' : 's'} for “{data.q}”
+			{#if urlQ}
+				{data.total.toLocaleString('en-PK')} result{data.total === 1 ? '' : 's'} for “{urlQ}”
 				<span class="mx-1">·</span>
 				<a href="/ads" class="font-medium text-primary underline-offset-2 hover:underline">
 					View all

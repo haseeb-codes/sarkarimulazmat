@@ -51,38 +51,37 @@ function filtersSnapshot(filters: JobFilters) {
 	};
 }
 
-export const load: PageServerLoad = async ({ url, locals }) => {
+export const load: PageServerLoad = ({ url, locals }) => {
 	const filters = parseJobFilters(url);
 	const snapshot = filtersSnapshot(filters);
 	const filtered = filtersAreActive(filters);
 
-	// Await listings so job cards are in initial HTML for SEO.
-	try {
-		const result = await listJobs(filters);
-		if (filtered) {
-			logSearch(filters, result.total, locals.visitorId, locals.clientIp);
-		}
-		return {
-			filters: snapshot,
-			filtered,
-			listing: {
+	// Stream listings — shell (filters, search, layout) renders immediately.
+	const listing = listJobs(filters)
+		.then((result) => {
+			if (filtered) {
+				logSearch(filters, result.total, locals.visitorId, locals.clientIp);
+			}
+			return {
 				jobs: result.jobs,
 				total: result.total,
 				totalPages: result.totalPages,
 				error: null as string | null
-			}
-		};
-	} catch (err) {
-		console.error('Failed to load jobs', err);
-		return {
-			filters: snapshot,
-			filtered,
-			listing: {
+			};
+		})
+		.catch((err) => {
+			console.error('Failed to load jobs', err);
+			return {
 				jobs: [],
 				total: 0,
 				totalPages: 1,
 				error: 'We could not load job listings right now. Please try again shortly.' as string | null
-			}
-		};
-	}
+			};
+		});
+
+	return {
+		filters: snapshot,
+		filtered,
+		listing
+	};
 };

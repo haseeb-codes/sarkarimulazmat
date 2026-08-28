@@ -50,9 +50,5 @@
 		</p>
 	</div>
 
-	<JobsBrowseShell
-		filters={data.filters}
-		listing={data.listing}
-		loading={isNavigating}
-	/>
+	<JobsBrowseShell filters={data.filters} listing={data.listing} loading={isNavigating} />
 </div>
