@@ -336,7 +336,7 @@
 		<div class="flex items-center justify-between gap-3">
 			<div class="min-w-0 space-y-0.5">
 				<Label for="{idPrefix}filter-age-toggle" class="cursor-pointer text-xs lg:text-sm"
-					>Filter by my age</Label
+					>Filter by age</Label
 				>
 				<p class="text-xs text-muted-foreground">
 					Show jobs with no age limit, or where you meet the posting’s age requirements.
@@ -346,7 +346,7 @@
 				id="{idPrefix}filter-age-toggle"
 				type="button"
 				role="switch"
-				aria-label="Filter by my age"
+				aria-label="Filter by age"
 				aria-checked={ageEnabledDraft}
 				onclick={() => setAgeFilterEnabled(!ageEnabledDraft)}
 				class={switchClass(ageEnabledDraft)}

@@ -140,6 +140,14 @@
 	{/if}
 {/snippet}
 
+{#snippet postedOnLabel(ad: ListAd)}
+	{#if ad.file_creation_date}
+		{formatDateLabel(ad.file_creation_date)}
+	{:else}
+		—
+	{/if}
+{/snippet}
+
 {#snippet lastDateLabel(ad: ListAd)}
 	{#if ad.last_date_to_apply}
 		{formatDateLabel(ad.last_date_to_apply)}
@@ -284,6 +292,10 @@
 								{vacancyLabel(ad.vacancies)}
 							</span>
 							<span class="tabular-nums">
+								<span class="font-medium text-foreground/80">Posted on:</span>
+								{@render postedOnLabel(ad)}
+							</span>
+							<span class="tabular-nums">
 								<span class="font-medium text-foreground/80">Last date:</span>
 								{@render lastDateLabel(ad)}
 							</span>
@@ -301,6 +313,7 @@
 					<tr>
 						<th class="px-4 py-3 font-semibold lg:px-5" scope="col">Ad code</th>
 						<th class="px-4 py-3 font-semibold lg:px-5" scope="col">Headline</th>
+						<th class="px-4 py-3 font-semibold whitespace-nowrap lg:px-5" scope="col">Posted On</th>
 						<th class="px-4 py-3 font-semibold whitespace-nowrap lg:px-5" scope="col">Last date</th>
 						<th class="px-4 py-3 text-right font-semibold lg:px-5" scope="col">Vacancies</th>
 					</tr>
@@ -319,6 +332,9 @@
 									{ad.ad_headline ?? ad.ad_slug}
 								</a>
 								{@render adPostedBy(ad)}
+							</td>
+							<td class="px-4 py-3 align-top whitespace-nowrap tabular-nums text-muted-foreground lg:px-5">
+								{@render postedOnLabel(ad)}
 							</td>
 							<td class="px-4 py-3 align-top whitespace-nowrap tabular-nums text-muted-foreground lg:px-5">
 								{@render lastDateLabel(ad)}

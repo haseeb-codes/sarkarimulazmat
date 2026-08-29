@@ -21,6 +21,9 @@
 
 	/** Shareable snapshot pages — no site chrome so the full page fits one screenshot. */
 	const isShareSnapshot = $derived(isJobCategoryShareSlug(page.url.pathname.slice(1)));
+	const isJobsPage = $derived(
+		page.route.id === '/' || page.route.id === '/[slug]' || page.route.id === '/jobs/[slug]'
+	);
 	const isTagsPage = $derived(page.url.pathname === '/tags');
 	const isAdsPage = $derived(page.url.pathname === '/ads' || page.url.pathname.startsWith('/ad/'));
 	const isAboutPage = $derived(page.url.pathname === '/about');
@@ -35,6 +38,7 @@
 	});
 
 	const navLinks = $derived([
+		{ href: '/', label: 'Jobs', active: isJobsPage },
 		{ href: '/ads', label: 'Ads', active: isAdsPage },
 		{ href: '/about', label: 'About', active: isAboutPage },
 		{ href: '/contact', label: 'Contact', active: isContactPage },
