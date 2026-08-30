@@ -33,11 +33,13 @@
 	let {
 		filters,
 		total = null,
+		countLoading = false,
 		loading = false,
 		error = null
 	}: {
 		filters: FilterParams;
 		total?: number | null;
+		countLoading?: boolean;
 		loading?: boolean;
 		error?: string | null;
 	} = $props();
@@ -116,7 +118,7 @@
 	class="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-0 py-1"
 >
 	<div class="flex min-w-0 flex-nowrap items-center gap-x-2 lg:gap-x-3">
-		{#if loading || total == null}
+		{#if countLoading || total == null}
 			<Skeleton class="h-3.5 w-24 shrink-0" />
 		{:else if !error && shown > 0 && shown < total}
 			<p class="whitespace-nowrap text-xs text-muted-foreground">

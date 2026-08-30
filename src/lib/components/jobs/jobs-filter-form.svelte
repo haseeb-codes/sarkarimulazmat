@@ -414,7 +414,7 @@
 	<Separator />
 
 	<div class="space-y-2">
-		<Label for="{idPrefix}filter-portal" class="text-xs lg:text-sm">Portal</Label>
+		<Label for="{idPrefix}filter-portal" class="text-xs lg:text-sm">Job Portal</Label>
 		<Select.Root
 			type="single"
 			value={portalDraft ?? ''}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { navigating, page } from '$app/state';
+	import HomePageHero from '$lib/components/jobs/home-page-hero.svelte';
 	import JobsBrowseShell from '$lib/components/jobs/jobs-browse-shell.svelte';
+	import TagChipsAsync from '$lib/components/jobs/tag-chips-async.svelte';
 
 	let { data } = $props();
 
@@ -24,7 +26,7 @@
 		name="description"
 		content={data.filtered
 			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
-			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`}
+			: `The first unified portal for government jobs in Pakistan — aggregated from CTSP, FPSC, PPSC, NTS, ETEA, NJP, and every major official source.`}
 	/>
 	<link rel="canonical" href={canonical} />
 	{#if data.filtered}
@@ -35,7 +37,7 @@
 		property="og:description"
 		content={data.filtered
 			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
-			: `Find government jobs in Pakistan that match your degree, education level, grade, and age.`}
+			: `The first unified portal for government jobs in Pakistan — aggregated from CTSP, FPSC, PPSC, NTS, ETEA, NJP, and every major official source.`}
 	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={page.url.href} />
@@ -43,12 +45,23 @@
 </svelte:head>
 
 <div class="space-y-6">
-	<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-		<h1 class="shrink-0">Government jobs in Pakistan</h1>
-		<p class="min-w-0 text-sm text-muted-foreground lg:text-base">
-			Browse postings by category, education, and more to see what you're eligible for.
-		</p>
-	</div>
+	{#if data.filtered}
+		<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+			<h1 class="shrink-0">Government jobs in Pakistan</h1>
+			<p class="min-w-0 text-sm text-muted-foreground lg:text-base">
+				Browse postings matching your current filters.
+			</p>
+		</div>
+	{:else}
+		<HomePageHero />
+	{/if}
 
-	<JobsBrowseShell filters={data.filters} listing={data.listing} loading={isNavigating} />
+	<TagChipsAsync />
+
+	<JobsBrowseShell
+		filters={data.filters}
+		listing={data.listing}
+		resultCount={data.resultCount}
+		loading={isNavigating}
+	/>
 </div>

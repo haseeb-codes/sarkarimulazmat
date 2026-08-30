@@ -157,6 +157,11 @@ export type BrowseByCategoryData = {
 	topTags: { slug: string; label: string; count: number }[];
 };
 
+export type PortalJobCount = {
+	label: string;
+	count: number;
+};
+
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const FILTER_OPTIONS_TTL_MS = 5 * 60 * 1000;
@@ -401,6 +406,7 @@ const SEARCHABLE_TEXT_FIELDS = [
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
 let browseCountsCache: { data: BrowseByCategoryData; expiresAt: number } | null = null;
+let portalCountsCache: { data: PortalJobCount[]; expiresAt: number } | null = null;
 
 function parsePositiveInt(value: string | null, fallback: number, max?: number): number {
 	if (!value) return fallback;
@@ -956,6 +962,26 @@ function searchRankingPhrase(filters: JobFilters): string | null {
 	return keyword || null;
 }
 
+/** Total matching jobs for the current filters — independent of pagination / row fetch. */
+export async function countJobs(filters: JobFilters): Promise<number> {
+	const where = buildJobWhere(filters);
+	const rankingPhrase = searchRankingPhrase(filters);
+
+	if (rankingPhrase) {
+		const candidates = await db.jobPostings.findMany({
+			where,
+			select: {
+				title: true,
+				department: true,
+				project_program_name: true
+			}
+		});
+		return candidates.length;
+	}
+
+	return db.jobPostings.count({ where });
+}
+
 export async function listJobs(filters: JobFilters): Promise<ListJobsResult> {
 	const cacheKey = defaultListJobsCacheKey(filters);
 	if (cacheKey) {
@@ -1395,6 +1421,24 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		topTags
 	};
 	browseCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
+	return data;
+}
+
+/** Active job counts per official portal label (matches Job Portal filter options). Cached briefly. */
+export async function getPortalJobCounts(): Promise<PortalJobCount[]> {
+	const now = Date.now();
+	if (portalCountsCache && portalCountsCache.expiresAt > now) {
+		return portalCountsCache.data;
+	}
+
+	const data = await Promise.all(
+		PORTAL_OPTIONS.map(async (label) => ({
+			label,
+			count: await countJobsMatching({ portal: label })
+		}))
+	);
+
+	portalCountsCache = { data, expiresAt: now + BROWSE_COUNTS_TTL_MS };
 	return data;
 }
 

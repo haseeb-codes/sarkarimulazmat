@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import {
 	filtersAreActive,
+	countJobs,
 	listJobs,
 	parseJobFilters,
 	type JobFilters
@@ -56,7 +57,12 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	const snapshot = filtersSnapshot(filters);
 	const filtered = filtersAreActive(filters);
 
-	// Stream listings — shell (filters, search, layout) renders immediately.
+	// Stream count and listings independently — shell renders immediately for both.
+	const resultCount = countJobs(filters).catch((err) => {
+		console.error('Failed to count jobs', err);
+		return 0;
+	});
+
 	const listing = listJobs(filters)
 		.then((result) => {
 			if (filtered) {
@@ -82,6 +88,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 	return {
 		filters: snapshot,
 		filtered,
+		resultCount,
 		listing
 	};
 };

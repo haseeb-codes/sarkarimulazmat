@@ -1,7 +1,17 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
-import type { JobCategoryColumn } from '$lib/job-category-pages';
+import { getJobCategoryTags, type JobCategoryColumn } from '$lib/job-category-pages';
 import { toListJobs } from '$lib/server/job-list-dto';
+
+export type TagJobCount = {
+	slug: string;
+	label: string;
+	count: number;
+};
+
+const TOP_TAGS_LIMIT = 12;
+const TOP_TAGS_TTL_MS = 5 * 60 * 1000;
+let topTagsCache: { data: TagJobCount[]; expiresAt: number } | null = null;
 
 function startOfTodayUtc(): Date {
 	const today = new Date();
@@ -50,4 +60,29 @@ export async function countJobCategoryJobs(column: JobCategoryColumn) {
 	return db.jobPostings.count({
 		where: activeJobsWhere(column)
 	});
+}
+
+/** Top job category tags with active job counts — cached briefly. */
+export async function getTopTagCounts(limit = TOP_TAGS_LIMIT): Promise<TagJobCount[]> {
+	const now = Date.now();
+	if (topTagsCache && topTagsCache.expiresAt > now) {
+		return topTagsCache.data;
+	}
+
+	const allTags = getJobCategoryTags();
+	const tagCounts = await Promise.all(
+		allTags.map(async (tag) => ({
+			slug: tag.slug,
+			label: tag.label,
+			count: await countJobCategoryJobs(tag.column)
+		}))
+	);
+
+	const data = tagCounts
+		.filter((tag) => tag.count > 0)
+		.sort((a, b) => b.count - a.count)
+		.slice(0, limit);
+
+	topTagsCache = { data, expiresAt: now + TOP_TAGS_TTL_MS };
+	return data;
 }

@@ -69,6 +69,7 @@
 		<JobsBrowseShell
 			filters={data.filters}
 			listing={data.listing}
+			resultCount={data.resultCount}
 			loading={isNavigating}
 		/>
 	</div>

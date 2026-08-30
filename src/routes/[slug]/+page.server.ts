@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import { getJobCategoryPage } from '$lib/job-category-pages';
 import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
 import db from '$lib/server/db';
-import { listJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
+import { listJobs, countJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
 import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } from '$lib/jobs-utils';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -154,24 +154,27 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		pageSize: filters.pageSize
 	};
 
-	let listing;
-	try {
-		const result = await listJobs(filters);
-		listing = {
+	const resultCount = countJobs(filters).catch((err) => {
+		console.error('Failed to count category jobs', err);
+		return 0;
+	});
+
+	const listing = listJobs(filters)
+		.then((result) => ({
 			jobs: result.jobs,
 			total: result.total,
 			totalPages: result.totalPages,
 			error: null as string | null
-		};
-	} catch (err) {
-		console.error('Failed to load category jobs', err);
-		listing = {
-			jobs: [],
-			total: 0,
-			totalPages: 1,
-			error: 'We could not load job listings right now. Please try again shortly.' as string | null
-		};
-	}
+		}))
+		.catch((err) => {
+			console.error('Failed to load category jobs', err);
+			return {
+				jobs: [],
+				total: 0,
+				totalPages: 1,
+				error: 'We could not load job listings right now. Please try again shortly.' as string | null
+			};
+		});
 
 	return {
 		kind: 'category' as const,
@@ -184,6 +187,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		},
 		filters: filtersSnapshot,
 		filtered,
+		resultCount,
 		listing
 	};
 };

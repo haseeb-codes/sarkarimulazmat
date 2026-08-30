@@ -5,15 +5,14 @@
 
 	type ListingResult = {
 		jobs: any[];
-		/** null while the listing promise is still pending */
-		total: number | null;
+		total: number;
 		totalPages: number;
 		error: string | null;
 	};
 
 	const EMPTY_LISTING: ListingResult = {
 		jobs: [],
-		total: null,
+		total: 0,
 		totalPages: 1,
 		error: null
 	};
@@ -30,15 +29,21 @@
 	let {
 		filters,
 		listing: listingInput,
+		resultCount: resultCountInput,
 		loading = false
 	}: {
 		filters: FilterParams;
 		listing: ListingResult | Promise<ListingResult>;
+		resultCount?: number | Promise<number>;
 		loading?: boolean;
 	} = $props();
 
 	let listing = $state<ListingResult>(EMPTY_LISTING);
 	let listingPending = $state(isPromise(listingInput));
+	let resultCount = $state<number | null>(null);
+	let resultCountPending = $state(
+		resultCountInput !== undefined && isPromise(resultCountInput)
+	);
 
 	$effect(() => {
 		const input = listingInput;
@@ -63,7 +68,38 @@
 		};
 	});
 
-	const showLoading = $derived(loading || listingPending);
+	$effect(() => {
+		const input = resultCountInput;
+
+		if (input === undefined) {
+			resultCount = listing.total;
+			resultCountPending = listingPending;
+			return;
+		}
+
+		if (!isPromise(input)) {
+			resultCount = input;
+			resultCountPending = false;
+			return;
+		}
+
+		let cancelled = false;
+		resultCountPending = true;
+		resultCount = null;
+
+		void input.then((total) => {
+			if (cancelled) return;
+			resultCount = total;
+			resultCountPending = false;
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	const showListingLoading = $derived(loading || listingPending);
+	const showCountLoading = $derived(resultCountPending);
 </script>
 
 <!--
@@ -72,16 +108,17 @@
 -->
 <FiltersDrawer
 	{filters}
-	resultCount={listing.total}
-	listingLoading={showLoading}
+	resultCount={resultCount}
+	countLoading={showCountLoading}
+	listingLoading={showListingLoading}
 	listingError={listing.error}
 >
 	<JobList
 		jobs={listing.jobs}
-		total={listing.total ?? 0}
+		total={resultCount ?? listing.total}
 		totalPages={listing.totalPages}
 		filters={filters as any}
 		error={listing.error}
-		loading={showLoading}
+		loading={showListingLoading}
 	/>
 </FiltersDrawer>

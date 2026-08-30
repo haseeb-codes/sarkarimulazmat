@@ -17,23 +17,28 @@
 	} from '$lib/jobs-utils';
 	import type { Snippet } from 'svelte';
 	import FilterIcon from '@lucide/svelte/icons/sliders-horizontal';
+	import PanelLeftCloseIcon from '@lucide/svelte/icons/panel-left-close';
+	import XIcon from '@lucide/svelte/icons/x';
 
 	let {
 		filters,
 		resultCount = null,
+		countLoading = false,
 		listingLoading = false,
 		listingError = null,
 		children
 	}: {
 		filters: FilterParams;
-		/** null while job listing is still loading */
+		/** null while the result count is still loading */
 		resultCount?: number | null;
+		countLoading?: boolean;
 		listingLoading?: boolean;
 		listingError?: string | null;
 		children?: Snippet;
 	} = $props();
 
 	let open = $state(false);
+	let sidebarVisible = $state(true);
 	let resultsRegion = $state<HTMLElement | null>(null);
 	let searchChrome = $state<HTMLElement | null>(null);
 	/** Keep results height while listing swaps so the window doesn't clamp to top. */
@@ -156,7 +161,9 @@
 	style="--browse-search-offset: 3.5rem; --browse-filters-offset: 3.5rem; --browse-results-header-offset: {resultsHeaderOffset};"
 >
 	<aside
-		class="hidden w-72 shrink-0 self-start overflow-y-auto rounded-lg border border-border bg-muted/40 lg:sticky lg:top-[var(--browse-filters-offset)] lg:block lg:max-h-[calc(100svh-var(--browse-filters-offset)-1rem)] xl:w-80"
+		class="hidden w-72 shrink-0 self-start overflow-y-auto rounded-lg border border-border bg-muted/40 lg:sticky lg:top-[var(--browse-filters-offset)] lg:max-h-[calc(100svh-var(--browse-filters-offset)-1rem)] xl:w-80 {sidebarVisible
+			? 'lg:block'
+			: ''}"
 	>
 		<div
 			class="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-muted/80 px-4 py-3"
@@ -165,26 +172,37 @@
 				Filters
 				<span class="font-normal text-muted-foreground">
 					·
-					{#if resultCount == null}
+					{#if countLoading || resultCount == null}
 						<Skeleton class="inline-block h-3.5 w-16 align-middle" />
 					{:else}
 						{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
 					{/if}
 				</span>
 			</h2>
-			<Button
-				variant="ghost"
-				size="sm"
-				class="h-7 px-2 text-xs text-destructive hover:text-destructive {!hasSearchParams
-					? 'invisible pointer-events-none'
-					: ''}"
-				disabled={!hasSearchParams}
-				tabindex={hasSearchParams ? 0 : -1}
-				aria-hidden={!hasSearchParams}
-				onclick={clearFilters}
-			>
-				Clear
-			</Button>
+			<div class="flex shrink-0 items-center gap-0.5">
+				<Button
+					variant="ghost"
+					size="sm"
+					class="h-7 px-2 text-xs text-destructive hover:text-destructive {!hasSearchParams
+						? 'invisible pointer-events-none'
+						: ''}"
+					disabled={!hasSearchParams}
+					tabindex={hasSearchParams ? 0 : -1}
+					aria-hidden={!hasSearchParams}
+					onclick={clearFilters}
+				>
+					Clear
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					class="hidden lg:inline-flex"
+					aria-label="Hide filters"
+					onclick={() => (sidebarVisible = false)}
+				>
+					<PanelLeftCloseIcon class="size-4" aria-hidden="true" />
+				</Button>
+			</div>
 		</div>
 		<div class="px-4 py-4">
 			<JobsFilterForm
@@ -203,46 +221,71 @@
 		>
 			<div class="py-2 lg:py-3">
 				<div class="flex items-center gap-1.5 lg:gap-2">
-					<div class="shrink-0 lg:hidden">
-						<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
+					<div class="shrink-0">
+						{#if !sidebarVisible}
 							<Button
 								variant="outline"
 								size="sm"
-								class="h-9 w-9 px-0 {hasSearchParams
+								class="hidden h-9 w-9 px-0 lg:inline-flex {hasSearchParams
 									? 'border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive'
 									: ''}"
-								onclick={() => (open = true)}
+								onclick={() => (sidebarVisible = true)}
 								aria-label={filtersLabel}
 							>
 								<FilterIcon class="size-3.5" aria-hidden="true" />
 							</Button>
+						{/if}
 
-							{#if open}
-								<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
-									<Drawer.Header class="shrink-0 border-b border-border text-left">
-										<div class="flex items-start justify-between gap-2">
-											<Drawer.Title>
-												Filters
-												<span class="font-normal text-muted-foreground">
-													·
-													{#if resultCount == null}
-														<Skeleton class="inline-block h-3.5 w-16 align-middle" />
-													{:else}
-														{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+						<div class="lg:hidden">
+							<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
+								<Button
+									variant="outline"
+									size="sm"
+									class="h-9 w-9 px-0 {hasSearchParams
+										? 'border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive'
+										: ''}"
+									onclick={() => (open = true)}
+									aria-label={filtersLabel}
+								>
+									<FilterIcon class="size-3.5" aria-hidden="true" />
+								</Button>
+
+								{#if open}
+									<Drawer.Content class="flex max-h-svh flex-col gap-0 sm:max-w-md">
+										<Drawer.Header class="shrink-0 border-b border-border text-left">
+											<div class="flex items-start justify-between gap-2">
+												<Drawer.Title>
+													Filters
+													<span class="font-normal text-muted-foreground">
+														·
+														{#if countLoading || resultCount == null}
+															<Skeleton class="inline-block h-3.5 w-16 align-middle" />
+														{:else}
+															{resultCount.toLocaleString()} job{resultCount === 1 ? '' : 's'}
+														{/if}
+													</span>
+												</Drawer.Title>
+												<div class="flex shrink-0 items-center gap-0.5">
+													{#if hasSearchParams}
+														<Button
+															variant="ghost"
+															size="sm"
+															class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+															onclick={clearFilters}
+														>
+															Clear
+														</Button>
 													{/if}
-												</span>
-											</Drawer.Title>
-											{#if hasSearchParams}
-												<Button
-													variant="ghost"
-													size="sm"
-													class="h-7 shrink-0 px-2 text-xs text-destructive hover:text-destructive"
-													onclick={clearFilters}
-												>
-													Clear
-												</Button>
-											{/if}
-										</div>
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														aria-label="Close filters"
+														onclick={() => (open = false)}
+													>
+														<XIcon class="size-4" aria-hidden="true" />
+													</Button>
+												</div>
+											</div>
 										<Drawer.Description>
 											Narrow jobs by age, qualification, degree specialization, BPS grade, permanent
 											jobs, and domicile.
@@ -255,9 +298,10 @@
 											idPrefix="drawer-"
 										/>
 									</div>
-								</Drawer.Content>
-							{/if}
-						</Drawer.Root>
+									</Drawer.Content>
+								{/if}
+							</Drawer.Root>
+						</div>
 					</div>
 
 					<div class="min-w-0 flex-1">
@@ -269,6 +313,7 @@
 			<BrowseResultsToolbar
 				filters={chipFilters}
 				total={resultCount}
+				countLoading={countLoading}
 				loading={listingLoading}
 				error={listingError}
 			/>

@@ -19,8 +19,10 @@
 
 	let { data, children } = $props();
 
-	/** Shareable snapshot pages — no site chrome so the full page fits one screenshot. */
+	/** Shareable snapshot and social-image pages — no site chrome. */
 	const isShareSnapshot = $derived(isJobCategoryShareSlug(page.url.pathname.slice(1)));
+	const isSocialImageRoute = $derived(page.url.pathname.startsWith('/social/'));
+	const isBarePage = $derived(isShareSnapshot || isSocialImageRoute);
 	const isJobsPage = $derived(
 		page.route.id === '/' || page.route.id === '/[slug]' || page.route.id === '/jobs/[slug]'
 	);
@@ -62,7 +64,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if isShareSnapshot}
+{#if isBarePage}
 	{@render children()}
 {:else}
 	<div class="flex min-h-svh flex-col">
