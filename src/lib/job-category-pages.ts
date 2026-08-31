@@ -49,6 +49,8 @@ export type JobCategoryColumn = (typeof JOB_CATEGORY_COLUMNS)[number];
 export type JobCategoryPageDef = {
 	slug: string;
 	column: JobCategoryColumn;
+	/** When set, jobs match if `degree_area` contains any term (instead of the flag column). */
+	degree_area_terms?: string[];
 	title: string;
 	h1: string;
 	metaDescription: string;
@@ -166,6 +168,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'computer-science-jobs',
 		column: 'is_computer_science_job',
+		degree_area_terms: ['Computer Science', 'Computer Engineer', 'Information Technology'],
 		title: 'Computer Science Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Computer science government jobs in Pakistan',
 		metaDescription:

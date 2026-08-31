@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
 	const counts = await Promise.all(
 		tags.map(async (tag) => ({
 			slug: tag.slug,
-			count: await countJobCategoryJobs(tag.column)
+			count: await countJobCategoryJobs(tag)
 		}))
 	);
 

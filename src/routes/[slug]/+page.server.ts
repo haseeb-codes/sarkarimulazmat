@@ -9,7 +9,7 @@ import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } fro
 export const load: PageServerLoad = async ({ params, url }) => {
 	const jobCategory = getJobCategoryPage(params.slug);
 	if (jobCategory) {
-		const result = await loadJobCategoryJobs(jobCategory.column);
+		const result = await loadJobCategoryJobs(jobCategory);
 		return {
 			kind: 'share' as const,
 			category: jobCategory,

@@ -2,7 +2,7 @@ import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
 import { getJobCategoryPage, getJobCategoryTags } from '$lib/job-category-pages';
 import { getDomicileRegion, selectedDomicileRegions } from '$lib/domicile-regions';
-import { countJobCategoryJobs } from '$lib/server/job-category-jobs';
+import { countJobCategoryJobs, buildJobCategoryTagWhere } from '$lib/server/job-category-jobs';
 import { DEGREE_SPECIALIZATIONS } from '$lib/degree-specializations';
 import { PORTAL_OPTIONS } from '$lib/filter-static-options';
 import {
@@ -786,7 +786,7 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		for (const slug of filters.tag) {
 			const category = getJobCategoryPage(slug);
 			if (category) {
-				tagOr.push({ [category.column]: 1 });
+				tagOr.push(buildJobCategoryTagWhere(category));
 			}
 		}
 		if (tagOr.length) and.push({ OR: tagOr });
@@ -1402,7 +1402,7 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 		allTags.map(async (tag) => ({
 			slug: tag.slug,
 			label: tag.label,
-			count: await countJobCategoryJobs(tag.column)
+			count: await countJobCategoryJobs(tag)
 		}))
 	);
 	const topTags = tagCounts

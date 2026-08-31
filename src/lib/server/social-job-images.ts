@@ -42,7 +42,7 @@ export async function loadSocialJobImageData(
 	const requestedPage = parseSocialImagePage(pageParam);
 	const config = SOCIAL_IMAGE_FORMATS[format];
 
-	const { jobs, updatedAt } = await loadJobCategoryJobs(category.column);
+	const { jobs, updatedAt } = await loadJobCategoryJobs(category);
 	const totalPages = Math.max(1, Math.ceil(jobs.length / config.jobsPerPage));
 	const page = Math.min(requestedPage, totalPages);
 	const start = (page - 1) * config.jobsPerPage;

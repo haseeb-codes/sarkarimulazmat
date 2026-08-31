@@ -4,7 +4,7 @@ import {
 	getJobCategoryTags,
 	HOME_PAGE_TAG_LABELS,
 	HOME_PAGE_TAG_SLUGS,
-	type JobCategoryColumn
+	type JobCategoryPageDef
 } from '$lib/job-category-pages';
 import { toListJobs } from '$lib/server/job-list-dto';
 
@@ -23,24 +23,46 @@ function startOfTodayUtc(): Date {
 	return today;
 }
 
-function activeJobsWhere(column: JobCategoryColumn): Prisma.JobPostingsWhereInput {
-	const startOfToday = startOfTodayUtc();
-
+function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	return {
-		[column]: 1,
-		AND: [
-			{ is_active: 1 },
-			{ row_id: { not: null } },
-			{
-				OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
-			}
-		]
+		OR: terms.map((term) => ({
+			degree_area: { contains: term, mode: 'insensitive' as const }
+		}))
 	};
 }
 
-export async function loadJobCategoryJobs(column: JobCategoryColumn) {
+export type JobCategoryFilter = Pick<JobCategoryPageDef, 'column' | 'degree_area_terms'>;
+
+/** Tag filter clause for the main job list (`buildJobWhere`). */
+export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
+	if (category.degree_area_terms?.length) {
+		return degreeAreaTermsWhere(category.degree_area_terms);
+	}
+	return { [category.column]: 1 };
+}
+
+export function buildJobCategoryWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
+	const startOfToday = startOfTodayUtc();
+	const and: Prisma.JobPostingsWhereInput[] = [
+		{ is_active: 1 },
+		{ row_id: { not: null } },
+		{
+			OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
+		}
+	];
+
+	if (category.degree_area_terms?.length) {
+		and.push(degreeAreaTermsWhere(category.degree_area_terms));
+	} else {
+		and.push({ [category.column]: 1 });
+	}
+
+	return { AND: and };
+}
+
+export async function loadJobCategoryJobs(category: JobCategoryFilter) {
 	const rawJobs = await db.jobPostings.findMany({
-		where: activeJobsWhere(column),
+		where: buildJobCategoryWhere(category),
 		orderBy: [
 			{ ad_date: { sort: 'desc', nulls: 'last' } },
 			{ file_creation_date: { sort: 'desc', nulls: 'last' } },
@@ -58,11 +80,9 @@ export async function loadJobCategoryJobs(column: JobCategoryColumn) {
 	};
 }
 
-export async function countJobCategoryJobs(column: JobCategoryColumn) {
-	// Count uses the same "active + not expired" filter as `loadJobCategoryJobs`,
-	// but avoids fetching full rows.
+export async function countJobCategoryJobs(category: JobCategoryFilter) {
 	return db.jobPostings.count({
-		where: activeJobsWhere(column)
+		where: buildJobCategoryWhere(category)
 	});
 }
 
@@ -82,7 +102,7 @@ export async function getTopTagCounts(): Promise<TagJobCount[]> {
 			return {
 				slug: tag.slug,
 				label: HOME_PAGE_TAG_LABELS[slug] ?? tag.label,
-				count: await countJobCategoryJobs(tag.column)
+				count: await countJobCategoryJobs(tag)
 			};
 		})
 	);
