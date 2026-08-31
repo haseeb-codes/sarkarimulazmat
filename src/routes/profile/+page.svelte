@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { signOut } from '@auth/sveltekit/client';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -16,11 +17,49 @@
 
 	let submitting = $state(false);
 	let deleting = $state(false);
+	let keywordInput = $state('');
+	let keywords = $state<string[]>([...data.jobInterests]);
 
 	const dobValue = $derived(form?.dateOfBirth ?? data.values.dateOfBirth);
-	const graduationValue = $derived(form?.graduationDate ?? data.values.graduationDate);
 	const educationValue = $derived(form?.highestDegree ?? data.values.highestDegree);
+	const degreeTitleValue = $derived(form?.degreeTitle ?? data.values.degreeTitle);
+	const degreeSpecializationValue = $derived(
+		form?.degreeSpecialization ?? data.values.degreeSpecialization
+	);
+	const whatsappValue = $derived(form?.whatsappNumber ?? data.values.whatsappNumber);
+	const hasDisabilityValue = $derived(form?.hasDisability ?? data.values.hasDisability);
 	const genderValue = $derived(form?.gender ?? data.values.gender);
+
+	$effect(() => {
+		if (form?.keywords && Array.isArray(form.keywords)) {
+			keywords = form.keywords.map(String);
+		}
+	});
+
+	function addKeyword() {
+		const value = keywordInput.trim();
+		if (!value) return;
+
+		const exists = keywords.some((keyword) => keyword.toLowerCase() === value.toLowerCase());
+		if (exists) {
+			keywordInput = '';
+			return;
+		}
+
+		keywords = [...keywords, value];
+		keywordInput = '';
+	}
+
+	function removeKeyword(index: number) {
+		keywords = keywords.filter((_, i) => i !== index);
+	}
+
+	function handleKeywordKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			addKeyword();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -109,13 +148,28 @@
 				</div>
 
 				<div class="space-y-2">
-					<Label for="profile-graduation">Graduation date</Label>
+					<Label for="profile-degree-title">Highest degree title</Label>
 					<Input
-						id="profile-graduation"
-						name="graduation_date"
-						type="date"
+						id="profile-degree-title"
+						name="degree_title"
+						type="text"
 						required
-						value={graduationValue}
+						autocomplete="off"
+						placeholder="e.g. BS Computer Science, MBBS"
+						value={degreeTitleValue}
+						disabled={submitting}
+					/>
+				</div>
+
+				<div class="space-y-2">
+					<Label for="profile-degree-specialization">Degree specialization (optional)</Label>
+					<Input
+						id="profile-degree-specialization"
+						name="degree_specialization"
+						type="text"
+						autocomplete="off"
+						placeholder="e.g. Computer Science, Civil Engineering"
+						value={degreeSpecializationValue}
 						disabled={submitting}
 					/>
 				</div>
@@ -137,6 +191,72 @@
 					</select>
 				</div>
 
+				<div class="space-y-2">
+					<Label for="profile-whatsapp">WhatsApp number</Label>
+					<Input
+						id="profile-whatsapp"
+						name="whatsapp_number"
+						type="tel"
+						required
+						autocomplete="tel"
+						inputmode="tel"
+						placeholder="e.g. 03001234567"
+						value={whatsappValue}
+						disabled={submitting}
+					/>
+				</div>
+
+				<label class="flex items-start gap-3 text-sm leading-relaxed">
+					<input
+						type="checkbox"
+						name="has_disability"
+						checked={hasDisabilityValue}
+						disabled={submitting}
+						class="mt-0.5 size-4 rounded border border-input"
+					/>
+					<span>I have a disability</span>
+				</label>
+
+				<div class="space-y-2">
+					<Label for="profile-job-keyword">Job interest keywords</Label>
+					<div class="flex gap-2">
+						<Input
+							id="profile-job-keyword"
+							type="text"
+							autocomplete="off"
+							placeholder="e.g. data science"
+							bind:value={keywordInput}
+							onkeydown={handleKeywordKeydown}
+							disabled={submitting}
+						/>
+						<Button type="button" variant="secondary" onclick={addKeyword} disabled={submitting}>
+							Add
+						</Button>
+					</div>
+					{#if keywords.length > 0}
+						<div class="flex flex-wrap gap-2 pt-1">
+							{#each keywords as keyword, index (keyword + index)}
+								<Badge variant="secondary" class="gap-1 pr-1">
+									{keyword}
+									<button
+										type="button"
+										class="rounded-sm px-1 text-muted-foreground hover:text-foreground"
+										aria-label="Remove {keyword}"
+										onclick={() => removeKeyword(index)}
+										disabled={submitting}
+									>
+										×
+									</button>
+								</Badge>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				{#each keywords as keyword (keyword)}
+					<input type="hidden" name="keyword" value={keyword} />
+				{/each}
+
 				<label class="flex items-start gap-3 text-sm leading-relaxed">
 					<input
 						type="checkbox"
@@ -151,7 +271,7 @@
 					</span>
 				</label>
 
-				<Button type="submit" disabled={submitting}>
+				<Button type="submit" disabled={submitting || keywords.length === 0}>
 					{submitting ? 'Saving…' : 'Save changes'}
 				</Button>
 			</form>

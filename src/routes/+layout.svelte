@@ -7,13 +7,12 @@
 	import { isJobCategoryShareSlug } from '$lib/job-category-pages';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
+	import UserNavMenu from '$lib/components/user-nav-menu.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import XIcon from '@lucide/svelte/icons/x';
-	import UserIcon from '@lucide/svelte/icons/user';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
-	import { signOut } from '@auth/sveltekit/client';
 
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
@@ -32,6 +31,9 @@
 	const isContactPage = $derived(page.url.pathname === '/contact');
 	const isSignedIn = $derived(Boolean(data.session?.user));
 	const profileHref = $derived(data.profileComplete ? '/profile' : '/onboarding');
+	const userName = $derived(data.profile?.name ?? data.session?.user?.name ?? null);
+	const userEmail = $derived(data.profile?.email ?? data.session?.user?.email ?? null);
+	const userImage = $derived(data.profile?.image ?? data.session?.user?.image ?? null);
 
 	let mobileNavOpen = $state(false);
 
@@ -93,29 +95,25 @@
 								{link.label}
 							</a>
 						{/each}
-						{#if isSignedIn}
-							<a href={profileHref} class={navLinkClass(page.url.pathname.startsWith('/profile') || page.url.pathname === '/onboarding')}>
-								<span class="inline-flex items-center gap-1.5">
-									<UserIcon class="size-4" aria-hidden="true" />
-									Profile
-								</span>
-							</a>
-							<Button variant="ghost" size="sm" onclick={() => signOut({ callbackUrl: '/' })}>
-								Sign out
-							</Button>
-						{:else}
-							<Button href="/login" variant="ghost" size="sm">Sign in</Button>
-						{/if}
-						<div class="ml-1 border-l border-border pl-1">
-							<ThemeToggle />
-						</div>
 					</nav>
 
-					<!-- Mobile: hamburger -->
-					<div class="ml-auto flex items-center md:hidden">
+					<div class="ml-auto flex items-center gap-0.5 md:ml-0 md:gap-1">
+						<UserNavMenu
+							{isSignedIn}
+							{profileHref}
+							{userName}
+							{userEmail}
+							{userImage}
+						/>
+						<div class="hidden border-l border-border pl-1 md:block">
+							<ThemeToggle />
+						</div>
+
+						<!-- Mobile: hamburger -->
 						<Button
 							variant="ghost"
 							size="icon"
+							class="md:hidden"
 							onclick={() => (mobileNavOpen = !mobileNavOpen)}
 							aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
 							aria-expanded={mobileNavOpen}
@@ -145,23 +143,6 @@
 								{link.label}
 							</a>
 						{/each}
-						{#if isSignedIn}
-							<a
-								href={profileHref}
-								class={navLinkClass(page.url.pathname.startsWith('/profile') || page.url.pathname === '/onboarding', true)}
-							>
-								Profile
-							</a>
-							<button
-								type="button"
-								class={navLinkClass(false, true)}
-								onclick={() => signOut({ callbackUrl: '/' })}
-							>
-								Sign out
-							</button>
-						{:else}
-							<a href="/login" class={navLinkClass(page.url.pathname === '/login', true)}>Sign in</a>
-						{/if}
 						<div class="mt-1 flex items-center justify-between rounded-md px-3 py-2">
 							<span class="text-sm font-medium text-muted-foreground">Theme</span>
 							<ThemeToggle />

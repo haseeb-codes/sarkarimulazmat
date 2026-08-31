@@ -168,10 +168,11 @@ model JobPostings {
   age_relaxation                      String?
   min_age                             Int?
   apply_within_days                   Int?
-  donor_name                          String?
-  news_source                         String?
-  male_headcount                      Int?
   female_headcount                    Int?
+  news_source                         String?
+  donor_name                          String?
+  male_headcount                      Int?
+  disparity_quota                     Boolean?
   license_root                        Boolean?
   domiciled                           String?
   domiciled_any                       Int?
@@ -211,22 +212,40 @@ model CategoryPage {
 /// Signed-in user profile, keyed by Google `sub` claim.
 /// `id` is used as the Auth.js session user id.
 model UserProfile {
-  id               String    @id @default(uuid())
-  google_sub       String    @unique @map("google_sub")
-  email            String
-  name             String?
-  image            String?
-  date_of_birth    DateTime? @map("date_of_birth") @db.Date
-  highest_degree   String?   @map("highest_degree")
-  graduation_date  DateTime? @map("graduation_date") @db.Date
-  gender           String?
-  email_subscribed Boolean   @default(false) @map("email_subscribed")
-  consent_given_at DateTime? @map("consent_given_at")
-  created_at       DateTime  @default(now()) @map("created_at")
-  updated_at       DateTime  @updatedAt @map("updated_at")
+  id                    String            @id @default(uuid())
+  google_sub            String            @unique @map("google_sub")
+  email                 String
+  name                  String?
+  image                 String?
+  date_of_birth         DateTime?         @map("date_of_birth") @db.Date
+  highest_degree        String?           @map("highest_degree")
+  degree_title          String?           @map("degree_title")
+  degree_specialization String?           @map("degree_specialization")
+  graduation_date       DateTime?         @map("graduation_date") @db.Date
+  gender                String?
+  whatsapp_number       String?           @map("whatsapp_number")
+  has_disability        Boolean           @default(false) @map("has_disability")
+  email_subscribed      Boolean           @default(false) @map("email_subscribed")
+  consent_given_at      DateTime?         @map("consent_given_at")
+  created_at            DateTime          @default(now()) @map("created_at")
+  updated_at            DateTime          @updatedAt @map("updated_at")
+  job_interests         UserJobInterest[]
 
   @@index([email])
   @@map("user_profiles")
+}
+
+/// Job-interest keywords entered during onboarding (one row per keyword).
+model UserJobInterest {
+  id         String      @id @default(cuid())
+  user_id    String      @map("user_id")
+  keyword    String
+  created_at DateTime    @default(now()) @map("created_at")
+  profile    UserProfile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, keyword])
+  @@index([user_id])
+  @@map("user_job_interests")
 }
 
 /// Anonymous visitor identity (cookie-linked)

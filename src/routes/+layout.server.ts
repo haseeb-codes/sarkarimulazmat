@@ -18,7 +18,7 @@ function isProfileExemptPath(pathname: string): boolean {
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const session = await locals.auth();
 	const profile = session?.user?.id ? await getProfileById(session.user.id) : null;
-	const profileComplete = profile ? isProfileComplete(profile) : false;
+	const profileComplete = session?.user?.id ? await isProfileComplete(session.user.id) : false;
 
 	if (session?.user?.id && !profileComplete && !isProfileExemptPath(url.pathname)) {
 		redirect(303, '/onboarding');
