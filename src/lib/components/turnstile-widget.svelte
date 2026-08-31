@@ -12,6 +12,7 @@
 				callback?: (token: string) => void;
 				'error-callback'?: (errorCode: string) => void;
 				'expired-callback'?: () => void;
+				'timeout-callback'?: () => void;
 			}
 		) => string;
 		reset: (widgetId?: string) => void;
@@ -20,15 +21,18 @@
 
 	let {
 		siteKey,
-		resetSignal = 0
+		resetSignal = 0,
+		token = $bindable('')
 	}: {
 		siteKey: string;
 		resetSignal?: number;
+		token?: string;
 	} = $props();
 
 	let container: HTMLDivElement | undefined = $state();
 	let widgetId: string | undefined = $state();
 	let errorMessage = $state<string | null>(null);
+	let handledResetSignal = 0;
 
 	function getTurnstile(): TurnstileApi | undefined {
 		return (window as Window & { turnstile?: TurnstileApi }).turnstile;
@@ -82,11 +86,29 @@
 			widgetId = undefined;
 		}
 
+		token = '';
+		errorMessage = null;
+
 		widgetId = api.render(container, {
 			sitekey: siteKey,
 			theme: 'auto',
 			size: 'flexible',
+			callback: (newToken) => {
+				token = newToken;
+				errorMessage = null;
+			},
+			// Tokens are valid for 5 minutes; without these the widget goes stale while the
+			// visitor is still typing and the server rejects it as timeout-or-duplicate.
+			'expired-callback': () => {
+				token = '';
+				if (widgetId) api.reset(widgetId);
+			},
+			'timeout-callback': () => {
+				token = '';
+				if (widgetId) api.reset(widgetId);
+			},
 			'error-callback': (code) => {
+				token = '';
 				const codeStr = String(code);
 				errorMessage =
 					codeStr === '110200'
@@ -94,13 +116,15 @@
 						: `Captcha failed to load (error ${codeStr}). Check your site key and widget domain settings.`;
 			}
 		});
-		errorMessage = null;
 	}
 
 	$effect(() => {
-		if (resetSignal > 0 && widgetId) {
-			getTurnstile()?.reset(widgetId);
-		}
+		const signal = resetSignal;
+		if (signal === handledResetSignal || !widgetId) return;
+
+		handledResetSignal = signal;
+		token = '';
+		getTurnstile()?.reset(widgetId);
 	});
 
 	onMount(() => {

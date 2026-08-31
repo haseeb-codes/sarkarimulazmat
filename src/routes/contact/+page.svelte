@@ -9,6 +9,11 @@
 
 	let submitting = $state(false);
 	let turnstileReset = $state(0);
+	let turnstileToken = $state('');
+
+	const captchaSolved = $derived(
+		!data.captchaEnabled || (Boolean(data.turnstileSiteKey) && Boolean(turnstileToken))
+	);
 </script>
 
 <svelte:head>
@@ -17,7 +22,9 @@
 		name="description"
 		content="Get in touch with Sarkari Mulazmat. Send a message about government jobs, feedback, or questions."
 	/>
-	<link rel="preconnect" href="https://challenges.cloudflare.com" />
+	{#if data.captchaEnabled}
+		<link rel="preconnect" href="https://challenges.cloudflare.com" />
+	{/if}
 </svelte:head>
 
 <article class="mx-auto max-w-2xl space-y-6">
@@ -45,9 +52,14 @@
 				return async ({ result, update }) => {
 					await update();
 					submitting = false;
-					if (result.type !== 'success') {
-						turnstileReset += 1;
-					}
+
+					// Only re-challenge when the token was actually spent; a rejected field
+					// leaves it valid, so making the visitor solve it again is wasted effort.
+					const spent =
+						result.type === 'failure'
+							? (result.data as { captchaExpired?: boolean } | undefined)?.captchaExpired === true
+							: result.type === 'error';
+					if (spent) turnstileReset += 1;
 				};
 			}}
 		>
@@ -118,20 +130,33 @@
 				>
 			</div>
 
+			{#if data.captchaEnabled}
+				<div class="space-y-2">
+					{#if data.turnstileSiteKey}
+						<TurnstileWidget
+							siteKey={data.turnstileSiteKey}
+							resetSignal={turnstileReset}
+							bind:token={turnstileToken}
+						/>
+					{:else}
+						<p class="text-sm text-destructive" role="alert">
+							Captcha is not configured. Add PUBLIC_TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to
+							your environment.
+						</p>
+					{/if}
+				</div>
+			{/if}
+
 			<div class="space-y-2">
-				{#if data.turnstileSiteKey}
-					<TurnstileWidget siteKey={data.turnstileSiteKey} resetSignal={turnstileReset} />
-				{:else}
-					<p class="text-sm text-destructive" role="alert">
-						Captcha is not configured. Add PUBLIC_TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY to
-						your environment.
+				<Button type="submit" disabled={submitting || !captchaSolved}>
+					{submitting ? 'Sending…' : 'Send message'}
+				</Button>
+				{#if data.captchaEnabled && data.turnstileSiteKey && !captchaSolved && !submitting}
+					<p class="text-sm text-muted-foreground">
+						Complete the captcha above to enable sending.
 					</p>
 				{/if}
 			</div>
-
-			<Button type="submit" disabled={submitting || !data.turnstileSiteKey}>
-				{submitting ? 'Sending…' : 'Send message'}
-			</Button>
 		</form>
 	{/if}
 </article>

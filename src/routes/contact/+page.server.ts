@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import db from '$lib/server/db';
-import { verifyTurnstileToken } from '$lib/server/turnstile';
+import { isCaptchaEnabled, verifyTurnstileToken } from '$lib/server/turnstile';
 import { env } from '$env/dynamic/public';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,8 +20,10 @@ function formValues(fields: {
 }
 
 export const load: PageServerLoad = async () => {
+	const captchaEnabled = isCaptchaEnabled();
 	return {
-		turnstileSiteKey: env.PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? ''
+		captchaEnabled,
+		turnstileSiteKey: captchaEnabled ? (env.PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? '') : ''
 	};
 };
 
@@ -34,11 +36,6 @@ export const actions: Actions = {
 		const message = String(data.get('message') ?? '').trim();
 		const turnstileToken = String(data.get('cf-turnstile-response') ?? '').trim();
 		const values = formValues({ name, email, contact, message });
-
-		const captcha = await verifyTurnstileToken(turnstileToken, locals.clientIp);
-		if (!captcha.ok) {
-			return fail(400, { ...values, error: captcha.reason });
-		}
 
 		if (!name || !contact || !message) {
 			return fail(400, {
@@ -66,6 +63,14 @@ export const actions: Actions = {
 			});
 		}
 
+		// Verified last so a rejected field never consumes the single-use token.
+		if (isCaptchaEnabled()) {
+			const captcha = await verifyTurnstileToken(turnstileToken, locals.clientIp);
+			if (!captcha.ok) {
+				return fail(400, { ...values, error: captcha.reason, captchaExpired: true });
+			}
+		}
+
 		try {
 			await db.email.create({
 				data: {
@@ -79,7 +84,8 @@ export const actions: Actions = {
 			console.error('Failed to save contact message', err);
 			return fail(500, {
 				...values,
-				error: 'We could not send your message right now. Please try again shortly.'
+				error: 'We could not send your message right now. Please try again shortly.',
+				captchaExpired: true
 			});
 		}
 
