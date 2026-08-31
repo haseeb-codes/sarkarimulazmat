@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FiltersDrawer from '$lib/components/jobs/filters-drawer.svelte';
 	import JobList from '$lib/components/jobs/job-list.svelte';
-	import type { FilterParams } from '$lib/jobs-utils';
+	import { filtersToSearchParams, type FilterParams } from '$lib/jobs-utils';
 
 	type ListingResult = {
 		jobs: any[];
@@ -38,29 +38,32 @@
 		loading?: boolean;
 	} = $props();
 
-	let listing = $state<ListingResult>(EMPTY_LISTING);
-	let listingPending = $state(isPromise(listingInput));
-	let resultCount = $state<number | null>(null);
-	let resultCountPending = $state(
-		resultCountInput !== undefined && isPromise(resultCountInput)
+	/** Identity of the active filter set — mirrors URL search params, ignores page. */
+	const filterKey = $derived(
+		filtersToSearchParams({ ...filters, page: 1 }).toString()
 	);
+
+	/**
+	 * Resolved payloads carry the filter set they were requested for. Anything tagged with a
+	 * stale key is treated as still-loading, so results from the previous filters are never
+	 * rendered against the current ones.
+	 */
+	let resolvedListing = $state<{ key: string; value: ListingResult } | null>(null);
+	let resolvedCount = $state<{ key: string; value: number } | null>(null);
 
 	$effect(() => {
 		const input = listingInput;
+		const key = filterKey;
 
 		if (!isPromise(input)) {
-			listing = input;
-			listingPending = false;
+			resolvedListing = { key, value: input };
 			return;
 		}
 
 		let cancelled = false;
-		listingPending = true;
 
-		void input.then((result) => {
-			if (cancelled) return;
-			listing = result;
-			listingPending = false;
+		void input.then((value) => {
+			if (!cancelled) resolvedListing = { key, value };
 		});
 
 		return () => {
@@ -70,27 +73,19 @@
 
 	$effect(() => {
 		const input = resultCountInput;
+		const key = filterKey;
 
-		if (input === undefined) {
-			resultCount = listing.total;
-			resultCountPending = listingPending;
-			return;
-		}
+		if (input === undefined) return;
 
 		if (!isPromise(input)) {
-			resultCount = input;
-			resultCountPending = false;
+			resolvedCount = { key, value: input };
 			return;
 		}
 
 		let cancelled = false;
-		resultCountPending = true;
-		resultCount = null;
 
-		void input.then((total) => {
-			if (cancelled) return;
-			resultCount = total;
-			resultCountPending = false;
+		void input.then((value) => {
+			if (!cancelled) resolvedCount = { key, value };
 		});
 
 		return () => {
@@ -98,8 +93,19 @@
 		};
 	});
 
-	const showListingLoading = $derived(loading || listingPending);
-	const showCountLoading = $derived(resultCountPending);
+	const listing = $derived.by(() => {
+		const resolved = resolvedListing;
+		return resolved && resolved.key === filterKey ? resolved.value : null;
+	});
+
+	const resultCount = $derived.by(() => {
+		if (resultCountInput === undefined) return listing?.total ?? null;
+		const resolved = resolvedCount;
+		return resolved && resolved.key === filterKey ? resolved.value : null;
+	});
+
+	const showListingLoading = $derived(loading || listing === null);
+	const showCountLoading = $derived(loading || resultCount === null);
 </script>
 
 <!--
@@ -111,14 +117,14 @@
 	resultCount={resultCount}
 	countLoading={showCountLoading}
 	listingLoading={showListingLoading}
-	listingError={listing.error}
+	listingError={listing?.error ?? null}
 >
 	<JobList
-		jobs={listing.jobs}
-		total={resultCount ?? listing.total}
-		totalPages={listing.totalPages}
+		jobs={(listing ?? EMPTY_LISTING).jobs}
+		total={resultCount ?? listing?.total ?? 0}
+		totalPages={listing?.totalPages ?? 1}
 		filters={filters as any}
-		error={listing.error}
+		error={listing?.error ?? null}
 		loading={showListingLoading}
 	/>
 </FiltersDrawer>

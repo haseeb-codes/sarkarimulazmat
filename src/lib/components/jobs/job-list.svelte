@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import JobCard from '$lib/components/job-card.svelte';
@@ -76,10 +75,6 @@
 		loading?: boolean;
 	} = $props();
 
-	let items = $state<Job[]>([]);
-	let loadedPage = $state(1);
-	/** Maps each job slug to the page it was loaded on */
-	let jobPageMap = $state<Map<string, number>>(new Map());
 	let loadingMore = $state(false);
 	let loadMoreError = $state<string | null>(null);
 	let sentinel = $state<HTMLElement | null>(null);
@@ -89,9 +84,30 @@
 
 	const HIGHLIGHT_MS = 2800;
 
-	/** Until scroll state syncs, fall back to the server-provided first page. */
-	const listItems = $derived(items.length > 0 || jobs.length === 0 ? items : jobs);
+	/** Identity of the active filter set — mirrors URL search params, ignores page. */
+	const resultKey = $derived(
+		filtersToSearchParams({ ...filters, page: 1 }).toString()
+	);
 
+	/**
+	 * Pages appended by infinite scroll, tagged with the filter set they belong to so a
+	 * response for stale filters is discarded rather than rendered.
+	 */
+	let appended = $state<{ key: string; groups: { page: number; jobs: Job[] }[] }>({
+		key: '',
+		groups: []
+	});
+
+	const appendedGroups = $derived(appended.key === resultKey ? appended.groups : []);
+
+	/** The server payload is always page one; scroll-loaded pages follow it. */
+	const pageGroups = $derived([{ page: filters.page, jobs }, ...appendedGroups]);
+	const visibleGroups = $derived(pageGroups.filter((group) => group.jobs.length > 0));
+	const listItems = $derived(visibleGroups.flatMap((group) => group.jobs));
+
+	const loadedPage = $derived(
+		appendedGroups.length ? appendedGroups[appendedGroups.length - 1].page : filters.page
+	);
 	const hasMore = $derived(loadedPage < totalPages && listItems.length < total);
 	const viewMode = $derived($browseViewMode);
 
@@ -101,45 +117,6 @@
 
 	/** Any query param — keep Clear visible for q / sort / tags / etc. */
 	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
-
-	/** Stable key for the active result set — ignore page so scroll-loaded pages aren't wiped. */
-	const resultKey = $derived(
-		[
-			filters.degree_areas.join('\0'),
-			filters.education_level ?? '',
-			filters.ad_date ?? '',
-			filters.posted_by ?? '',
-			filters.donor_name ?? '',
-			filters.portal ?? '',
-			filters.gender ?? '',
-			(filters.qualification ?? []).join('\0'),
-			filters.qualification_from ?? '',
-			filters.qualification_to ?? '',
-			filters.grade ?? '',
-			filters.age ?? '',
-			filters.place_of_posting ?? '',
-			filters.domicile.join('\0'),
-			(filters.domicile_region ?? []).join('\0'),
-			(filters.tag ?? []).join('\0'),
-			filters.department ?? '',
-			(filters.collar ?? []).join('\0'),
-			filters.has_salary ? '1' : '0',
-			filters.permanent_only ? '1' : '0',
-			filters.women_only ? '1' : '0',
-			filters.transgender_applicable ? '1' : '0',
-			filters.disability_quota ? '1' : '0',
-			filters.minority_quota ? '1' : '0',
-			filters.min_salary ?? '',
-			filters.salary_from ?? '',
-			filters.salary_to ?? '',
-			filters.keyword ?? '',
-			filters.q ?? '',
-			filters.show_expired ? '1' : '0',
-			filters.sort,
-			filters.pageSize,
-			total
-		].join('|')
-	);
 
 	function clearFilters() {
 		goto(page.url.pathname, {
@@ -181,14 +158,9 @@
 		};
 	});
 
-	/** Reset accumulated list when filters / totals change (not when appending pages). */
-	$effect.pre(() => {
+	/** Drop stale scroll state and highlights when the filter set changes. */
+	$effect(() => {
 		void resultKey;
-		const initialJobs = untrack(() => jobs);
-		const initialPage = untrack(() => filters.page);
-		items = initialJobs;
-		loadedPage = initialPage;
-		jobPageMap = new Map(initialJobs.map((j) => [j.slug, initialPage]));
 		loadMoreError = null;
 		clearFreshHighlight();
 	});
@@ -196,6 +168,7 @@
 	async function loadMore() {
 		if (loading || loadingMore || !hasMore) return;
 
+		const key = resultKey;
 		const nextPage = loadedPage + 1;
 		loadingMore = true;
 		loadMoreError = null;
@@ -217,14 +190,13 @@
 				totalPages: number;
 			};
 
-			const seen = new Set(items.map((j) => j.slug));
-			const appended = data.jobs.filter((j) => !seen.has(j.slug));
-			const newMap = new Map(jobPageMap);
-			for (const j of appended) newMap.set(j.slug, data.page);
-			jobPageMap = newMap;
-			items = [...items, ...appended];
-			loadedPage = data.page;
-			markFresh(appended.map((j) => j.slug));
+			if (key !== resultKey) return;
+
+			const seen = new Set(listItems.map((job) => job.slug));
+			const newJobs = data.jobs.filter((job) => !seen.has(job.slug));
+			const groups = appended.key === key ? appended.groups : [];
+			appended = { key, groups: [...groups, { page: data.page, jobs: newJobs }] };
+			markFresh(newJobs.map((job) => job.slug));
 		} catch (err) {
 			console.error('Failed to load more jobs', err);
 			loadMoreError = 'Could not load more jobs. Tap to retry.';
@@ -281,25 +253,11 @@
 				{/if}
 			</div>
 		{:else}
-			{@const pages = (() => {
-				const grouped: { page: number; jobs: Job[] }[] = [];
-				let currentPage = -1;
-				for (const job of listItems) {
-					const p = jobPageMap.get(job.slug) ?? 1;
-					if (p !== currentPage) {
-						grouped.push({ page: p, jobs: [job] });
-						currentPage = p;
-					} else {
-						grouped[grouped.length - 1].jobs.push(job);
-					}
-				}
-				return grouped;
-			})()}
-
-			{#each pages as group, i (group.page)}
+			{#each visibleGroups as group, i (group.page)}
 				{#if i > 0}
 					{@const jobsShownSoFar =
-						pages.slice(0, i).reduce((sum, g) => sum + g.jobs.length, 0) + group.jobs.length}
+						visibleGroups.slice(0, i).reduce((sum, g) => sum + g.jobs.length, 0) +
+						group.jobs.length}
 					{@const jobsLeft = total - jobsShownSoFar}
 					<div class="flex items-center gap-3 py-2">
 						<div class="h-px flex-1 bg-border"></div>
