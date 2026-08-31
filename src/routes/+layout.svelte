@@ -79,7 +79,7 @@
 						class="flex min-w-0 shrink items-center gap-2 text-base font-semibold tracking-tight text-primary lg:text-lg"
 					>
 						<img src={logo} alt="" class="h-7 w-7 shrink-0 md:h-8 md:w-8" width="32" height="32" />
-						<span class="hidden truncate md:inline">Sarkari Mulazmat</span>
+						<span class="truncate">Sarkari Mulazmat</span>
 					</a>
 
 					<!-- Desktop nav -->
