@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { JOB_PORTALS } from '$lib/job-portals';
+	import { HOME_PAGE_PORTALS } from '$lib/job-portals';
 	import { onFilterLinkClick } from '$lib/filter-nav';
 	import { filtersToHref } from '$lib/jobs-utils';
 
 	type PortalCount = { label: string; count: number };
 
 	const chipClass =
-		'inline-flex h-10 max-w-full items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm transition-colors hover:bg-muted sm:px-3';
+		'inline-flex h-7 max-w-full items-center gap-1.5 rounded-md border border-border bg-card px-2 text-xs transition-colors hover:bg-muted';
 
 	let portalCounts = $state<PortalCount[] | null>(null);
 	let failedLogos = $state<Set<string>>(new Set());
@@ -49,10 +49,19 @@
 	}
 
 	function logoFrameClass(slug: string): string {
-		const base = 'flex size-6 shrink-0 items-center justify-center rounded-sm';
+		const base = 'flex size-4 shrink-0 items-center justify-center rounded-sm';
 		if (slug === 'iwork4sindh') return `${base} bg-blue-600 p-0.5`;
 		return base;
 	}
+
+	const sortedPortals = $derived.by(() => {
+		if (!portalCounts) return HOME_PAGE_PORTALS;
+
+		const countMap = new Map(portalCounts.map((item) => [item.label, item.count]));
+		return [...HOME_PAGE_PORTALS].sort(
+			(a, b) => (countMap.get(b.label) ?? 0) - (countMap.get(a.label) ?? 0)
+		);
+	});
 </script>
 
 <div class="space-y-4">
@@ -65,40 +74,46 @@
 		</p>
 	</div>
 
-	<section class="space-y-2" aria-labelledby="portal-sources-heading">
+	<section class="space-y-1.5" aria-labelledby="portal-sources-heading">
 		<h2
 			id="portal-sources-heading"
-			class="text-sm font-bold tracking-wide text-muted-foreground uppercase"
+			class="text-xs font-bold tracking-wide text-muted-foreground uppercase"
 		>
-			Official job portals
+			Job portals
 		</h2>
-		<ul class="flex flex-wrap gap-2">
-			{#each JOB_PORTALS as portal (portal.slug)}
+		<ul class="flex flex-wrap gap-1.5">
+			{#each sortedPortals as portal (portal.slug)}
 				<li class="min-w-0 max-w-full">
 					<a
 						href={filtersToHref({ portal: portal.label }, '/')}
 						data-sveltekit-noscroll
 						onclick={onFilterLinkClick}
-						class={chipClass}
-						title={portal.label}
+						class="{chipClass} group relative"
+						aria-label={portal.label}
 					>
+						<span
+							class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 max-w-72 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-center text-xs font-medium text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+							role="tooltip"
+						>
+							{portal.label}
+						</span>
 						{#if failedLogos.has(portal.slug)}
 							<span
-								class="{logoFrameClass(portal.slug)} text-[10px] font-semibold {portal.slug ===
+								class="{logoFrameClass(portal.slug)} text-[8px] font-semibold {portal.slug ===
 								'iwork4sindh'
 									? 'text-white'
 									: 'bg-muted text-muted-foreground'}"
 								aria-hidden="true"
 							>
-								{portal.slug.slice(0, 2).toUpperCase()}
+								{portal.shortLabel}
 							</span>
 						{:else}
 							<span class={logoFrameClass(portal.slug)}>
 								<img
 									src={portal.logoSrc}
 									alt=""
-									width="24"
-									height="24"
+									width="16"
+									height="16"
 									class="size-full object-contain"
 									loading="lazy"
 									decoding="async"
@@ -106,9 +121,9 @@
 								/>
 							</span>
 						{/if}
-						<span class="min-w-0 truncate">{portal.label}</span>
+						<span class="min-w-0 truncate">{portal.shortLabel}</span>
 						{#if countFor(portal.label) == null}
-							<Skeleton class="inline-block h-3.5 w-10 shrink-0 align-middle" />
+							<Skeleton class="inline-block h-3 w-8 shrink-0 align-middle" />
 						{:else}
 							<span class="shrink-0 text-muted-foreground tabular-nums">
 								({formatCount(countFor(portal.label)!)})

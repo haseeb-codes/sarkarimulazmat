@@ -1,6 +1,10 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
-import { getJobCategoryTags, type JobCategoryColumn } from '$lib/job-category-pages';
+import {
+	getJobCategoryTags,
+	HOME_PAGE_TAG_SLUGS,
+	type JobCategoryColumn
+} from '$lib/job-category-pages';
 import { toListJobs } from '$lib/server/job-list-dto';
 
 export type TagJobCount = {
@@ -9,7 +13,6 @@ export type TagJobCount = {
 	count: number;
 };
 
-const TOP_TAGS_LIMIT = 12;
 const TOP_TAGS_TTL_MS = 5 * 60 * 1000;
 let topTagsCache: { data: TagJobCount[]; expiresAt: number } | null = null;
 
@@ -62,26 +65,26 @@ export async function countJobCategoryJobs(column: JobCategoryColumn) {
 	});
 }
 
-/** Top job category tags with active job counts — cached briefly. */
-export async function getTopTagCounts(limit = TOP_TAGS_LIMIT): Promise<TagJobCount[]> {
+/** Home page tag counts — fixed curated list, cached briefly. */
+export async function getTopTagCounts(): Promise<TagJobCount[]> {
 	const now = Date.now();
 	if (topTagsCache && topTagsCache.expiresAt > now) {
 		return topTagsCache.data;
 	}
 
-	const allTags = getJobCategoryTags();
-	const tagCounts = await Promise.all(
-		allTags.map(async (tag) => ({
-			slug: tag.slug,
-			label: tag.label,
-			count: await countJobCategoryJobs(tag.column)
-		}))
-	);
+	const tagBySlug = new Map(getJobCategoryTags().map((tag) => [tag.slug, tag]));
+	const data = await Promise.all(
+		HOME_PAGE_TAG_SLUGS.map(async (slug) => {
+			const tag = tagBySlug.get(slug);
+			if (!tag) throw new Error(`Unknown home page tag slug: ${slug}`);
 
-	const data = tagCounts
-		.filter((tag) => tag.count > 0)
-		.sort((a, b) => b.count - a.count)
-		.slice(0, limit);
+			return {
+				slug: tag.slug,
+				label: tag.label,
+				count: await countJobCategoryJobs(tag.column)
+			};
+		})
+	);
 
 	topTagsCache = { data, expiresAt: now + TOP_TAGS_TTL_MS };
 	return data;

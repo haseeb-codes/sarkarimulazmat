@@ -8,7 +8,7 @@
 	} = $props();
 
 	const chipClass =
-		'inline-flex h-9 items-center gap-1 rounded-md border border-border bg-card px-3 text-sm transition-colors hover:bg-muted';
+		'inline-flex h-7 items-center gap-1 rounded-md border border-border bg-card px-2 text-xs transition-colors hover:bg-muted';
 
 	function formatCount(n: number): string {
 		return n.toLocaleString('en-PK');
@@ -16,11 +16,11 @@
 </script>
 
 {#if tags.length}
-	<section class="space-y-2" aria-labelledby="tag-chips-heading">
-		<h2 id="tag-chips-heading" class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
+	<section class="space-y-1.5" aria-labelledby="tag-chips-heading">
+		<h2 id="tag-chips-heading" class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
 			<a href="/tags" class="hover:text-foreground">Tags</a>
 		</h2>
-		<ul class="flex flex-wrap gap-2">
+		<ul class="flex flex-wrap gap-1.5">
 			{#each tags as tag (tag.slug)}
 				<li>
 					<a

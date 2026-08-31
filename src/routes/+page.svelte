@@ -44,7 +44,7 @@
 	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
-<div class="space-y-6">
+<div class="space-y-4">
 	{#if data.filtered}
 		<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 			<h1 class="shrink-0">Government jobs in Pakistan</h1>

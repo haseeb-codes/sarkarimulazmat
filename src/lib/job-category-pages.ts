@@ -464,7 +464,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'computer-science-jobs': 'Computer Science',
 	'information-technology-jobs': 'Information Technology',
 	'llb-jobs': 'LLB & Law',
-	'mbbs-jobs': 'MBBS & Medical Doctor',
+	'mbbs-jobs': 'MBBS & Medical',
 	'pharmacist-jobs': 'Pharmacist',
 	'teaching-jobs': 'Teaching',
 	'education-degree-jobs': 'Education Degree (B.Ed / M.Ed)',
@@ -492,6 +492,17 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'communication-studies-jobs': 'Communication Studies',
 	'economist-jobs': 'Economist'
 };
+
+/** Curated tags shown on the home page, in display order. */
+export const HOME_PAGE_TAG_SLUGS = [
+	'management-jobs',
+	'computer-science-jobs',
+	'teaching-jobs',
+	'mbbs-jobs',
+	'mba-jobs',
+	'accounting-finance-jobs',
+	'economist-jobs'
+] as const;
 
 export type JobCategoryTag = JobCategoryPageDef & { label: string };
 

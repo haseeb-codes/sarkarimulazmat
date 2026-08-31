@@ -35,6 +35,7 @@
 		SHOW_COLLAR_LEVEL_FILTERS
 	} from '$lib/jobs-utils';
 	import InfoIcon from '@lucide/svelte/icons/info';
+	import { JOB_PORTAL_BY_LABEL, type JobPortal } from '$lib/job-portals';
 	type Options = {
 		portals: string[];
 		specializations: string[];
@@ -68,6 +69,7 @@
 	let showExpiredDraft = $state(false);
 	let collarDraft = $state<CollarLevel[]>([...COLLAR_LEVELS]);
 	let openCollarInfo = $state<CollarLevel | null>(null);
+	let failedPortalLogos = $state<Set<string>>(new Set());
 
 	const specializationOptions = $derived(options.specializations ?? []);
 
@@ -286,7 +288,51 @@
 			qualification_level: null
 		});
 	}
+
+	function portalFor(label: string | null | undefined): JobPortal | undefined {
+		if (!label) return undefined;
+		return JOB_PORTAL_BY_LABEL.get(label);
+	}
+
+	function onPortalLogoError(slug: string) {
+		failedPortalLogos = new Set(failedPortalLogos).add(slug);
+	}
+
+	function portalLogoFrameClass(slug: string): string {
+		const base = 'flex size-4 shrink-0 items-center justify-center rounded-sm';
+		if (slug === 'iwork4sindh') return `${base} bg-blue-600 p-0.5`;
+		return base;
+	}
+
+	const selectedPortal = $derived(portalFor(portalDraft));
 </script>
+
+{#snippet portalLogo(portal: JobPortal)}
+	{#if failedPortalLogos.has(portal.slug)}
+		<span
+			class="{portalLogoFrameClass(portal.slug)} text-[8px] font-semibold {portal.slug ===
+			'iwork4sindh'
+				? 'text-white'
+				: 'bg-muted text-muted-foreground'}"
+			aria-hidden="true"
+		>
+			{portal.shortLabel}
+		</span>
+	{:else}
+		<span class={portalLogoFrameClass(portal.slug)}>
+			<img
+				src={portal.logoSrc}
+				alt=""
+				width="16"
+				height="16"
+				class="size-full object-contain"
+				loading="lazy"
+				decoding="async"
+				onerror={() => onPortalLogoError(portal.slug)}
+			/>
+		</span>
+	{/if}
+{/snippet}
 
 <div class="space-y-5">
 	<div class="flex items-center justify-between gap-3">
@@ -421,12 +467,29 @@
 			onValueChange={(v) => setPortal(v || null)}
 		>
 			<Select.Trigger id="{idPrefix}filter-portal" class="w-full min-w-0 text-left">
-				<span class="min-w-0 flex-1 truncate text-left">{portalDraft ?? 'Any'}</span>
+				{#if selectedPortal}
+					<span class="flex min-w-0 flex-1 items-center gap-2 truncate text-left">
+						{@render portalLogo(selectedPortal)}
+						<span class="truncate">{selectedPortal.label}</span>
+					</span>
+				{:else}
+					<span class="min-w-0 flex-1 truncate text-left">Any</span>
+				{/if}
 			</Select.Trigger>
 			<Select.Content class="max-h-72 w-(--bits-select-anchor-width)">
 				<Select.Item value="" label="Any">Any</Select.Item>
-				{#each options.portals as portal (portal)}
-					<Select.Item value={portal} label={portal}>{portal}</Select.Item>
+				{#each options.portals as portalLabel (portalLabel)}
+					{@const portal = portalFor(portalLabel)}
+					<Select.Item value={portalLabel} label={portalLabel}>
+						{#if portal}
+							<span class="flex min-w-0 items-center gap-2">
+								{@render portalLogo(portal)}
+								<span class="min-w-0 truncate">{portal.label}</span>
+							</span>
+						{:else}
+							{portalLabel}
+						{/if}
+					</Select.Item>
 				{/each}
 			</Select.Content>
 		</Select.Root>
