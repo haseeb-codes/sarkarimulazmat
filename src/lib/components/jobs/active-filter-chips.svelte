@@ -29,7 +29,7 @@
 </script>
 
 {#if chips.length}
-	<div class="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Active filters">
+	<div class="mt-1 flex flex-wrap items-center gap-1.5 sm:mt-2" aria-label="Active filters">
 		{#each chips as chip (chip.id)}
 			<button
 				type="button"

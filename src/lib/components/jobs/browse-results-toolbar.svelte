@@ -115,7 +115,7 @@
 </script>
 
 <div
-	class="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-0 py-1"
+	class="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-0 py-0.5 sm:py-1"
 >
 	<div class="flex min-w-0 flex-nowrap items-center gap-x-2 lg:gap-x-3">
 		{#if countLoading || total == null}

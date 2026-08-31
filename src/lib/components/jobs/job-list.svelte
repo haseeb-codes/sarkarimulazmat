@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { browseShownCount, browseViewMode } from '$lib/browse-view-mode';
+	import { browseShownCount, browseViewMode, initBrowseViewModeForViewport } from '$lib/browse-view-mode';
 	import {
 		filtersToSearchParams,
 		urlHasSearchParams,
@@ -171,6 +171,10 @@
 	});
 
 	$effect(() => {
+		initBrowseViewModeForViewport();
+	});
+
+	$effect(() => {
 		return () => {
 			browseShownCount.set(0);
 			if (freshClearTimer) clearTimeout(freshClearTimer);
@@ -308,7 +312,7 @@
 					</div>
 				{/if}
 				{#if viewMode === 'list'}
-					<ul class="relative z-0 flex flex-col gap-3">
+					<ul class="relative z-0 flex flex-col gap-2 sm:gap-3">
 						{#each group.jobs as job (job.slug)}
 							<li>
 								<JobCard
@@ -322,9 +326,9 @@
 					</ul>
 				{:else}
 					<!-- z-0: CSS columns otherwise paint card rings above sticky search/header -->
-					<ul class="relative z-0 columns-1 gap-3 sm:columns-2 lg:columns-3">
+					<ul class="relative z-0 columns-1 gap-2 sm:columns-2 sm:gap-3 lg:columns-3">
 						{#each group.jobs as job (job.slug)}
-							<li class="mb-3 break-inside-avoid">
+							<li class="mb-2 break-inside-avoid sm:mb-3">
 								<JobCard
 									{job}
 									sort={filters.sort}
@@ -339,7 +343,7 @@
 
 			{#if loadingMore}
 				{#if viewMode === 'list'}
-					<ul class="flex flex-col gap-3" aria-hidden="true">
+					<ul class="flex flex-col gap-2 sm:gap-3" aria-hidden="true">
 						{#each Array(3) as _, i (i)}
 							<li>
 								<Card.Root size="sm">
@@ -356,9 +360,9 @@
 						{/each}
 					</ul>
 				{:else}
-					<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3" aria-hidden="true">
+					<ul class="columns-1 gap-2 sm:columns-2 sm:gap-3 lg:columns-3" aria-hidden="true">
 						{#each Array(3) as _, i (i)}
-							<li class="mb-3 break-inside-avoid">
+							<li class="mb-2 break-inside-avoid sm:mb-3">
 								<Card.Root>
 									<Card.Header>
 										<Skeleton class="h-4 w-24" />

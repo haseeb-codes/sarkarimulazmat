@@ -157,8 +157,8 @@
     region under the sticky chrome (not document top).
 -->
 <div
-	class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6"
-	style="--browse-search-offset: 3.5rem; --browse-filters-offset: 3.5rem; --browse-results-header-offset: {resultsHeaderOffset};"
+	class="flex flex-col gap-2 sm:gap-4 lg:flex-row lg:items-start lg:gap-6"
+	style="--browse-search-offset: var(--site-header-height, 3rem); --browse-filters-offset: var(--site-header-height, 3rem); --browse-results-header-offset: {resultsHeaderOffset};"
 >
 	<aside
 		class="hidden w-72 shrink-0 self-start overflow-y-auto rounded-lg border border-border bg-muted/40 lg:sticky lg:top-[var(--browse-filters-offset)] lg:max-h-[calc(100svh-var(--browse-filters-offset)-1rem)] xl:w-80 {sidebarVisible
@@ -219,7 +219,7 @@
 			class="sticky z-30 border-b border-border bg-background"
 			style="top: var(--browse-search-offset)"
 		>
-			<div class="py-2 lg:py-3">
+			<div class="py-0.5 sm:py-2 lg:py-3">
 				<div class="flex items-center gap-1.5 lg:gap-2">
 					<div class="shrink-0">
 						{#if !sidebarVisible}
@@ -321,7 +321,7 @@
 
 		<div
 			bind:this={resultsRegion}
-			class="relative z-0 isolate mt-4 scroll-mt-[var(--browse-results-header-offset,8rem)]"
+			class="relative z-0 isolate mt-2 scroll-mt-[var(--browse-results-header-offset,8rem)] sm:mt-4"
 			style:min-height={resultsMinHeight != null ? `${resultsMinHeight}px` : undefined}
 		>
 			{@render children?.()}

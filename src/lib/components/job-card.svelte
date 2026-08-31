@@ -133,9 +133,9 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<div
-			class="flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:gap-4 sm:px-4 sm:py-3"
+			class="flex flex-col gap-2 p-2 sm:flex-row sm:items-start sm:gap-3 sm:p-3 sm:px-4 sm:py-3"
 		>
-			<div class="min-w-0 flex-1 space-y-2">
+			<div class="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
 						<span
@@ -171,7 +171,7 @@
 					{/if}
 					{#if job.donor_name}
 						<span
-							class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+							class="hidden h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 sm:inline-flex dark:bg-blue-950/70 dark:text-blue-300"
 							title={job.donor_name}
 						>
 							{job.donor_name}
@@ -185,7 +185,7 @@
 						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<span
-							class="text-base font-semibold tracking-tight text-foreground group-hover:text-primary"
+							class="text-sm font-semibold tracking-tight text-foreground group-hover:text-primary sm:text-base"
 						>
 							{job.title ?? "Untitled posting"}
 						</span>
@@ -211,7 +211,7 @@
 				{/if}
 
 				{#if job.project_program_name?.trim()}
-					<div class="space-y-1">
+					<div class="hidden space-y-1 sm:block">
 						<p class="text-xs font-medium text-muted-foreground">Program</p>
 						<MultiValueBadges
 							value={job.project_program_name}
@@ -222,7 +222,7 @@
 					</div>
 				{/if}
 				{#if job.degree_area}
-					<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+					<div class="hidden w-full min-w-0 flex-wrap items-center gap-1.5 sm:flex">
 						<span class="shrink-0 text-xs font-medium text-muted-foreground"
 							>Specialization</span
 						>
@@ -233,9 +233,9 @@
 						/>
 					</div>
 				{/if}
-				<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
 					{#if job.domicile?.trim()}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Domicile</span
 							>
@@ -247,7 +247,7 @@
 							/>
 						</div>
 					{:else if job.place_of_posting}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Location</span
 							>
@@ -261,7 +261,7 @@
 						</div>
 					{/if}
 					{#if job.degrees}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Degrees</span
 							>
@@ -273,7 +273,7 @@
 						</div>
 					{/if}
 					{#if salaryLabel}
-						<span class="inline-flex items-center gap-1.5">
+						<span class="hidden items-center gap-1.5 sm:inline-flex">
 							<span class="text-xs font-medium text-muted-foreground">Salary</span>
 							<Badge
 								variant="outline"
@@ -286,7 +286,7 @@
 						</span>
 					{/if}
 					{#if job.max_age != null}
-						<span class="inline-flex items-center gap-1.5">
+						<span class="hidden items-center gap-1.5 sm:inline-flex">
 							<span class="text-xs font-medium text-muted-foreground">Max Age</span>
 							<Badge
 								variant="outline"
@@ -296,7 +296,7 @@
 							</Badge>
 						</span>
 					{:else if ageLabel}
-						<span class="inline-flex items-center gap-1.5">
+						<span class="hidden items-center gap-1.5 sm:inline-flex">
 							<span class="text-xs font-medium text-muted-foreground">Age</span>
 							<span class="text-foreground">{ageLabel}</span>
 						</span>
@@ -317,7 +317,7 @@
 						</span>
 					{/if}
 					{#if applyLink}
-						<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
+						<span class="hidden min-w-0 max-w-full items-center gap-1.5 sm:inline-flex">
 							<span class="text-xs font-medium text-muted-foreground">Apply</span>
 							<a
 								href={applyLink.href}
@@ -361,9 +361,9 @@
 			: ''}"
 		data-fresh={fresh ? "true" : undefined}
 	>
-		<Card.Header class="gap-1.5 pb-2">
+		<Card.Header class="gap-1 pb-1.5 sm:gap-1.5 sm:pb-2">
 			{#if recentAd || job.donor_name}
-				<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+				<div class="mb-1 flex flex-wrap items-center gap-1.5 sm:mb-1.5">
 					{#if recentAd}
 						<span
 							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
@@ -375,7 +375,7 @@
 					{/if}
 					{#if job.donor_name}
 						<span
-							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+							class="hidden h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 sm:inline-flex dark:bg-blue-950/70 dark:text-blue-300 {isStatic
 								? ''
 								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
 						>
@@ -386,7 +386,7 @@
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
-					class="flex items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+					class="flex items-start gap-1.5 text-sm! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
 				>
 					<a
 						{href}
@@ -440,9 +440,9 @@
 			{/if}
 		</Card.Header>
 
-		<Card.Content class="space-y-2.5 pt-0">
+		<Card.Content class="space-y-2 pt-0 sm:space-y-2.5">
 			{#if job.project_program_name?.trim()}
-				<div class="space-y-1">
+				<div class="hidden space-y-1 sm:block">
 					<p class="text-xs font-medium text-muted-foreground">Program</p>
 					<MultiValueBadges
 						value={job.project_program_name}
@@ -453,7 +453,7 @@
 				</div>
 			{/if}
 			{#if job.degree_area}
-				<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+				<div class="hidden w-full min-w-0 flex-wrap items-center gap-1.5 sm:flex">
 					<span class="shrink-0 text-xs font-medium text-muted-foreground"
 						>Specialization</span
 					>

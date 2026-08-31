@@ -5,6 +5,14 @@
 	import { onFilterLinkClick } from '$lib/filter-nav';
 	import { filtersToHref } from '$lib/jobs-utils';
 
+	let {
+		showIntro = true,
+		showPortals = true
+	}: {
+		showIntro?: boolean;
+		showPortals?: boolean;
+	} = $props();
+
 	type PortalCount = { label: string; count: number };
 
 	const chipClass =
@@ -64,16 +72,20 @@
 	});
 </script>
 
-<div class="space-y-4">
-	<h1>Government jobs in Pakistan</h1>
+<div class="space-y-1.5 sm:space-y-3 lg:space-y-4">
+	{#if showIntro}
+		<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 sm:gap-x-3">
+			<h1 class="shrink-0 text-lg sm:text-2xl lg:text-3xl">Government jobs in Pakistan</h1>
+			<p
+				class="min-w-0 text-xs leading-snug text-muted-foreground sm:text-sm sm:leading-relaxed lg:text-base"
+			>
+				Sarkari Mulazmat is the first unified portal where government jobs from every major official
+				source are posted together — one search instead of checking each website separately.
+			</p>
+		</div>
+	{/if}
 
-	<div class="max-w-3xl text-sm text-muted-foreground leading-relaxed lg:text-base">
-		<p>
-			Sarkari Mulazmat is the first unified portal where government jobs from every major official
-			source are posted together — one search instead of checking each website separately.
-		</p>
-	</div>
-
+	{#if showPortals}
 	<section class="space-y-1.5" aria-labelledby="portal-sources-heading">
 		<h2
 			id="portal-sources-heading"
@@ -134,4 +146,5 @@
 			{/each}
 		</ul>
 	</section>
+	{/if}
 </div>

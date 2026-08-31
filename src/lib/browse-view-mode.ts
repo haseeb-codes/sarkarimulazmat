@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export type BrowseViewMode = 'masonry' | 'list';
 
-const VIEW_STORAGE_KEY = 'jobs-view-mode';
+	const VIEW_STORAGE_KEY = 'jobs-view-mode';
 
 function readStoredView(): BrowseViewMode {
 	if (typeof localStorage === 'undefined') return 'masonry';
@@ -27,5 +27,18 @@ export function setBrowseViewMode(next: BrowseViewMode) {
 		localStorage.setItem(VIEW_STORAGE_KEY, next);
 	} catch {
 		/* ignore */
+	}
+}
+
+/** Default to list layout on small screens when the user has no saved preference. */
+export function initBrowseViewModeForViewport(): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		if (localStorage.getItem(VIEW_STORAGE_KEY)) return;
+	} catch {
+		return;
+	}
+	if (window.matchMedia('(max-width: 639px)').matches) {
+		setBrowseViewMode('list');
 	}
 }

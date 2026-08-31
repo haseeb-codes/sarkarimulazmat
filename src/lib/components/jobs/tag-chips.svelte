@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onFilterLinkClick } from '$lib/filter-nav';
+	import { filtersToHref } from '$lib/jobs-utils';
 
 	let {
 		tags
@@ -24,7 +25,7 @@
 			{#each tags as tag (tag.slug)}
 				<li>
 					<a
-						href="/{tag.slug}"
+						href={filtersToHref({ tag: tag.slug }, '/')}
 						data-sveltekit-noscroll
 						onclick={onFilterLinkClick}
 						class={chipClass}

@@ -495,14 +495,23 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 
 /** Curated tags shown on the home page, in display order. */
 export const HOME_PAGE_TAG_SLUGS = [
-	'management-jobs',
+	'llb-jobs',
 	'computer-science-jobs',
 	'teaching-jobs',
 	'mbbs-jobs',
 	'mba-jobs',
 	'accounting-finance-jobs',
-	'economist-jobs'
+	'economist-jobs',
+	'civil-engineer-jobs',
+	'dae-jobs'
 ] as const;
+
+/** Optional home page display labels (defaults to `JOB_CATEGORY_LABELS`). */
+export const HOME_PAGE_TAG_LABELS: Partial<Record<(typeof HOME_PAGE_TAG_SLUGS)[number], string>> = {
+	'accounting-finance-jobs': 'M.com/ACCA/MBA',
+	'mbbs-jobs': 'MBBS Doctors',
+	'economist-jobs': 'Economics'
+};
 
 export type JobCategoryTag = JobCategoryPageDef & { label: string };
 

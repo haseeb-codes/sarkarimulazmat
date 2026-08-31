@@ -2,6 +2,7 @@ import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
 import {
 	getJobCategoryTags,
+	HOME_PAGE_TAG_LABELS,
 	HOME_PAGE_TAG_SLUGS,
 	type JobCategoryColumn
 } from '$lib/job-category-pages';
@@ -80,7 +81,7 @@ export async function getTopTagCounts(): Promise<TagJobCount[]> {
 
 			return {
 				slug: tag.slug,
-				label: tag.label,
+				label: HOME_PAGE_TAG_LABELS[slug] ?? tag.label,
 				count: await countJobCategoryJobs(tag.column)
 			};
 		})

@@ -1,6 +1,7 @@
 /** Shared job-display / URL helpers — safe for client and server. */
 
 import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
+import { getJobCategoryTagLabel } from '$lib/job-category-pages';
 
 export type JobSort = 'newest' | 'closing_soon';
 
@@ -424,14 +425,6 @@ export type ActiveFilterChip = {
 	clear: Partial<FilterParams>;
 };
 
-function titleCaseSlug(slug: string): string {
-	return slug
-		.split(/[-_]+/)
-		.filter(Boolean)
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(' ');
-}
-
 /**
  * Removable chips for active browse filters (excludes pagination).
  * Sort is included only when not the default `newest`.
@@ -585,7 +578,7 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	for (const tag of selectedTags(filters)) {
 		chips.push({
 			id: `tag:${tag.toLowerCase()}`,
-			label: titleCaseSlug(tag),
+			label: getJobCategoryTagLabel(tag),
 			clear: {
 				tag: selectedTags(filters).filter((t) => t.toLowerCase() !== tag.toLowerCase())
 			}
