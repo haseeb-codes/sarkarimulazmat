@@ -5,9 +5,10 @@
 	let {
 		ref = $bindable(null),
 		class: className,
+		required = false,
 		children,
 		...restProps
-	}: WithElementRef<HTMLLabelAttributes> = $props();
+	}: WithElementRef<HTMLLabelAttributes> & { required?: boolean } = $props();
 </script>
 
 <label
@@ -20,4 +21,8 @@
 	{...restProps}
 >
 	{@render children?.()}
+	{#if required}
+		<span class="text-destructive" aria-hidden="true">*</span>
+		<span class="sr-only">(required)</span>
+	{/if}
 </label>

@@ -1,4 +1,10 @@
 import db from '$lib/server/db';
+import {
+	DEFAULT_PROFILE_RELIGION,
+	parseDisabilityFormValue,
+	PROFILE_RELIGIONS,
+	type ProfileReligion
+} from '$lib/profile-quota';
 
 export const PROFILE_GENDERS = [
 	{ value: 'male', label: 'Male' },
@@ -22,6 +28,7 @@ export type UserProfileRecord = {
 	graduation_date: Date | null;
 	gender: string | null;
 	whatsapp_number: string | null;
+	religion: string;
 	has_disability: boolean;
 	email_subscribed: boolean;
 	consent_given_at: Date | null;
@@ -163,6 +170,7 @@ export function validateStage1Fields(fields: {
 	dateOfBirth: string;
 	gender: string;
 	whatsappNumber: string;
+	religion: string;
 	hasDisability: boolean;
 }):
 	| {
@@ -171,6 +179,7 @@ export function validateStage1Fields(fields: {
 				dateOfBirth: Date;
 				gender: ProfileGender;
 				whatsappNumber: string;
+				religion: ProfileReligion;
 				hasDisability: boolean;
 			};
 	  }
@@ -178,6 +187,7 @@ export function validateStage1Fields(fields: {
 	const dateOfBirth = parseDateOnly(fields.dateOfBirth);
 	const gender = fields.gender.trim() as ProfileGender;
 	const whatsappNumber = normalizeWhatsappNumber(fields.whatsappNumber);
+	const religion = fields.religion.trim() as ProfileReligion;
 
 	if (!gender) {
 		return { ok: false, error: 'Please select your gender.' };
@@ -185,6 +195,10 @@ export function validateStage1Fields(fields: {
 
 	if (!whatsappNumber) {
 		return { ok: false, error: 'Please enter a valid WhatsApp number (10–15 digits).' };
+	}
+
+	if (!PROFILE_RELIGIONS.some((option) => option.value === religion)) {
+		return { ok: false, error: 'Please choose a valid religion option.' };
 	}
 
 	if (!PROFILE_GENDERS.some((g) => g.value === gender)) {
@@ -200,6 +214,7 @@ export function validateStage1Fields(fields: {
 			dateOfBirth: dateOfBirth!,
 			gender,
 			whatsappNumber,
+			religion,
 			hasDisability: fields.hasDisability
 		}
 	};
@@ -308,6 +323,7 @@ export function validateProfileFields(fields: {
 	degreeSpecialization: string;
 	gender: string;
 	whatsappNumber: string;
+	religion: string;
 	hasDisability: boolean;
 	consent: boolean;
 	allowedEducationLevels: string[];
@@ -321,6 +337,7 @@ export function validateProfileFields(fields: {
 				degreeSpecialization: string | null;
 				gender: ProfileGender;
 				whatsappNumber: string;
+				religion: ProfileReligion;
 				hasDisability: boolean;
 			};
 	  }
@@ -329,6 +346,7 @@ export function validateProfileFields(fields: {
 		dateOfBirth: fields.dateOfBirth,
 		gender: fields.gender,
 		whatsappNumber: fields.whatsappNumber,
+		religion: fields.religion,
 		hasDisability: fields.hasDisability
 	});
 	if (!stage1.ok) return stage1;
@@ -354,6 +372,7 @@ export function validateProfileFields(fields: {
 			degreeSpecialization: stage2.data.degreeSpecialization,
 			gender: stage1.data.gender,
 			whatsappNumber: stage1.data.whatsappNumber,
+			religion: stage1.data.religion,
 			hasDisability: stage1.data.hasDisability
 		}
 	};

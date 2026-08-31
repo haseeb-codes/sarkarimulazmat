@@ -10,6 +10,7 @@ import {
 	replaceJobInterestKeywords,
 	validateProfileFields
 } from '$lib/server/user-profile';
+import { DEFAULT_PROFILE_RELIGION, parseDisabilityFormValue } from '$lib/profile-quota';
 
 function formValues(fields: {
 	dateOfBirth: string;
@@ -18,6 +19,7 @@ function formValues(fields: {
 	degreeSpecialization: string;
 	gender: string;
 	whatsappNumber: string;
+	religion: string;
 	hasDisability: boolean;
 }) {
 	return fields;
@@ -55,7 +57,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			degreeSpecialization: profile.degree_specialization ?? '',
 			gender: profile.gender ?? '',
 			whatsappNumber: profile.whatsapp_number ?? '',
-			hasDisability: profile.has_disability
+			hasDisability: profile.has_disability,
+			religion: profile.religion ?? DEFAULT_PROFILE_RELIGION
 		}
 	};
 };
@@ -75,7 +78,8 @@ export const actions: Actions = {
 		const degreeSpecialization = String(data.get('degree_specialization') ?? '');
 		const gender = String(data.get('gender') ?? '');
 		const whatsappNumber = String(data.get('whatsapp_number') ?? '');
-		const hasDisability = data.get('has_disability') === 'on';
+		const religion = String(data.get('religion') ?? DEFAULT_PROFILE_RELIGION);
+		const hasDisability = parseDisabilityFormValue(data.get('has_disability'));
 		const consent = data.get('consent') === 'on';
 		const rawKeywords = data.getAll('keyword').map(String);
 		const keywords = parseJobInterestKeywords(rawKeywords);
@@ -86,6 +90,7 @@ export const actions: Actions = {
 			degreeSpecialization,
 			gender,
 			whatsappNumber,
+			religion,
 			hasDisability
 		});
 
@@ -104,6 +109,7 @@ export const actions: Actions = {
 			degreeSpecialization,
 			gender,
 			whatsappNumber,
+			religion,
 			hasDisability,
 			consent,
 			allowedEducationLevels: filterOptions.education_levels
@@ -124,6 +130,7 @@ export const actions: Actions = {
 					graduation_date: null,
 					gender: validated.data.gender,
 					whatsapp_number: validated.data.whatsappNumber,
+					religion: validated.data.religion,
 					has_disability: validated.data.hasDisability,
 					consent_given_at: new Date()
 				}

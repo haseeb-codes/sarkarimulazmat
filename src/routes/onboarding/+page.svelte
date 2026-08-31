@@ -11,6 +11,8 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card/index.js';
+	import ProfileQuotaFields from '$lib/components/profile-quota-fields.svelte';
+	import { DEFAULT_PROFILE_RELIGION } from '$lib/profile-quota';
 	import type { OnboardingStage } from '$lib/server/user-profile';
 
 	let { data, form } = $props();
@@ -19,6 +21,8 @@
 	let stage = $state<OnboardingStage>(data.initialStage);
 	let keywordInput = $state('');
 	let keywords = $state<string[]>([...data.jobInterests]);
+	let religion = $state(data.values.religion ?? DEFAULT_PROFILE_RELIGION);
+	let hasDisability = $state(data.values.hasDisability ?? false);
 
 	const stageMeta = {
 		1: { title: 'About you', description: 'Basic details we use for job matching.' },
@@ -35,7 +39,6 @@
 	const dobValue = $derived(form?.dateOfBirth ?? data.values.dateOfBirth);
 	const genderValue = $derived(form?.gender ?? data.values.gender);
 	const whatsappValue = $derived(form?.whatsappNumber ?? data.values.whatsappNumber);
-	const hasDisabilityValue = $derived(form?.hasDisability ?? data.values.hasDisability);
 	const educationValue = $derived(form?.highestDegree ?? data.values.highestDegree);
 	const degreeTitleValue = $derived(form?.degreeTitle ?? data.values.degreeTitle);
 	const degreeSpecializationValue = $derived(
@@ -49,6 +52,11 @@
 
 		if (form?.keywords && Array.isArray(form.keywords)) {
 			keywords = form.keywords.map(String);
+		}
+
+		if (form?.stage === 1) {
+			if (form.religion) religion = String(form.religion);
+			if (typeof form.hasDisability === 'boolean') hasDisability = form.hasDisability;
 		}
 	});
 
@@ -142,7 +150,7 @@
 					}}
 				>
 					<div class="space-y-2">
-						<Label for="profile-dob">Date of birth</Label>
+						<Label for="profile-dob" required>Date of birth</Label>
 						<Input
 							id="profile-dob"
 							name="date_of_birth"
@@ -154,7 +162,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<Label for="profile-gender">Gender</Label>
+						<Label for="profile-gender" required>Gender</Label>
 						<select
 							id="profile-gender"
 							name="gender"
@@ -172,7 +180,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<Label for="profile-whatsapp">WhatsApp number</Label>
+						<Label for="profile-whatsapp" required>WhatsApp number</Label>
 						<Input
 							id="profile-whatsapp"
 							name="whatsapp_number"
@@ -186,16 +194,7 @@
 						/>
 					</div>
 
-					<label class="flex items-start gap-3 text-sm leading-relaxed">
-						<input
-							type="checkbox"
-							name="has_disability"
-							checked={hasDisabilityValue}
-							disabled={submitting}
-							class="mt-0.5 size-4 rounded border border-input"
-						/>
-						<span>I have a disability</span>
-					</label>
+					<ProfileQuotaFields bind:religion bind:hasDisability disabled={submitting} />
 
 					<Button type="submit" class="w-full" disabled={submitting}>
 						{submitting ? 'Saving…' : 'Continue'}
@@ -218,7 +217,7 @@
 					}}
 				>
 					<div class="space-y-2">
-						<Label for="profile-education">Highest qualification</Label>
+						<Label for="profile-education" required>Highest qualification</Label>
 						<select
 							id="profile-education"
 							name="highest_degree"
@@ -234,7 +233,7 @@
 					</div>
 
 					<div class="space-y-2">
-						<Label for="profile-degree-title">Qualification degree</Label>
+						<Label for="profile-degree-title" required>Qualification degree</Label>
 						<Input
 							id="profile-degree-title"
 							name="degree_title"
@@ -283,7 +282,7 @@
 					}}
 				>
 					<div class="space-y-2">
-						<Label for="job-keyword">Job interest keywords</Label>
+						<Label for="job-keyword" required>Job interest keywords</Label>
 						<p class="text-sm text-muted-foreground">
 							Add topics like data science, android development, legal, or cardiologist. Press Enter
 							or click Add after each one.

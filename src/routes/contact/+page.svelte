@@ -70,7 +70,7 @@
 			{/if}
 
 			<div class="space-y-2">
-				<Label for="contact-name">Name</Label>
+				<Label for="contact-name" required>Name</Label>
 				<Input
 					id="contact-name"
 					name="name"
@@ -85,7 +85,7 @@
 			</div>
 
 			<div class="space-y-2">
-				<Label for="contact-phone">Contact</Label>
+				<Label for="contact-phone" required>Contact</Label>
 				<Input
 					id="contact-phone"
 					name="contact"
@@ -116,7 +116,7 @@
 			</div>
 
 			<div class="space-y-2">
-				<Label for="contact-message">Message</Label>
+				<Label for="contact-message" required>Message</Label>
 				<textarea
 					id="contact-message"
 					name="message"

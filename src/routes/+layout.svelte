@@ -33,7 +33,6 @@
 	const profileHref = $derived(data.profileComplete ? '/profile' : '/onboarding');
 	const userName = $derived(data.profile?.name ?? data.session?.user?.name ?? null);
 	const userEmail = $derived(data.profile?.email ?? data.session?.user?.email ?? null);
-	const userImage = $derived(data.profile?.image ?? data.session?.user?.image ?? null);
 
 	let mobileNavOpen = $state(false);
 
@@ -103,7 +102,6 @@
 							{profileHref}
 							{userName}
 							{userEmail}
-							{userImage}
 						/>
 						<div class="hidden border-l border-border pl-1 md:block">
 							<ThemeToggle />

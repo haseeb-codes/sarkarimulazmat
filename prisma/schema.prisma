@@ -224,6 +224,7 @@ model UserProfile {
   graduation_date       DateTime?         @map("graduation_date") @db.Date
   gender                String?
   whatsapp_number       String?           @map("whatsapp_number")
+  religion              String            @default("muslim")
   has_disability        Boolean           @default(false) @map("has_disability")
   email_subscribed      Boolean           @default(false) @map("email_subscribed")
   consent_given_at      DateTime?         @map("consent_given_at")

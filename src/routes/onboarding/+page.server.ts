@@ -12,6 +12,7 @@ import {
 	validateStage2Fields,
 	validateStage3Fields
 } from '$lib/server/user-profile';
+import { DEFAULT_PROFILE_RELIGION, parseDisabilityFormValue } from '$lib/profile-quota';
 
 function formatDateInput(date: Date | null | undefined): string {
 	return date ? date.toISOString().slice(0, 10) : '';
@@ -46,6 +47,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			gender: profile?.gender ?? '',
 			whatsappNumber: profile?.whatsapp_number ?? '',
 			hasDisability: profile?.has_disability ?? false,
+			religion: profile?.religion ?? DEFAULT_PROFILE_RELIGION,
 			highestDegree: profile?.highest_degree ?? '',
 			degreeTitle: profile?.degree_title ?? '',
 			degreeSpecialization: profile?.degree_specialization ?? ''
@@ -64,12 +66,14 @@ export const actions: Actions = {
 		const dateOfBirth = String(data.get('date_of_birth') ?? '');
 		const gender = String(data.get('gender') ?? '');
 		const whatsappNumber = String(data.get('whatsapp_number') ?? '');
-		const hasDisability = data.get('has_disability') === 'on';
+		const religion = String(data.get('religion') ?? DEFAULT_PROFILE_RELIGION);
+		const hasDisability = parseDisabilityFormValue(data.get('has_disability'));
 
 		const validated = validateStage1Fields({
 			dateOfBirth,
 			gender,
 			whatsappNumber,
+			religion,
 			hasDisability
 		});
 
@@ -79,6 +83,7 @@ export const actions: Actions = {
 				dateOfBirth,
 				gender,
 				whatsappNumber,
+				religion,
 				hasDisability,
 				error: validated.error
 			});
@@ -91,6 +96,7 @@ export const actions: Actions = {
 					date_of_birth: validated.data.dateOfBirth,
 					gender: validated.data.gender,
 					whatsapp_number: validated.data.whatsappNumber,
+					religion: validated.data.religion,
 					has_disability: validated.data.hasDisability
 				}
 			});
@@ -101,6 +107,7 @@ export const actions: Actions = {
 				dateOfBirth,
 				gender,
 				whatsappNumber,
+				religion,
 				hasDisability,
 				error: 'We could not save your details right now. Please try again.'
 			});
@@ -197,6 +204,6 @@ export const actions: Actions = {
 			});
 		}
 
-		redirect(303, '/profile');
+		redirect(303, '/profile?saved=1');
 	}
 };

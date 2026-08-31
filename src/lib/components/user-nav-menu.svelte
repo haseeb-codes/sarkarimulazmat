@@ -11,23 +11,25 @@
 		isSignedIn,
 		profileHref,
 		userName = null,
-		userEmail = null,
-		userImage = null
+		userEmail = null
 	}: {
 		isSignedIn: boolean;
 		profileHref: string;
 		userName?: string | null;
 		userEmail?: string | null;
-		userImage?: string | null;
 	} = $props();
 
 	const displayName = $derived(userName?.trim() || userEmail?.trim() || 'Account');
+	const firstName = $derived(displayName.split(/\s+/)[0] ?? 'Account');
 	const initials = $derived(
-		displayName
+		userName
+			?.trim()
 			.split(/\s+/)
 			.slice(0, 2)
 			.map((part) => part[0]?.toUpperCase() ?? '')
-			.join('') || 'U'
+			.join('') ||
+			firstName[0]?.toUpperCase() ||
+			'U'
 	);
 </script>
 
@@ -39,27 +41,17 @@
 		)}
 		aria-label={isSignedIn ? 'Account menu' : 'Sign in menu'}
 	>
-		{#if isSignedIn && userImage}
-			<img
-				src={userImage}
-				alt=""
-				class="size-7 shrink-0 rounded-full object-cover"
-				width="28"
-				height="28"
-			/>
-		{:else}
-			<span
-				class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
-				aria-hidden="true"
-			>
-				{#if isSignedIn}
-					{initials}
-				{:else}
-					<UserIcon class="size-4" />
-				{/if}
-			</span>
-		{/if}
-		<span class="hidden truncate sm:inline">{isSignedIn ? displayName : 'Sign in'}</span>
+		<span
+			class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+			aria-hidden="true"
+		>
+			{#if isSignedIn}
+				{initials}
+			{:else}
+				<UserIcon class="size-4" />
+			{/if}
+		</span>
+		<span class="hidden truncate sm:inline">{isSignedIn ? firstName : 'Sign in'}</span>
 		<ChevronDownIcon class="size-4 shrink-0 opacity-60" aria-hidden="true" />
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="end" class="w-56">
