@@ -208,6 +208,27 @@ model CategoryPage {
   @@map("category_pages")
 }
 
+/// Signed-in user profile, keyed by Google `sub` claim.
+/// `id` is used as the Auth.js session user id.
+model UserProfile {
+  id               String    @id @default(uuid())
+  google_sub       String    @unique @map("google_sub")
+  email            String
+  name             String?
+  image            String?
+  date_of_birth    DateTime? @map("date_of_birth") @db.Date
+  highest_degree   String?   @map("highest_degree")
+  graduation_date  DateTime? @map("graduation_date") @db.Date
+  gender           String?
+  email_subscribed Boolean   @default(false) @map("email_subscribed")
+  consent_given_at DateTime? @map("consent_given_at")
+  created_at       DateTime  @default(now()) @map("created_at")
+  updated_at       DateTime  @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("user_profiles")
+}
+
 /// Anonymous visitor identity (cookie-linked)
 model Visitor {
   id          String        @id @default(uuid())
@@ -226,14 +247,20 @@ model Visitor {
 
 /// Filter usage log for aggregate analysis
 model SearchLog {
-  id           String   @id @default(cuid())
-  visitor_id   String?  @map("visitor_id")
-  user_id      String?  @map("user_id")
-  filters      Json
-  result_count Int      @map("result_count")
-  created_at   DateTime @default(now()) @map("created_at")
-  ip_address   String?  @map("ip_address")
-  visitor      Visitor? @relation(fields: [visitor_id], references: [id])
+  id              String   @id @default(cuid())
+  visitor_id      String?  @map("visitor_id")
+  user_id         String?  @map("user_id")
+  filters         Json
+  result_count    Int      @map("result_count")
+  created_at      DateTime @default(now()) @map("created_at")
+  ip_address      String?  @map("ip_address")
+  path            String?
+  user_agent      String?  @map("user_agent")
+  browser         String?
+  browser_version String?  @map("browser_version")
+  os              String?
+  device_type     String?  @map("device_type")
+  visitor         Visitor? @relation(fields: [visitor_id], references: [id])
 
   @@index([created_at])
   @@index([visitor_id])

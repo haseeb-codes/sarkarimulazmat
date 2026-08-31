@@ -23,6 +23,7 @@
 		"@sveltejs/kit": "^2.70.2",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@types/pg": "^8.20.0",
+		"@types/ua-parser-js": "^0.7.39",
 		"bits-ui": "^2.18.1",
 		"clsx": "^2.1.1",
 		"dotenv": "^17.4.2",
@@ -50,6 +51,7 @@
 		"mode-watcher": "^1.1.0",
 		"pg": "^8.22.0",
 		"tailwindcss": "^4.3.3",
+		"ua-parser-js": "^2.0.10",
 		"undici": "^8.10.0",
 		"vaul-svelte": "^1.0.0-next.7"
 	}

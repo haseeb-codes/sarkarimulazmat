@@ -1,38 +1,37 @@
 import db from '$lib/server/db';
+import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
 import type { JobFilters } from '$lib/server/jobs';
+import type { JobQueryTracking } from '$lib/server/request-context';
+
+function filtersToLogPayload(filters: JobFilters) {
+	const snapshot = jobFiltersSnapshot(filters);
+
+	return {
+		...snapshot,
+		keyword: snapshot.keyword ? String(snapshot.keyword).slice(0, 80) : null,
+		q: snapshot.q ? String(snapshot.q).slice(0, 80) : null
+	};
+}
 
 /** Fire-and-forget search log — never throws to the caller. */
 export function logSearch(
 	filters: JobFilters,
 	resultCount: number,
-	visitorId?: string,
-	ipAddress?: string
+	tracking: JobQueryTracking
 ): void {
-	const payload = {
-		degree_areas: filters.degree_areas,
-		education_level: filters.education_level,
-		grade: filters.grade,
-		age: filters.age,
-		age_from: filters.age_from,
-		age_to: filters.age_to,
-		include_no_max_age: filters.include_no_max_age,
-		age_max: filters.age_max,
-		place_of_posting: filters.place_of_posting,
-		domicile: filters.domicile,
-		domicile_region: filters.domicile_region,
-		tag: filters.tag,
-		keyword: filters.keyword ? filters.keyword.slice(0, 80) : null,
-		q: filters.q ? filters.q.slice(0, 80) : null,
-		show_expired: filters.show_expired,
-		sort: filters.sort
-	};
-
 	db.searchLog
 		.create({
 			data: {
-				visitor_id: visitorId ?? null,
-				ip_address: ipAddress ?? null,
-				filters: payload,
+				visitor_id: tracking.visitorId ?? null,
+				user_id: tracking.userId ?? null,
+				ip_address: tracking.ipAddress ?? null,
+				path: tracking.path,
+				user_agent: tracking.userAgent ?? null,
+				browser: tracking.browser ?? null,
+				browser_version: tracking.browserVersion ?? null,
+				os: tracking.os ?? null,
+				device_type: tracking.deviceType ?? null,
+				filters: filtersToLogPayload(filters),
 				result_count: resultCount
 			}
 		})

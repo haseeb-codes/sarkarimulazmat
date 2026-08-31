@@ -15,6 +15,12 @@ declare global {
 		interface Locals {
 			visitorId?: string;
 			clientIp?: string;
+			userId?: string;
+			userAgent?: string;
+			browser?: string;
+			browserVersion?: string;
+			os?: string;
+			deviceType?: string;
 		}
 		interface PageData {
 			session?: import('@auth/sveltekit').Session | null;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import PortalTooltip from '$lib/components/portal-tooltip.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { HOME_PAGE_PORTALS } from '$lib/job-portals';
 	import { onFilterLinkClick } from '$lib/filter-nav';
@@ -96,19 +97,14 @@
 		<ul class="flex flex-wrap gap-1.5">
 			{#each sortedPortals as portal (portal.slug)}
 				<li class="min-w-0 max-w-full">
-					<a
-						href={filtersToHref({ portal: portal.label }, '/')}
-						data-sveltekit-noscroll
-						onclick={onFilterLinkClick}
-						class="{chipClass} group relative"
-						aria-label={portal.label}
-					>
-						<span
-							class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 max-w-72 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-center text-xs font-medium text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-							role="tooltip"
+					<PortalTooltip label={portal.label} class="min-w-0 max-w-full">
+						<a
+							href={filtersToHref({ portal: portal.label }, '/')}
+							data-sveltekit-noscroll
+							onclick={onFilterLinkClick}
+							class={chipClass}
+							aria-label={portal.label}
 						>
-							{portal.label}
-						</span>
 						{#if failedLogos.has(portal.slug)}
 							<span
 								class="{logoFrameClass(portal.slug)} text-[8px] font-semibold {portal.slug ===
@@ -141,7 +137,8 @@
 								({formatCount(countFor(portal.label)!)})
 							</span>
 						{/if}
-					</a>
+						</a>
+					</PortalTooltip>
 				</li>
 			{/each}
 		</ul>

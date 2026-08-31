@@ -1,0 +1,46 @@
+import type { JobFilters } from '$lib/server/jobs';
+
+/** Full filter state for page data and analytics. */
+export function jobFiltersSnapshot(filters: JobFilters) {
+	return {
+		degree_areas: filters.degree_areas,
+		education_level: filters.education_level,
+		ad_date: filters.ad_date,
+		posted_by: filters.posted_by,
+		donor_name: filters.donor_name,
+		portal: filters.portal,
+		gender: filters.gender,
+		qualification: filters.qualification,
+		qualification_from: filters.qualification_from,
+		qualification_to: filters.qualification_to,
+		grade: filters.grade,
+		age: filters.age,
+		age_from: filters.age_from,
+		age_to: filters.age_to,
+		include_no_max_age: filters.include_no_max_age,
+		age_max: filters.age_max,
+		place_of_posting: filters.place_of_posting,
+		domicile: filters.domicile,
+		domicile_region: filters.domicile_region,
+		tag: filters.tag,
+		department: filters.department,
+		collar: filters.collar,
+		province: filters.province,
+		program: filters.program,
+		keyword: filters.keyword,
+		q: filters.q,
+		has_salary: filters.has_salary,
+		permanent_only: filters.permanent_only,
+		women_only: filters.women_only,
+		transgender_applicable: filters.transgender_applicable,
+		disability_quota: filters.disability_quota,
+		minority_quota: filters.minority_quota,
+		min_salary: filters.min_salary,
+		salary_from: filters.salary_from,
+		salary_to: filters.salary_to,
+		show_expired: filters.show_expired,
+		sort: filters.sort,
+		page: filters.page,
+		pageSize: filters.pageSize
+	};
+}

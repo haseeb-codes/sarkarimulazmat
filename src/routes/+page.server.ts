@@ -3,59 +3,16 @@ import {
 	filtersAreActive,
 	countJobs,
 	listJobs,
-	parseJobFilters,
-	type JobFilters
+	parseJobFilters
 } from '$lib/server/jobs';
-import { logSearch } from '$lib/server/search-log';
-
-function filtersSnapshot(filters: JobFilters) {
-	return {
-		degree_areas: filters.degree_areas,
-		education_level: filters.education_level,
-		ad_date: filters.ad_date,
-		posted_by: filters.posted_by,
-		donor_name: filters.donor_name,
-		portal: filters.portal,
-		gender: filters.gender,
-		qualification: filters.qualification,
-		qualification_from: filters.qualification_from,
-		qualification_to: filters.qualification_to,
-		grade: filters.grade,
-		age: filters.age,
-		age_from: filters.age_from,
-		age_to: filters.age_to,
-		include_no_max_age: filters.include_no_max_age,
-		age_max: filters.age_max,
-		place_of_posting: filters.place_of_posting,
-		domicile: filters.domicile,
-		domicile_region: filters.domicile_region,
-		tag: filters.tag,
-		department: filters.department,
-		collar: filters.collar,
-		province: filters.province,
-		program: filters.program,
-		keyword: filters.keyword,
-		q: filters.q,
-		has_salary: filters.has_salary,
-		permanent_only: filters.permanent_only,
-		women_only: filters.women_only,
-		transgender_applicable: filters.transgender_applicable,
-		disability_quota: filters.disability_quota,
-		minority_quota: filters.minority_quota,
-		min_salary: filters.min_salary,
-		salary_from: filters.salary_from,
-		salary_to: filters.salary_to,
-		show_expired: filters.show_expired,
-		sort: filters.sort,
-		page: filters.page,
-		pageSize: filters.pageSize
-	};
-}
+import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
+import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 
 export const load: PageServerLoad = ({ url, locals }) => {
 	const filters = parseJobFilters(url);
-	const snapshot = filtersSnapshot(filters);
+	const snapshot = jobFiltersSnapshot(filters);
 	const filtered = filtersAreActive(filters);
+	const tracking = jobQueryTrackingFromLocals(locals, url.pathname + url.search);
 
 	// Stream count and listings independently — shell renders immediately for both.
 	const resultCount = countJobs(filters).catch((err) => {
@@ -63,18 +20,13 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		return 0;
 	});
 
-	const listing = listJobs(filters)
-		.then((result) => {
-			if (filtered) {
-				logSearch(filters, result.total, locals.visitorId, locals.clientIp);
-			}
-			return {
-				jobs: result.jobs,
-				total: result.total,
-				totalPages: result.totalPages,
-				error: null as string | null
-			};
-		})
+	const listing = listJobs(filters, tracking)
+		.then((result) => ({
+			jobs: result.jobs,
+			total: result.total,
+			totalPages: result.totalPages,
+			error: null as string | null
+		}))
 		.catch((err) => {
 			console.error('Failed to load jobs', err);
 			return {

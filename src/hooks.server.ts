@@ -2,6 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { handle as authHandle } from './auth';
 import db from '$lib/server/db';
+import { parseClientDevice } from '$lib/server/request-context';
 import { linkVisitorToUser } from '$lib/server/user-profile';
 
 const VISITOR_COOKIE = 'visitor_id';
@@ -23,6 +24,13 @@ function getClientIp(event: Parameters<Handle>[0]['event']): string | undefined 
 const visitorHandle: Handle = async ({ event, resolve }) => {
 	const ip = getClientIp(event);
 	event.locals.clientIp = ip;
+
+	const device = parseClientDevice(event.request.headers.get('user-agent'));
+	event.locals.userAgent = device.userAgent;
+	event.locals.browser = device.browser;
+	event.locals.browserVersion = device.browserVersion;
+	event.locals.os = device.os;
+	event.locals.deviceType = device.deviceType;
 
 	let visitorId = event.cookies.get(VISITOR_COOKIE);
 
@@ -73,6 +81,9 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 
 const linkVisitorHandle: Handle = async ({ event, resolve }) => {
 	const session = await event.locals.auth();
+	if (session?.user?.id) {
+		event.locals.userId = session.user.id;
+	}
 	if (session?.user?.id && event.locals.visitorId) {
 		linkVisitorToUser(event.locals.visitorId, session.user.id).catch(() => {});
 	}

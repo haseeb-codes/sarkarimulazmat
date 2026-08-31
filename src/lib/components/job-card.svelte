@@ -171,7 +171,7 @@
 					{/if}
 					{#if job.donor_name}
 						<span
-							class="hidden h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 sm:inline-flex dark:bg-blue-950/70 dark:text-blue-300"
+							class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
 							title={job.donor_name}
 						>
 							{job.donor_name}
@@ -211,7 +211,7 @@
 				{/if}
 
 				{#if job.project_program_name?.trim()}
-					<div class="hidden space-y-1 sm:block">
+					<div class="space-y-1">
 						<p class="text-xs font-medium text-muted-foreground">Program</p>
 						<MultiValueBadges
 							value={job.project_program_name}
@@ -222,7 +222,7 @@
 					</div>
 				{/if}
 				{#if job.degree_area}
-					<div class="hidden w-full min-w-0 flex-wrap items-center gap-1.5 sm:flex">
+					<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
 						<span class="shrink-0 text-xs font-medium text-muted-foreground"
 							>Specialization</span
 						>
@@ -235,7 +235,7 @@
 				{/if}
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
 					{#if job.domicile?.trim()}
-						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Domicile</span
 							>
@@ -247,7 +247,7 @@
 							/>
 						</div>
 					{:else if job.place_of_posting}
-						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Location</span
 							>
@@ -261,7 +261,7 @@
 						</div>
 					{/if}
 					{#if job.degrees}
-						<div class="hidden min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
+						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 							<span class="shrink-0 text-xs font-medium text-muted-foreground"
 								>Degrees</span
 							>
@@ -273,7 +273,7 @@
 						</div>
 					{/if}
 					{#if salaryLabel}
-						<span class="hidden items-center gap-1.5 sm:inline-flex">
+						<span class="inline-flex items-center gap-1.5">
 							<span class="text-xs font-medium text-muted-foreground">Salary</span>
 							<Badge
 								variant="outline"
@@ -286,7 +286,7 @@
 						</span>
 					{/if}
 					{#if job.max_age != null}
-						<span class="hidden items-center gap-1.5 sm:inline-flex">
+						<span class="inline-flex items-center gap-1.5">
 							<span class="text-xs font-medium text-muted-foreground">Max Age</span>
 							<Badge
 								variant="outline"
@@ -296,7 +296,7 @@
 							</Badge>
 						</span>
 					{:else if ageLabel}
-						<span class="hidden items-center gap-1.5 sm:inline-flex">
+						<span class="inline-flex items-center gap-1.5">
 							<span class="text-xs font-medium text-muted-foreground">Age</span>
 							<span class="text-foreground">{ageLabel}</span>
 						</span>
@@ -317,7 +317,7 @@
 						</span>
 					{/if}
 					{#if applyLink}
-						<span class="hidden min-w-0 max-w-full items-center gap-1.5 sm:inline-flex">
+						<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
 							<span class="text-xs font-medium text-muted-foreground">Apply</span>
 							<a
 								href={applyLink.href}
@@ -375,7 +375,7 @@
 					{/if}
 					{#if job.donor_name}
 						<span
-							class="hidden h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 sm:inline-flex dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
 								? ''
 								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
 						>
@@ -442,7 +442,7 @@
 
 		<Card.Content class="space-y-2 pt-0 sm:space-y-2.5">
 			{#if job.project_program_name?.trim()}
-				<div class="hidden space-y-1 sm:block">
+				<div class="space-y-1">
 					<p class="text-xs font-medium text-muted-foreground">Program</p>
 					<MultiValueBadges
 						value={job.project_program_name}
@@ -453,7 +453,7 @@
 				</div>
 			{/if}
 			{#if job.degree_area}
-				<div class="hidden w-full min-w-0 flex-wrap items-center gap-1.5 sm:flex">
+				<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
 					<span class="shrink-0 text-xs font-medium text-muted-foreground"
 						>Specialization</span
 					>

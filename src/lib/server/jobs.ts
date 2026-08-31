@@ -1,5 +1,7 @@
 import type { Prisma } from '$lib/server/generated/prisma/client';
 import db from '$lib/server/db';
+import { logSearch } from '$lib/server/search-log';
+import type { JobQueryTracking } from '$lib/server/request-context';
 import { getJobCategoryPage, getJobCategoryTags } from '$lib/job-category-pages';
 import { getDomicileRegion, selectedDomicileRegions } from '$lib/domicile-regions';
 import { countJobCategoryJobs, buildJobCategoryTagWhere } from '$lib/server/job-category-jobs';
@@ -962,6 +964,17 @@ function searchRankingPhrase(filters: JobFilters): string | null {
 	return keyword || null;
 }
 
+function maybeLogJobSearch(
+	filters: JobFilters,
+	result: ListJobsResult,
+	tracking?: JobQueryTracking
+): void {
+	if (!tracking) return;
+	const shouldLog = tracking.log ?? filtersAreActive(filters);
+	if (!shouldLog) return;
+	logSearch(filters, result.total, tracking);
+}
+
 /** Total matching jobs for the current filters — independent of pagination / row fetch. */
 export async function countJobs(filters: JobFilters): Promise<number> {
 	const where = buildJobWhere(filters);
@@ -982,7 +995,10 @@ export async function countJobs(filters: JobFilters): Promise<number> {
 	return db.jobPostings.count({ where });
 }
 
-export async function listJobs(filters: JobFilters): Promise<ListJobsResult> {
+export async function listJobs(
+	filters: JobFilters,
+	tracking?: JobQueryTracking
+): Promise<ListJobsResult> {
 	const cacheKey = defaultListJobsCacheKey(filters);
 	if (cacheKey) {
 		const now = Date.now();
@@ -1010,7 +1026,9 @@ export async function listJobs(filters: JobFilters): Promise<ListJobsResult> {
 		return pending;
 	}
 
-	return queryListJobs(filters);
+	const result = await queryListJobs(filters);
+	maybeLogJobSearch(filters, result, tracking);
+	return result;
 }
 
 async function queryListJobs(filters: JobFilters): Promise<ListJobsResult> {
