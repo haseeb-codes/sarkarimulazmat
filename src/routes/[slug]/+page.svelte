@@ -51,7 +51,14 @@
 </svelte:head>
 
 {#if data.kind === 'share'}
-	<JobCategorySharePage category={data.category} jobs={data.jobs} updatedAt={data.updatedAt} />
+	<JobCategorySharePage
+		category={data.category}
+		jobs={data.jobs}
+		total={data.total}
+		page={data.page}
+		totalPages={data.totalPages}
+		updatedAt={data.updatedAt}
+	/>
 {:else}
 	<div class="space-y-6">
 		<div class="space-y-3">

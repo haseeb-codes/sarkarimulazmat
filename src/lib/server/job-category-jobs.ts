@@ -6,7 +6,7 @@ import {
 	HOME_PAGE_TAG_SLUGS,
 	type JobCategoryPageDef
 } from '$lib/job-category-pages';
-import { toListJobs } from '$lib/server/job-list-dto';
+import { toListJobs, type ListJob } from '$lib/server/job-list-dto';
 
 export type TagJobCount = {
 	slug: string;
@@ -60,23 +60,80 @@ export function buildJobCategoryWhere(category: JobCategoryFilter): Prisma.JobPo
 	return { AND: and };
 }
 
-export async function loadJobCategoryJobs(category: JobCategoryFilter) {
+export const TAG_SHARE_PAGE_SIZE = 10;
+
+const jobCategoryOrderBy = [
+	{ ad_date: { sort: 'desc' as const, nulls: 'last' as const } },
+	{ file_creation_date: { sort: 'desc' as const, nulls: 'last' as const } },
+	{ row_id: 'desc' as const }
+];
+
+function filterJobsWithRowId<T extends { row_id: number | null }>(
+	rawJobs: T[]
+): (T & { row_id: number })[] {
+	return rawJobs.filter((job): job is T & { row_id: number } => job.row_id != null);
+}
+
+export type JobCategoryJobsAllResult = {
+	jobs: ListJob[];
+	updatedAt: string;
+};
+
+export type JobCategoryJobsPaginatedResult = JobCategoryJobsAllResult & {
+	total: number;
+	page: number;
+	pageSize: number;
+	totalPages: number;
+};
+
+export async function loadJobCategoryJobs(
+	category: JobCategoryFilter,
+	opts: { page?: number; pageSize?: number }
+): Promise<JobCategoryJobsPaginatedResult>;
+export async function loadJobCategoryJobs(
+	category: JobCategoryFilter,
+	opts?: undefined
+): Promise<JobCategoryJobsAllResult>;
+export async function loadJobCategoryJobs(
+	category: JobCategoryFilter,
+	opts?: { page?: number; pageSize?: number }
+): Promise<JobCategoryJobsAllResult | JobCategoryJobsPaginatedResult> {
+	const where = buildJobCategoryWhere(category);
+	const updatedAt = new Date().toISOString();
+
+	if (opts?.page != null || opts?.pageSize != null) {
+		const pageSize = opts.pageSize ?? TAG_SHARE_PAGE_SIZE;
+		const requestedPage = Math.max(1, opts.page ?? 1);
+		const total = await db.jobPostings.count({ where });
+		const totalPages = Math.max(1, Math.ceil(total / pageSize));
+		const page = Math.min(requestedPage, totalPages);
+		const skip = (page - 1) * pageSize;
+
+		const rawJobs = await db.jobPostings.findMany({
+			where,
+			orderBy: jobCategoryOrderBy,
+			skip,
+			take: pageSize
+		});
+
+		return {
+			jobs: toListJobs(filterJobsWithRowId(rawJobs)),
+			total,
+			page,
+			pageSize,
+			totalPages,
+			updatedAt
+		};
+	}
+
 	const rawJobs = await db.jobPostings.findMany({
-		where: buildJobCategoryWhere(category),
-		orderBy: [
-			{ ad_date: { sort: 'desc', nulls: 'last' } },
-			{ file_creation_date: { sort: 'desc', nulls: 'last' } },
-			{ row_id: 'desc' }
-		]
+		where,
+		orderBy: jobCategoryOrderBy
 	});
 
-	const jobs = rawJobs.filter(
-		(job): job is (typeof rawJobs)[number] & { row_id: number } => job.row_id != null
-	);
-
 	return {
-		jobs: toListJobs(jobs),
-		updatedAt: new Date().toISOString()
+		jobs: toListJobs(filterJobsWithRowId(rawJobs)),
+		updatedAt
 	};
 }
 

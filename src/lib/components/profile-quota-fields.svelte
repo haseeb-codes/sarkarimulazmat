@@ -21,13 +21,12 @@
 
 	let disabilityValue = $state(disabilityFormValue(hasDisability));
 
-	function setDisabilityValue(value: string) {
-		disabilityValue = value;
-		hasDisability = value === 'true';
-	}
-
 	$effect.pre(() => {
 		disabilityValue = disabilityFormValue(hasDisability);
+	});
+
+	$effect(() => {
+		hasDisability = disabilityValue === 'true';
 	});
 </script>
 
@@ -55,26 +54,12 @@
 
 	<div class="space-y-2">
 		<Label id="profile-disability-label" required>Disability</Label>
-		<input type="hidden" name="has_disability" value={disabilityValue} />
-		<div
-			class="flex rounded-md border border-input bg-muted/40 p-1"
-			role="group"
-			aria-labelledby="profile-disability-label"
-		>
-			{#each DISABILITY_TOGGLE_OPTIONS as option (option.value)}
-				<button
-					type="button"
-					{disabled}
-					aria-pressed={disabilityValue === option.value}
-					class="flex-1 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 {disabilityValue ===
-					option.value
-						? 'bg-background text-foreground shadow-xs'
-						: 'text-muted-foreground hover:text-foreground'}"
-					onclick={() => setDisabilityValue(option.value)}
-				>
-					{option.label}
-				</button>
-			{/each}
-		</div>
+		<ProfileSegmentToggle
+			name="has_disability"
+			bind:value={disabilityValue}
+			options={DISABILITY_TOGGLE_OPTIONS}
+			{disabled}
+			labelledBy="profile-disability-label"
+		/>
 	</div>
 </div>

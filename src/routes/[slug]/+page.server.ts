@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getJobCategoryPage } from '$lib/job-category-pages';
-import { loadJobCategoryJobs } from '$lib/server/job-category-jobs';
+import { loadJobCategoryJobs, TAG_SHARE_PAGE_SIZE } from '$lib/server/job-category-jobs';
+import { parseSocialImagePage } from '$lib/social-job-images';
 import db from '$lib/server/db';
 import { listJobs, countJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
@@ -11,11 +12,19 @@ import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } fro
 export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const jobCategory = getJobCategoryPage(params.slug);
 	if (jobCategory) {
-		const result = await loadJobCategoryJobs(jobCategory);
+		const page = parseSocialImagePage(url.searchParams.get('page'));
+		const result = await loadJobCategoryJobs(jobCategory, {
+			page,
+			pageSize: TAG_SHARE_PAGE_SIZE
+		});
 		return {
 			kind: 'share' as const,
 			category: jobCategory,
 			jobs: result.jobs,
+			total: result.total,
+			page: result.page,
+			pageSize: result.pageSize,
+			totalPages: result.totalPages,
 			updatedAt: result.updatedAt
 		};
 	}

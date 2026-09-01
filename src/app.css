@@ -9,6 +9,7 @@
    Default is light — dark only applies when .dark is set (cookie/toggle),
    not via prefers-color-scheme. */
 :root {
+	color-scheme: light;
 	--radius: 0.5rem;
 	--background: oklch(0.985 0.002 247);
 	--foreground: oklch(0.22 0.02 250);
@@ -61,6 +62,7 @@
 }
 
 .dark {
+	color-scheme: dark;
 	--background: oklch(0.17 0.015 250);
 	--foreground: oklch(0.95 0.005 247);
 	--card: oklch(0.22 0.02 250);

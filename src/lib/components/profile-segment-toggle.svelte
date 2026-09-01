@@ -20,7 +20,7 @@
 
 <input type="hidden" {name} {value} />
 <div
-	class="flex rounded-md border border-input bg-muted/40 p-1"
+	class="flex rounded-md border border-border bg-muted p-1"
 	role="group"
 	aria-labelledby={labelledBy}
 >
@@ -32,8 +32,8 @@
 			class={cn(
 				'flex-1 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
 				value === option.value
-					? 'bg-background text-foreground shadow-xs'
-					: 'text-muted-foreground hover:text-foreground'
+					? 'bg-primary text-primary-foreground shadow-sm'
+					: 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
 			)}
 			onclick={() => (value = option.value)}
 		>

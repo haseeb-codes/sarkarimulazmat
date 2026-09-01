@@ -38,10 +38,16 @@
 	let {
 		category,
 		jobs,
+		total,
+		page,
+		totalPages,
 		updatedAt
 	}: {
 		category: JobCategoryPageDef;
 		jobs: ShareJob[];
+		total: number;
+		page: number;
+		totalPages: number;
 		updatedAt: string;
 	} = $props();
 
@@ -53,13 +59,25 @@
 		})
 	);
 
-	const canonical = $derived(`${SITE_HREF}/${category.slug}`);
+	const showPagination = $derived(totalPages > 1);
+	const pageHref = (targetPage: number) =>
+		targetPage <= 1 ? `/${category.slug}` : `/${category.slug}?page=${targetPage}`;
+	const pageNumbers = $derived(Array.from({ length: totalPages }, (_, index) => index + 1));
+	const canonical = $derived(`${SITE_HREF}${pageHref(page)}`);
+	const prevHref = $derived(page > 1 ? `${SITE_HREF}${pageHref(page - 1)}` : null);
+	const nextHref = $derived(page < totalPages ? `${SITE_HREF}${pageHref(page + 1)}` : null);
 </script>
 
 <svelte:head>
 	<title>{category.title}</title>
 	<meta name="description" content={category.metaDescription} />
 	<link rel="canonical" href={canonical} />
+	{#if prevHref}
+		<link rel="prev" href={prevHref} />
+	{/if}
+	{#if nextHref}
+		<link rel="next" href={nextHref} />
+	{/if}
 	<meta property="og:title" content={category.title} />
 	<meta property="og:description" content={category.metaDescription} />
 	<meta property="og:type" content="website" />
@@ -90,8 +108,11 @@
 				<div class="space-y-1">
 					<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{category.h1}</h1>
 					<p class="text-sm text-muted-foreground sm:text-base">
-						{jobs.length.toLocaleString('en-PK')} active opening{jobs.length === 1 ? '' : 's'} ·
+						{total.toLocaleString('en-PK')} active opening{total === 1 ? '' : 's'} ·
 						Updated {updatedLabel}
+						{#if showPagination}
+							<span> · Page {page} of {totalPages}</span>
+						{/if}
 					</p>
 				</div>
 			</div>
@@ -106,8 +127,46 @@
 			</div>
 		{:else}
 			<div class="space-y-4">
+				{#if showPagination}
+					<nav
+						aria-label="Job list pages"
+						class="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3"
+					>
+						{#if page > 1}
+							<a
+								href={pageHref(page - 1)}
+								class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
+							>
+								← Previous
+							</a>
+						{/if}
+
+						{#each pageNumbers as pageNumber (pageNumber)}
+							<a
+								href={pageHref(pageNumber)}
+								aria-current={pageNumber === page ? 'page' : undefined}
+								class="min-w-9 rounded-md border px-3 py-1.5 text-center text-sm font-medium transition-colors {pageNumber ===
+								page
+									? 'border-primary bg-primary text-primary-foreground'
+									: 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'}"
+							>
+								{pageNumber}
+							</a>
+						{/each}
+
+						{#if page < totalPages}
+							<a
+								href={pageHref(page + 1)}
+								class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
+							>
+								Next →
+							</a>
+						{/if}
+					</nav>
+				{/if}
+
 				<h2 class="text-base font-semibold">
-					{jobs.length.toLocaleString('en-PK')} job{jobs.length === 1 ? '' : 's'}
+					{jobs.length.toLocaleString('en-PK')} job{jobs.length === 1 ? '' : 's'} on this page
 				</h2>
 
 				<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">

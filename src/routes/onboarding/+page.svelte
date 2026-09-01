@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { NativeSelect } from '$lib/components/ui/native-select/index.js';
 	import {
 		Card,
 		CardContent,
@@ -163,12 +164,12 @@
 
 					<div class="space-y-2">
 						<Label for="profile-gender" required>Gender</Label>
-						<select
+						<NativeSelect
 							id="profile-gender"
 							name="gender"
 							required
 							disabled={submitting}
-							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+							class={!genderValue ? 'text-muted-foreground' : undefined}
 						>
 							<option value="" disabled selected={!genderValue}>Select gender</option>
 							{#each data.genders as option (option.value)}
@@ -176,7 +177,7 @@
 									{option.label}
 								</option>
 							{/each}
-						</select>
+						</NativeSelect>
 					</div>
 
 					<div class="space-y-2">
@@ -218,18 +219,18 @@
 				>
 					<div class="space-y-2">
 						<Label for="profile-education" required>Highest qualification</Label>
-						<select
+						<NativeSelect
 							id="profile-education"
 							name="highest_degree"
 							required
 							disabled={submitting}
-							class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+							class={!educationValue ? 'text-muted-foreground' : undefined}
 						>
 							<option value="" disabled selected={!educationValue}>Select qualification level</option>
 							{#each data.educationLevels as level (level)}
 								<option value={level} selected={educationValue === level}>{level}</option>
 							{/each}
-						</select>
+						</NativeSelect>
 					</div>
 
 					<div class="space-y-2">
