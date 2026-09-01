@@ -25,6 +25,7 @@ export type ListJob = {
 	supabase_file_path: string | null;
 	application_online_address: string | null;
 	email: string | null;
+	url_web_title: string | null;
 };
 
 type ListJobSource = Pick<
@@ -52,6 +53,7 @@ type ListJobSource = Pick<
 	| 'supabase_file_path'
 	| 'application_online_address'
 	| 'email'
+	| 'url_web_title'
 > & { row_id: number };
 
 export function toListJob(job: ListJobSource): ListJob {
@@ -80,7 +82,8 @@ export function toListJob(job: ListJobSource): ListJob {
 			: null,
 		supabase_file_path: job.supabase_file_path,
 		application_online_address: job.application_online_address,
-		email: job.email
+		email: job.email,
+		url_web_title: job.url_web_title
 	};
 }
 

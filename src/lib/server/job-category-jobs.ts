@@ -60,7 +60,7 @@ export function buildJobCategoryWhere(category: JobCategoryFilter): Prisma.JobPo
 	return { AND: and };
 }
 
-export const TAG_SHARE_PAGE_SIZE = 10;
+export const TAG_SHARE_PAGE_SIZE = 12;
 
 const jobCategoryOrderBy = [
 	{ ad_date: { sort: 'desc' as const, nulls: 'last' as const } },

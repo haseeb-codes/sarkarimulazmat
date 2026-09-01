@@ -33,6 +33,7 @@
 		supabase_file_path?: string | null;
 		application_online_address?: string | null;
 		email?: string | null;
+		url_web_title?: string | null;
 	};
 
 	let {
@@ -87,34 +88,30 @@
 <ForceLightMode>
 	<div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 md:py-8">
 		<header
-			class="overflow-hidden rounded-2xl border border-primary/25 bg-linear-to-br from-primary/15 via-primary/5 to-background shadow-sm"
+			class="overflow-hidden rounded-xl border border-primary/25 bg-linear-to-br from-primary/15 via-primary/5 to-background shadow-sm"
 		>
-			<div class="flex flex-col items-center gap-3 px-4 py-6 text-center sm:px-6 sm:py-8">
+			<div
+				class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-3 text-center sm:gap-x-3 sm:px-4 sm:py-3.5"
+			>
 				<a
 					href="/"
-					class="flex items-center gap-3 rounded-full border border-primary/30 bg-background/80 px-4 py-2 shadow-xs backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-primary/5"
+					class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/80 px-3 py-1.5 shadow-xs backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-primary/5"
 				>
-					<img src={logo} alt="" class="h-10 w-10 shrink-0" width="40" height="40" />
-					<div class="text-left">
-						<p class="text-lg font-bold tracking-tight text-primary sm:text-xl">{SITE_NAME}</p>
-						<p class="text-sm font-semibold text-primary/80">{SITE_URL}</p>
-					</div>
+					<img src={logo} alt="" class="h-7 w-7 shrink-0" width="28" height="28" />
+					<span class="text-sm font-bold tracking-tight text-primary">{SITE_NAME}</span>
+					<span class="text-primary/40" aria-hidden="true">·</span>
+					<span class="text-xs font-semibold text-primary/80">
+						{SITE_URL}<span class="text-primary/70">/{category.slug}</span>
+					</span>
 				</a>
 
-				<p class="text-sm font-medium text-primary/70">
-					<a href="/" class="hover:underline">{SITE_URL}</a><span>/{category.slug}</span>
-				</p>
+				<span class="hidden text-primary/25 sm:inline" aria-hidden="true">|</span>
 
-				<div class="space-y-1">
-					<h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{category.h1}</h1>
-					<p class="text-sm text-muted-foreground sm:text-base">
-						{total.toLocaleString('en-PK')} active opening{total === 1 ? '' : 's'} ·
-						Updated {updatedLabel}
-						{#if showPagination}
-							<span> · Page {page} of {totalPages}</span>
-						{/if}
-					</p>
-				</div>
+				<h1 class="text-lg font-bold tracking-tight sm:text-xl">{category.h1}</h1>
+
+				<span class="text-muted-foreground/60" aria-hidden="true">·</span>
+
+				<p class="text-xs text-muted-foreground sm:text-sm">Updated {updatedLabel}</p>
 			</div>
 		</header>
 
@@ -127,11 +124,19 @@
 			</div>
 		{:else}
 			<div class="space-y-4">
-				{#if showPagination}
-					<nav
-						aria-label="Job list pages"
-						class="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3"
-					>
+				<nav
+					aria-label="Job list pages"
+					class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3"
+				>
+					<div class="mr-auto flex shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 px-1 text-sm">
+						<span class="font-semibold">Page: {page}/{totalPages}</span>
+						<span class="text-muted-foreground/60" aria-hidden="true">·</span>
+						<span class="text-muted-foreground">
+							{total.toLocaleString('en-PK')} active opening{total === 1 ? '' : 's'}
+						</span>
+					</div>
+
+					{#if showPagination}
 						{#if page > 1}
 							<a
 								href={pageHref(page - 1)}
@@ -162,16 +167,12 @@
 								Next →
 							</a>
 						{/if}
-					</nav>
-				{/if}
+					{/if}
+				</nav>
 
-				<h2 class="text-base font-semibold">
-					{jobs.length.toLocaleString('en-PK')} job{jobs.length === 1 ? '' : 's'} on this page
-				</h2>
-
-				<ul class="columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
+				<ul class="grid auto-rows-auto grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
 					{#each jobs as job (job.slug)}
-						<li class="mb-3 break-inside-avoid">
+						<li class="min-w-0">
 							<JobCard {job} static={true} />
 						</li>
 					{/each}
@@ -180,21 +181,10 @@
 		{/if}
 
 		<footer
-			class="rounded-2xl border border-primary/25 bg-linear-to-br from-primary/10 via-background to-primary/5 px-4 py-6 text-center sm:px-6"
+			class="rounded-2xl border border-primary/25 bg-linear-to-br from-primary/10 via-background to-primary/5 px-4 py-4 text-center sm:px-6"
 		>
-			<p class="text-base font-semibold text-foreground">
-				Visit <a href="/" class="text-primary hover:underline">{SITE_URL}</a> for complete details,
-			</p>
-			<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
-				Official advertisements, eligibility filters, and hundreds of other government jobs across
-				Pakistan.
-			</p>
-			<p class="mt-3 text-lg font-bold">
-				<a href="/" class="text-primary hover:underline">{SITE_URL}</a>
-			</p>
-			<p class="mt-1 text-xs text-muted-foreground">
-				<a href="/" class="hover:text-foreground hover:underline">{SITE_NAME}</a> — Government jobs in
-				Pakistan
+			<p class="text-xs text-muted-foreground sm:text-sm">
+				Visit <a href="/" class="text-primary hover:underline">{SITE_URL}</a> for complete details.
 			</p>
 		</footer>
 	</div>

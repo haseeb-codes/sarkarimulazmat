@@ -5,6 +5,7 @@
 	import MultiValueBadges from "$lib/components/multi-value-badges.svelte";
 	import GenderIcons from "$lib/components/gender-icons.svelte";
 	import DisabilityIcon from "$lib/components/disability-icon.svelte";
+	import JobApplyLink from "$lib/components/jobs/job-apply-link.svelte";
 	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
 	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
 	import { onFilterLinkClick } from "$lib/filter-nav";
@@ -17,7 +18,6 @@
 		formatDateLabel,
 		formatSalary,
 		getJobAdUrl,
-		getJobApplyLink,
 		isRecentAd,
 		isClosingSoon,
 		isJobExpired,
@@ -27,8 +27,6 @@
 	} from "$lib/jobs-utils";
 	import ImageIcon from "@lucide/svelte/icons/image";
 	import BuildingIcon from "@lucide/svelte/icons/building-2";
-	import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
-	import MailIcon from "@lucide/svelte/icons/mail";
 
 	type JobCardJob = {
 		row_id: number;
@@ -54,6 +52,7 @@
 		supabase_file_path?: string | null;
 		application_online_address?: string | null;
 		email?: string | null;
+		url_web_title?: string | null;
 	};
 
 	let {
@@ -104,9 +103,6 @@
 	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
-	const applyLink = $derived(
-		getJobApplyLink(job.application_online_address, job.email),
-	);
 	const cardAccentClass = $derived(
 		fresh
 			? "job-card-fresh ring-2 ring-primary/70"
@@ -118,7 +114,7 @@
 	let adOpen = $state(false);
 </script>
 
-{#if adUrl}
+{#if adUrl && !isStatic}
 	<JobAdModal
 		bind:open={adOpen}
 		title={job.title}
@@ -316,41 +312,30 @@
 							{/if}
 						</span>
 					{/if}
-					{#if applyLink}
-						<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
-							<span class="text-xs font-medium text-muted-foreground">Apply</span>
-							<a
-								href={applyLink.href}
-								target={applyLink.kind === "url" ? "_blank" : undefined}
-								rel={applyLink.kind === "url" ? "noopener noreferrer" : undefined}
-								class="inline-flex min-w-0 max-w-full items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
-							>
-								{#if applyLink.kind === "email"}
-									<MailIcon class="size-3.5 shrink-0" />
-								{:else}
-									<ExternalLinkIcon class="size-3.5 shrink-0" />
-								{/if}
-								<span class="truncate">{applyLink.label}</span>
-							</a>
-						</span>
-					{/if}
+					<JobApplyLink
+						applicationOnlineAddress={job.application_online_address}
+						email={job.email}
+						urlWebTitle={job.url_web_title}
+					/>
 				</div>
 			</div>
 
-			<div class="flex shrink-0 gap-2 sm:flex-col sm:items-stretch lg:flex-row">
-				{#if adUrl}
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onclick={() => (adOpen = true)}
-					>
-						<ImageIcon data-icon="inline-start" />
-						View Ad
-					</Button>
-				{/if}
-				<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
-			</div>
+			{#if !isStatic}
+				<div class="flex shrink-0 gap-2 sm:flex-col sm:items-stretch lg:flex-row">
+					{#if adUrl}
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onclick={() => (adOpen = true)}
+						>
+							<ImageIcon data-icon="inline-start" />
+							View Ad
+						</Button>
+					{/if}
+					<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+				</div>
+			{/if}
 		</div>
 	</Card.Root>
 {:else}
@@ -547,45 +532,34 @@
 						{/if}
 					</span>
 				{/if}
-				{#if applyLink}
-					<span class="inline-flex min-w-0 max-w-full items-center gap-1.5">
-						<span class="text-xs font-medium text-muted-foreground">Apply</span>
-						<a
-							href={applyLink.href}
-							target={applyLink.kind === "url" ? "_blank" : undefined}
-							rel={applyLink.kind === "url" ? "noopener noreferrer" : undefined}
-							class="inline-flex min-w-0 max-w-full items-center gap-1 text-sm font-medium text-primary underline-offset-2 hover:underline"
-						>
-							{#if applyLink.kind === "email"}
-								<MailIcon class="size-3.5 shrink-0" />
-							{:else}
-								<ExternalLinkIcon class="size-3.5 shrink-0" />
-							{/if}
-							<span class="truncate">{applyLink.label}</span>
-						</a>
-					</span>
-				{/if}
-			</div>
-			<div class="flex gap-2">
-				{#if adUrl}
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						class="min-w-0 flex-1"
-						onclick={() => (adOpen = true)}
-					>
-						<ImageIcon data-icon="inline-start" />
-						View Ad
-					</Button>
-				{/if}
-				<ShareJobButton
-					url={shareUrl}
-					title={job.title}
-					text={job.department}
-					class={adUrl ? "shrink-0" : "w-full"}
+				<JobApplyLink
+					applicationOnlineAddress={job.application_online_address}
+					email={job.email}
+					urlWebTitle={job.url_web_title}
 				/>
 			</div>
+			{#if !isStatic}
+				<div class="flex gap-2">
+					{#if adUrl}
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							class="min-w-0 flex-1"
+							onclick={() => (adOpen = true)}
+						>
+							<ImageIcon data-icon="inline-start" />
+							View Ad
+						</Button>
+					{/if}
+					<ShareJobButton
+						url={shareUrl}
+						title={job.title}
+						text={job.department}
+						class={adUrl ? "shrink-0" : "w-full"}
+					/>
+				</div>
+			{/if}
 		</Card.Content>
 	</Card.Root>
 {/if}

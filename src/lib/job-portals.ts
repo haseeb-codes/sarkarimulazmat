@@ -100,3 +100,76 @@ export const JOB_PORTALS: JobPortal[] = [
 export const HOME_PAGE_PORTALS = JOB_PORTALS.filter((portal) => portal.slug !== 'dgpr-balochistan');
 
 export const JOB_PORTAL_BY_LABEL = new Map(JOB_PORTALS.map((portal) => [portal.label, portal]));
+
+export function portalLogoFrameClass(slug: string): string {
+	const base = 'flex size-4 shrink-0 items-center justify-center rounded-sm';
+	if (slug === 'iwork4sindh') return `${base} bg-blue-600 p-0.5`;
+	return base;
+}
+
+function hostnameFromApplyAddress(address: string | null | undefined): string | null {
+	const online = address?.trim();
+	if (!online || /^(javascript|data|vbscript):/i.test(online)) return null;
+
+	try {
+		const href = /^https?:\/\//i.test(online) ? online : `https://${online}`;
+		return new URL(href).hostname.replace(/^www\./i, '').toLowerCase();
+	} catch {
+		return null;
+	}
+}
+
+function portalHostname(portal: JobPortal): string {
+	return new URL(portal.website).hostname.replace(/^www\./i, '').toLowerCase();
+}
+
+/** Match a testing-agency / job-portal logo from an online apply URL. */
+export function resolveJobPortalFromApplyAddress(
+	applicationOnlineAddress: string | null | undefined
+): JobPortal | undefined {
+	const hostname = hostnameFromApplyAddress(applicationOnlineAddress);
+	if (!hostname) return undefined;
+
+	let best: { portal: JobPortal; score: number } | undefined;
+
+	for (const portal of JOB_PORTALS) {
+		const portalHost = portalHostname(portal);
+		if (hostname === portalHost || hostname.endsWith(`.${portalHost}`)) {
+			const score = portalHost.length;
+			if (!best || score > best.score) best = { portal, score };
+		}
+	}
+
+	if (best) return best.portal;
+
+	const raw = applicationOnlineAddress?.toLowerCase() ?? '';
+	for (const portal of JOB_PORTALS) {
+		const portalHost = portalHostname(portal);
+		if (raw.includes(portalHost)) return portal;
+	}
+
+	return undefined;
+}
+
+/** Prefer apply URL; fall back to `url_web_title` when the link is on a known portal. */
+export function resolveJobPortal(
+	applicationOnlineAddress: string | null | undefined,
+	urlWebTitle?: string | null
+): JobPortal | undefined {
+	const fromApply = resolveJobPortalFromApplyAddress(applicationOnlineAddress);
+	if (fromApply) return fromApply;
+
+	const title = urlWebTitle?.trim().toLowerCase();
+	if (!title) return undefined;
+
+	for (const portal of JOB_PORTALS) {
+		if (
+			title.includes(portal.shortLabel.toLowerCase()) ||
+			title.includes(portal.label.toLowerCase())
+		) {
+			return portal;
+		}
+	}
+
+	return undefined;
+}
