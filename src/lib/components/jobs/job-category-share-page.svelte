@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page as appPage } from '$app/state';
 	import logo from '$lib/assets/logo.png';
 	import JobCard from '$lib/components/job-card.svelte';
 	import ForceLightMode from '$lib/components/jobs/force-light-mode.svelte';
@@ -9,7 +10,7 @@
 		LATEST_POSTED_JOBS_SLUG,
 		type JobCategoryPageDef
 	} from '$lib/job-category-pages';
-	import { formatDateLabel } from '$lib/jobs-utils';
+	import { formatDateLabel, homeHrefFromUrl } from '$lib/jobs-utils';
 
 	type ShareJob = {
 		row_id: number;
@@ -65,8 +66,14 @@
 	);
 
 	const showPagination = $derived(totalPages > 1);
-	const pageHref = (targetPage: number) =>
-		targetPage <= 1 ? `/${category.slug}` : `/${category.slug}?page=${targetPage}`;
+	const homeHref = $derived(homeHrefFromUrl(appPage.url));
+	const pageHref = (targetPage: number) => {
+		const params = new URLSearchParams(appPage.url.searchParams);
+		if (targetPage <= 1) params.delete('page');
+		else params.set('page', String(targetPage));
+		const qs = params.toString();
+		return qs ? `/${category.slug}?${qs}` : `/${category.slug}`;
+	};
 	const pageNumbers = $derived(Array.from({ length: totalPages }, (_, index) => index + 1));
 	const canonical = $derived(`${SITE_HREF}${pageHref(page)}`);
 	const prevHref = $derived(page > 1 ? `${SITE_HREF}${pageHref(page - 1)}` : null);
@@ -117,7 +124,7 @@
 				class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-3 text-center sm:gap-x-3 sm:px-4 sm:py-3.5"
 			>
 				<a
-					href="/"
+					href={homeHref}
 					class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/80 px-3 py-1.5 shadow-xs backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-primary/5"
 				>
 					<img src={logo} alt="" class="h-7 w-7 shrink-0" width="28" height="28" />
@@ -213,7 +220,7 @@
 			class="rounded-2xl border border-primary/25 bg-linear-to-br from-primary/10 via-background to-primary/5 px-4 py-4 text-center sm:px-6"
 		>
 			<p class="text-xs text-muted-foreground sm:text-sm">
-				Visit <a href="/" class="text-primary hover:underline">{SITE_URL}</a> for complete details.
+				Visit <a href={homeHref} class="text-primary hover:underline">{SITE_URL}</a> for complete details.
 			</p>
 		</footer>
 	</div>

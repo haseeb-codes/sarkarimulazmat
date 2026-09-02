@@ -1,7 +1,7 @@
 /** Shared job-display / URL helpers — safe for client and server. */
 
 import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
-import { getJobCategoryTagLabel } from '$lib/job-category-pages';
+import { getJobCategoryTagLabel, isJobCategoryShareSlug } from '$lib/job-category-pages';
 
 export type JobSort = 'newest' | 'closing_soon';
 
@@ -123,9 +123,23 @@ export function formatSalary(value: number | null | undefined): string | null {
 	return Math.round(value).toLocaleString('en-PK');
 }
 
+function isTagBrowsePath(pathname: string): boolean {
+	if (pathname === '/tags') return true;
+	const match = pathname.match(/^\/([^/]+)$/);
+	return match != null && isJobCategoryShareSlug(match[1]);
+}
+
 function filterLinksUseHome(baseUrl: URL | undefined): boolean {
 	const path = baseUrl?.pathname ?? '/';
-	return path.startsWith('/jobs/') || path.startsWith('/ad/');
+	return path.startsWith('/jobs/') || path.startsWith('/ad/') || isTagBrowsePath(path);
+}
+
+/** Home link preserving current browse filters (drops tag-page pagination). */
+export function homeHrefFromUrl(url: URL): string {
+	const params = new URLSearchParams(url.searchParams);
+	params.delete('page');
+	const qs = params.toString();
+	return qs ? `/?${qs}` : '/';
 }
 
 /**

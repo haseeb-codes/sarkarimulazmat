@@ -2,7 +2,6 @@
 export const JOB_CATEGORY_COLUMNS = [
 	'is_army_officer_required',
 	'is_women_only_job',
-	'is_transgender_only_job',
 	'is_law_enforcement_job',
 	'is_management_job',
 	'is_driver_job',
@@ -52,6 +51,8 @@ export type JobCategoryPageDef = {
 	degree_area_terms?: string[];
 	/** Active jobs posted or updated on today, or the most recent posting day. */
 	latest_posted_day?: true;
+	/** Jobs where transgender candidates can apply (`gender` contains “Transgender”). */
+	transgender_applicable?: true;
 	column?: JobCategoryColumn;
 	title: string;
 	h1: string;
@@ -90,13 +91,13 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		emptyMessage: 'No active women-only job openings right now'
 	},
 	{
-		slug: 'transgender-only-jobs',
-		column: 'is_transgender_only_job',
-		title: 'Transgender-Only Government Jobs in Pakistan — Sarkari Mulazmat',
-		h1: 'Transgender-only government jobs in Pakistan',
+		slug: 'transgender-applicable-jobs',
+		transgender_applicable: true,
+		title: 'Transgender Applicable Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Transgender applicable government jobs in Pakistan',
 		metaDescription:
-			'Government job openings in Pakistan reserved for transgender candidates.',
-		emptyMessage: 'No active transgender-only job openings right now'
+			'Government job openings in Pakistan where transgender candidates can also apply.',
+		emptyMessage: 'No active transgender-applicable job openings right now'
 	},
 	{
 		slug: 'law-enforcement-jobs',
@@ -468,7 +469,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	[LATEST_POSTED_JOBS_SLUG]: 'Latest Posted',
 	'army-officer-jobs': 'Army Officer',
 	'women-only-jobs': 'Women Only',
-	'transgender-only-jobs': 'Transgender Only',
+	'transgender-applicable-jobs': 'Transgender Applicable',
 	'law-enforcement-jobs': 'Law Enforcement',
 	'management-jobs': 'Management',
 	'driver-jobs': 'Driver',
@@ -493,7 +494,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'aviation-aeronautics-jobs': 'Aviation & Aeronautics',
 	'dae-jobs': 'DAE',
 	'mba-jobs': 'MBA',
-	'mcom-jobs': 'M.Com',
+	'mcom-jobs': 'Commerce (M.COM/B.COM)',
 	'bcom-jobs': 'B.Com',
 	'commerce-jobs': 'Commerce',
 	'accounting-finance-jobs': 'Accounting & Finance',
@@ -525,7 +526,7 @@ export const HOME_PAGE_TAG_SLUGS = [
 
 /** Optional home page display labels (defaults to `JOB_CATEGORY_LABELS`). */
 export const HOME_PAGE_TAG_LABELS: Partial<Record<(typeof HOME_PAGE_TAG_SLUGS)[number], string>> = {
-	'accounting-finance-jobs': 'M.com/ACCA/MBA',
+	'accounting-finance-jobs': 'Finance/M.COM/ACCA/CA/ACMA/B.COM',
 	'mbbs-jobs': 'MBBS Doctors',
 	'economist-jobs': 'Economics'
 };

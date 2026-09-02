@@ -38,7 +38,7 @@ function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 
 export type JobCategoryFilter = Pick<
 	JobCategoryPageDef,
-	'column' | 'degree_area_terms' | 'latest_posted_day'
+	'column' | 'degree_area_terms' | 'latest_posted_day' | 'transgender_applicable'
 >;
 
 function activeNonExpiredWhere(): Prisma.JobPostingsWhereInput {
@@ -101,6 +101,10 @@ function latestPostedDayWhere(dateKey: string): Prisma.JobPostingsWhereInput {
 	};
 }
 
+function transgenderApplicableWhere(): Prisma.JobPostingsWhereInput {
+	return { gender: { contains: 'Transgender', mode: 'insensitive' } };
+}
+
 /** Tag filter clause for the main job list (`buildJobWhere`). */
 export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
 	if (category.latest_posted_day) {
@@ -108,6 +112,9 @@ export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.Jo
 	}
 	if (category.degree_area_terms?.length) {
 		return degreeAreaTermsWhere(category.degree_area_terms);
+	}
+	if (category.transgender_applicable) {
+		return transgenderApplicableWhere();
 	}
 	if (!category.column) {
 		return {};
@@ -129,6 +136,8 @@ export async function buildJobCategoryWhere(
 		}
 	} else if (category.degree_area_terms?.length) {
 		and.push(degreeAreaTermsWhere(category.degree_area_terms));
+	} else if (category.transgender_applicable) {
+		and.push(transgenderApplicableWhere());
 	} else if (category.column) {
 		and.push({ [category.column]: 1 });
 	}

@@ -285,20 +285,20 @@
 					<a href={adDetailHref(ad.ad_slug)} class={cardLinkClass}>
 						<span class="font-semibold text-foreground">{ad.ad_headline ?? ad.ad_slug}</span>
 						<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-							{#if ad.ad_code}
-								<span class="break-all">{ad.ad_code}</span>
-							{/if}
-							<span class="tabular-nums font-medium text-primary underline-offset-2 group-hover:underline">
-								{vacancyLabel(ad.vacancies)}
+							<span class="tabular-nums">
+								<span class="font-medium text-foreground/80">Last date:</span>
+								{@render lastDateLabel(ad)}
 							</span>
 							<span class="tabular-nums">
 								<span class="font-medium text-foreground/80">Posted on:</span>
 								{@render postedOnLabel(ad)}
 							</span>
-							<span class="tabular-nums">
-								<span class="font-medium text-foreground/80">Last date:</span>
-								{@render lastDateLabel(ad)}
+							<span class="tabular-nums font-medium text-primary underline-offset-2 group-hover:underline">
+								{vacancyLabel(ad.vacancies)}
 							</span>
+							{#if ad.ad_code}
+								<span class="break-all">{ad.ad_code}</span>
+							{/if}
 						</div>
 						{@render adPostedBy(ad)}
 					</a>
@@ -311,19 +311,16 @@
 			<table class="w-full text-left text-sm">
 				<thead class="border-b border-border bg-muted/40">
 					<tr>
-						<th class="px-4 py-3 font-semibold lg:px-5" scope="col">Ad code</th>
 						<th class="px-4 py-3 font-semibold lg:px-5" scope="col">Headline</th>
-						<th class="px-4 py-3 font-semibold whitespace-nowrap lg:px-5" scope="col">Posted On</th>
 						<th class="px-4 py-3 font-semibold whitespace-nowrap lg:px-5" scope="col">Last date</th>
+						<th class="px-4 py-3 font-semibold whitespace-nowrap lg:px-5" scope="col">Posted On</th>
 						<th class="px-4 py-3 text-right font-semibold lg:px-5" scope="col">Vacancies</th>
+						<th class="px-4 py-3 font-semibold lg:px-5" scope="col">Ad code</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each data.ads as ad (ad.ad_slug)}
 						<tr class="border-b border-border last:border-b-0 hover:bg-muted/30">
-							<td class="max-w-[12rem] px-4 py-3 align-top break-words text-muted-foreground lg:max-w-none lg:px-5 lg:whitespace-nowrap">
-								{ad.ad_code ?? '—'}
-							</td>
 							<td class="min-w-0 px-4 py-3 align-top lg:px-5">
 								<a
 									href={adDetailHref(ad.ad_slug)}
@@ -334,10 +331,10 @@
 								{@render adPostedBy(ad)}
 							</td>
 							<td class="px-4 py-3 align-top whitespace-nowrap tabular-nums text-muted-foreground lg:px-5">
-								{@render postedOnLabel(ad)}
+								{@render lastDateLabel(ad)}
 							</td>
 							<td class="px-4 py-3 align-top whitespace-nowrap tabular-nums text-muted-foreground lg:px-5">
-								{@render lastDateLabel(ad)}
+								{@render postedOnLabel(ad)}
 							</td>
 							<td class="px-4 py-3 align-top text-right tabular-nums lg:px-5">
 								<a
@@ -347,6 +344,9 @@
 								>
 									{ad.vacancies ?? '—'}
 								</a>
+							</td>
+							<td class="max-w-[12rem] px-4 py-3 align-top break-words text-muted-foreground lg:max-w-none lg:px-5 lg:whitespace-nowrap">
+								{ad.ad_code ?? '—'}
 							</td>
 						</tr>
 					{/each}

@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { SITE_NAME } from '$lib/job-category-pages';
+	import { homeHrefFromUrl } from '$lib/jobs-utils';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
 	import SearchIcon from '@lucide/svelte/icons/search';
@@ -12,6 +13,7 @@
 	const description =
 		'Browse government jobs in Pakistan by qualification, field, and role — MBA, MBBS, engineering, teaching, nursing, and more.';
 	const canonical = $derived(new URL('/tags', page.url.origin).href);
+	const homeHref = $derived(homeHrefFromUrl(page.url));
 
 	const tags = $derived(data.tags);
 	let queryInput = $state('');
@@ -53,7 +55,7 @@
 <div class="space-y-6">
 	<div class="space-y-4">
 		<div class="space-y-2">
-			<a href="/" class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
+			<a href={homeHref} class="text-sm text-muted-foreground hover:text-foreground">← All jobs</a>
 			<h1>Browse by tag</h1>
 			<p class="max-w-2xl text-muted-foreground">
 				Jump to curated job lists by qualification, profession, or role. Each page shows active
