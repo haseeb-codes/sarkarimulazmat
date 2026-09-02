@@ -48,16 +48,29 @@ export type JobCategoryColumn = (typeof JOB_CATEGORY_COLUMNS)[number];
 
 export type JobCategoryPageDef = {
 	slug: string;
-	column: JobCategoryColumn;
 	/** When set, jobs match if `degree_area` contains any term (instead of the flag column). */
 	degree_area_terms?: string[];
+	/** Active jobs posted or updated on today, or the most recent posting day. */
+	latest_posted_day?: true;
+	column?: JobCategoryColumn;
 	title: string;
 	h1: string;
 	metaDescription: string;
 	emptyMessage: string;
 };
 
+export const LATEST_POSTED_JOBS_SLUG = 'latest-jobs';
+
 export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
+	{
+		slug: LATEST_POSTED_JOBS_SLUG,
+		latest_posted_day: true,
+		title: 'Latest Government Jobs Posted Today in Pakistan — Sarkari Mulazmat',
+		h1: 'Latest posted government jobs in Pakistan',
+		metaDescription:
+			'Government jobs posted today in Pakistan — or from the most recent day new listings were added.',
+		emptyMessage: 'No new government job postings right now'
+	},
 	{
 		slug: 'army-officer-jobs',
 		column: 'is_army_officer_required',
@@ -452,6 +465,7 @@ export const JOB_CATEGORY_SLUGS = new Set(JOB_CATEGORY_PAGES.map((page) => page.
 
 /** Short labels for the /tags index and navigation. */
 export const JOB_CATEGORY_LABELS: Record<string, string> = {
+	[LATEST_POSTED_JOBS_SLUG]: 'Latest Posted',
 	'army-officer-jobs': 'Army Officer',
 	'women-only-jobs': 'Women Only',
 	'transgender-only-jobs': 'Transgender Only',
@@ -519,12 +533,17 @@ export const HOME_PAGE_TAG_LABELS: Partial<Record<(typeof HOME_PAGE_TAG_SLUGS)[n
 export type JobCategoryTag = JobCategoryPageDef & { label: string };
 
 export function getJobCategoryTags(): JobCategoryTag[] {
-	return JOB_CATEGORY_PAGES.map((page) => ({
+	const tags = JOB_CATEGORY_PAGES.map((page) => ({
 		...page,
 		label:
 			JOB_CATEGORY_LABELS[page.slug] ??
 			page.h1.replace(/\s+government jobs in Pakistan$/i, '')
 	})).sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
+
+	const latest = tags.find((tag) => tag.slug === LATEST_POSTED_JOBS_SLUG);
+	if (!latest) return tags;
+
+	return [latest, ...tags.filter((tag) => tag.slug !== LATEST_POSTED_JOBS_SLUG)];
 }
 
 export function getJobCategoryTagLabel(slug: string): string {

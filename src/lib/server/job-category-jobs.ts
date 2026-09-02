@@ -7,6 +7,7 @@ import {
 	type JobCategoryPageDef
 } from '$lib/job-category-pages';
 import { toListJobs, type ListJob } from '$lib/server/job-list-dto';
+import { toDateKey } from '$lib/jobs-utils';
 
 export type TagJobCount = {
 	slug: string;
@@ -23,6 +24,10 @@ function startOfTodayUtc(): Date {
 	return today;
 }
 
+function dateFromKey(dateKey: string): Date {
+	return new Date(`${dateKey}T00:00:00.000Z`);
+}
+
 function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	return {
 		OR: terms.map((term) => ({
@@ -31,29 +36,100 @@ function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	};
 }
 
-export type JobCategoryFilter = Pick<JobCategoryPageDef, 'column' | 'degree_area_terms'>;
+export type JobCategoryFilter = Pick<
+	JobCategoryPageDef,
+	'column' | 'degree_area_terms' | 'latest_posted_day'
+>;
+
+function activeNonExpiredWhere(): Prisma.JobPostingsWhereInput {
+	const startOfToday = startOfTodayUtc();
+	return {
+		AND: [
+			{ is_active: 1 },
+			{ row_id: { not: null } },
+			{
+				OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
+			}
+		]
+	};
+}
+
+/** Today if any active jobs were posted/updated today; otherwise the latest such day. */
+export async function resolveLatestPostedDay(): Promise<string | null> {
+	const startOfToday = startOfTodayUtc();
+	const todayKey = startOfToday.toISOString().slice(0, 10);
+	const baseWhere = activeNonExpiredWhere();
+
+	const todayWhere: Prisma.JobPostingsWhereInput = {
+		AND: [
+			baseWhere,
+			{
+				OR: [{ ad_date: startOfToday }, { file_creation_date: startOfToday }]
+			}
+		]
+	};
+
+	const todayCount = await db.jobPostings.count({ where: todayWhere });
+	if (todayCount > 0) return todayKey;
+
+	const [latestAd, latestFile] = await Promise.all([
+		db.jobPostings.findFirst({
+			where: { AND: [baseWhere, { ad_date: { not: null } }] },
+			orderBy: { ad_date: 'desc' },
+			select: { ad_date: true }
+		}),
+		db.jobPostings.findFirst({
+			where: { AND: [baseWhere, { file_creation_date: { not: null } }] },
+			orderBy: { file_creation_date: 'desc' },
+			select: { file_creation_date: true }
+		})
+	]);
+
+	const candidates = [
+		toDateKey(latestAd?.ad_date),
+		toDateKey(latestFile?.file_creation_date)
+	].filter((value): value is string => Boolean(value));
+
+	if (candidates.length === 0) return null;
+	return candidates.sort().at(-1) ?? null;
+}
+
+function latestPostedDayWhere(dateKey: string): Prisma.JobPostingsWhereInput {
+	const day = dateFromKey(dateKey);
+	return {
+		OR: [{ ad_date: day }, { file_creation_date: day }]
+	};
+}
 
 /** Tag filter clause for the main job list (`buildJobWhere`). */
 export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
+	if (category.latest_posted_day) {
+		return {};
+	}
 	if (category.degree_area_terms?.length) {
 		return degreeAreaTermsWhere(category.degree_area_terms);
+	}
+	if (!category.column) {
+		return {};
 	}
 	return { [category.column]: 1 };
 }
 
-export function buildJobCategoryWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
-	const startOfToday = startOfTodayUtc();
-	const and: Prisma.JobPostingsWhereInput[] = [
-		{ is_active: 1 },
-		{ row_id: { not: null } },
-		{
-			OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
-		}
-	];
+export async function buildJobCategoryWhere(
+	category: JobCategoryFilter
+): Promise<Prisma.JobPostingsWhereInput> {
+	const and: Prisma.JobPostingsWhereInput[] = [activeNonExpiredWhere()];
 
-	if (category.degree_area_terms?.length) {
+	if (category.latest_posted_day) {
+		const dateKey = await resolveLatestPostedDay();
+		if (dateKey) {
+			and.push(latestPostedDayWhere(dateKey));
+		} else {
+			and.push({ row_id: -1 });
+		}
+	} else if (category.degree_area_terms?.length) {
 		and.push(degreeAreaTermsWhere(category.degree_area_terms));
-	} else {
+	} else if (category.column) {
 		and.push({ [category.column]: 1 });
 	}
 
@@ -77,6 +153,7 @@ function filterJobsWithRowId<T extends { row_id: number | null }>(
 export type JobCategoryJobsAllResult = {
 	jobs: ListJob[];
 	updatedAt: string;
+	postedDay: string | null;
 };
 
 export type JobCategoryJobsPaginatedResult = JobCategoryJobsAllResult & {
@@ -98,7 +175,15 @@ export async function loadJobCategoryJobs(
 	category: JobCategoryFilter,
 	opts?: { page?: number; pageSize?: number }
 ): Promise<JobCategoryJobsAllResult | JobCategoryJobsPaginatedResult> {
-	const where = buildJobCategoryWhere(category);
+	const postedDay = category.latest_posted_day ? await resolveLatestPostedDay() : null;
+	const where = category.latest_posted_day
+		? {
+				AND: [
+					activeNonExpiredWhere(),
+					postedDay ? latestPostedDayWhere(postedDay) : { row_id: -1 }
+				]
+			}
+		: await buildJobCategoryWhere(category);
 	const updatedAt = new Date().toISOString();
 
 	if (opts?.page != null || opts?.pageSize != null) {
@@ -122,7 +207,8 @@ export async function loadJobCategoryJobs(
 			page,
 			pageSize,
 			totalPages,
-			updatedAt
+			updatedAt,
+			postedDay
 		};
 	}
 
@@ -133,13 +219,14 @@ export async function loadJobCategoryJobs(
 
 	return {
 		jobs: toListJobs(filterJobsWithRowId(rawJobs)),
-		updatedAt
+		updatedAt,
+		postedDay
 	};
 }
 
 export async function countJobCategoryJobs(category: JobCategoryFilter) {
 	return db.jobPostings.count({
-		where: buildJobCategoryWhere(category)
+		where: await buildJobCategoryWhere(category)
 	});
 }
 

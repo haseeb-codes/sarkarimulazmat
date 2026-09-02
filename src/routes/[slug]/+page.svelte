@@ -58,6 +58,7 @@
 		page={data.page}
 		totalPages={data.totalPages}
 		updatedAt={data.updatedAt}
+		postedDay={data.postedDay}
 	/>
 {:else}
 	<div class="space-y-6">

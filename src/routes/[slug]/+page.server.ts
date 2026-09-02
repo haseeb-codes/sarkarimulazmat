@@ -25,7 +25,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			page: result.page,
 			pageSize: result.pageSize,
 			totalPages: result.totalPages,
-			updatedAt: result.updatedAt
+			updatedAt: result.updatedAt,
+			postedDay: result.postedDay
 		};
 	}
 

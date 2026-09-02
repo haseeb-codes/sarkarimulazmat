@@ -6,8 +6,10 @@
 		SITE_HREF,
 		SITE_NAME,
 		SITE_URL,
+		LATEST_POSTED_JOBS_SLUG,
 		type JobCategoryPageDef
 	} from '$lib/job-category-pages';
+	import { formatDateLabel } from '$lib/jobs-utils';
 
 	type ShareJob = {
 		row_id: number;
@@ -42,7 +44,8 @@
 		total,
 		page,
 		totalPages,
-		updatedAt
+		updatedAt,
+		postedDay = null
 	}: {
 		category: JobCategoryPageDef;
 		jobs: ShareJob[];
@@ -50,6 +53,7 @@
 		page: number;
 		totalPages: number;
 		updatedAt: string;
+		postedDay?: string | null;
 	} = $props();
 
 	const updatedLabel = $derived(
@@ -67,6 +71,25 @@
 	const canonical = $derived(`${SITE_HREF}${pageHref(page)}`);
 	const prevHref = $derived(page > 1 ? `${SITE_HREF}${pageHref(page - 1)}` : null);
 	const nextHref = $derived(page < totalPages ? `${SITE_HREF}${pageHref(page + 1)}` : null);
+
+	const postedDayLabel = $derived(
+		postedDay ? formatDateLabel(postedDay) : null
+	);
+	const isLatestPostedTag = $derived(category.slug === LATEST_POSTED_JOBS_SLUG);
+
+	const shareGridClass = $derived.by(() => {
+		const columnCount = Math.min(jobs.length, 4);
+		switch (columnCount) {
+			case 1:
+				return 'grid-cols-1';
+			case 2:
+				return 'grid-cols-1 sm:grid-cols-2';
+			case 3:
+				return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
+			default:
+				return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4';
+		}
+	});
 </script>
 
 <svelte:head>
@@ -111,7 +134,13 @@
 
 				<span class="text-muted-foreground/60" aria-hidden="true">·</span>
 
-				<p class="text-xs text-muted-foreground sm:text-sm">Updated {updatedLabel}</p>
+				<p class="text-xs text-muted-foreground sm:text-sm">
+					{#if isLatestPostedTag && postedDayLabel}
+						Posted {postedDayLabel}
+					{:else}
+						Updated {updatedLabel}
+					{/if}
+				</p>
 			</div>
 		</header>
 
@@ -170,7 +199,7 @@
 					{/if}
 				</nav>
 
-				<ul class="grid auto-rows-auto grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+				<ul class="grid auto-rows-auto gap-3 {shareGridClass}">
 					{#each jobs as job (job.slug)}
 						<li class="min-w-0">
 							<JobCard {job} static={true} />
