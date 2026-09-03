@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import JobCard from '$lib/components/job-card.svelte';
 	import JobListSkeleton from '$lib/components/jobs/job-list-skeleton.svelte';
@@ -100,7 +100,7 @@
 
 	const appendedGroups = $derived(appended.key === resultKey ? appended.groups : []);
 
-	/** The server payload is always page one; scroll-loaded pages follow it. */
+	/** Server payload for the URL page; scroll-loaded pages append after it. */
 	const pageGroups = $derived([{ page: filters.page, jobs }, ...appendedGroups]);
 	const visibleGroups = $derived(pageGroups.filter((group) => group.jobs.length > 0));
 	const listItems = $derived(visibleGroups.flatMap((group) => group.jobs));
@@ -117,6 +117,18 @@
 
 	/** Any query param — keep Clear visible for q / sort / tags / etc. */
 	const hasSearchParams = $derived(urlHasSearchParams(browseUrl));
+
+	/** Shallow URL sync so refresh resumes at the furthest loaded page. */
+	function syncPageToUrl(pageNum: number) {
+		const current = Math.max(1, Number(page.url.searchParams.get('page') ?? '1') || 1);
+		if (current === pageNum) return;
+
+		const url = new URL(page.url);
+		if (pageNum <= 1) url.searchParams.delete('page');
+		else url.searchParams.set('page', String(pageNum));
+
+		replaceState(`${url.pathname}${url.search}${url.hash}`, {});
+	}
 
 	function clearFilters() {
 		goto(page.url.pathname, {
@@ -197,6 +209,7 @@
 			const groups = appended.key === key ? appended.groups : [];
 			appended = { key, groups: [...groups, { page: data.page, jobs: newJobs }] };
 			markFresh(newJobs.map((job) => job.slug));
+			syncPageToUrl(data.page);
 		} catch (err) {
 			console.error('Failed to load more jobs', err);
 			loadMoreError = 'Could not load more jobs. Tap to retry.';
