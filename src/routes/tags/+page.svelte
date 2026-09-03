@@ -108,4 +108,10 @@
 			</ul>
 		{/if}
 	</section>
+
+	<p class="max-w-2xl text-sm text-muted-foreground">
+		Don't see a tag for your education, age, or background? We'd like to hear from you —
+		<a href="/contact" class="text-primary underline-offset-2 hover:underline">contact us</a>
+		to suggest one.
+	</p>
 </div>

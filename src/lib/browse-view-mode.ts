@@ -5,14 +5,14 @@ export type BrowseViewMode = 'masonry' | 'list';
 	const VIEW_STORAGE_KEY = 'jobs-view-mode';
 
 function readStoredView(): BrowseViewMode {
-	if (typeof localStorage === 'undefined') return 'masonry';
+	if (typeof localStorage === 'undefined') return 'list';
 	try {
 		const stored = localStorage.getItem(VIEW_STORAGE_KEY);
 		if (stored === 'list' || stored === 'masonry') return stored;
 	} catch {
 		/* ignore */
 	}
-	return 'masonry';
+	return 'list';
 }
 
 /** Shared so sticky toolbar and job cards stay in sync without portal hacks. */
