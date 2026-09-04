@@ -49,8 +49,12 @@ export type JobCategoryPageDef = {
 	slug: string;
 	/** When set, jobs match if `degree_area` contains any term (instead of the flag column). */
 	degree_area_terms?: string[];
+	/** When set, jobs match if `title` contains any term (instead of the flag column). */
+	title_terms?: string[];
 	/** Active jobs posted or updated on today, or the most recent posting day. */
 	latest_posted_day?: true;
+	/** Active jobs whose apply-by date falls within the next N days (inclusive of today). */
+	closing_soon_within_days?: number;
 	/** Jobs where transgender candidates can apply (`gender` contains “Transgender”). */
 	transgender_applicable?: true;
 	column?: JobCategoryColumn;
@@ -61,6 +65,9 @@ export type JobCategoryPageDef = {
 };
 
 export const LATEST_POSTED_JOBS_SLUG = 'latest-jobs';
+export const CLOSING_SOON_JOBS_SLUG = 'closing-soon-jobs';
+/** Deadline window for the Closing Soon tag (today through +N days). */
+export const CLOSING_SOON_WITHIN_DAYS = 3;
 
 export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
@@ -71,6 +78,15 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		metaDescription:
 			'Government jobs posted today in Pakistan — or from the most recent day new listings were added.',
 		emptyMessage: 'No new government job postings right now'
+	},
+	{
+		slug: CLOSING_SOON_JOBS_SLUG,
+		closing_soon_within_days: CLOSING_SOON_WITHIN_DAYS,
+		title: 'Government Jobs Closing Soon in Pakistan — Sarkari Mulazmat',
+		h1: 'Government jobs closing soon in Pakistan',
+		metaDescription:
+			'Government job openings in Pakistan with application deadlines in the next 3 days.',
+		emptyMessage: 'No government jobs closing in the next 3 days'
 	},
 	{
 		slug: 'army-officer-jobs',
@@ -188,6 +204,15 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		metaDescription:
 			'Government computer science job openings in Pakistan for BCS and related graduates.',
 		emptyMessage: 'No active computer science job openings right now'
+	},
+	{
+		slug: 'computer-operator-jobs',
+		title_terms: ['Computer Operator', 'Data Entry'],
+		title: 'Computer Operator Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Computer operator government jobs in Pakistan',
+		metaDescription:
+			'Government computer operator job openings in Pakistan.',
+		emptyMessage: 'No active computer operator job openings right now'
 	},
 	{
 		slug: 'information-technology-jobs',
@@ -467,6 +492,7 @@ export const JOB_CATEGORY_SLUGS = new Set(JOB_CATEGORY_PAGES.map((page) => page.
 /** Short labels for the /tags index and navigation. */
 export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	[LATEST_POSTED_JOBS_SLUG]: 'Latest Posted',
+	[CLOSING_SOON_JOBS_SLUG]: 'Closing Soon',
 	'army-officer-jobs': 'Army Officer',
 	'women-only-jobs': 'Women Only',
 	'transgender-applicable-jobs': 'Transgender Applicable',
@@ -480,6 +506,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'naib-qasid-jobs': 'Naib Qasid',
 	'cooking-jobs': 'Cook & Kitchen Staff',
 	'computer-science-jobs': 'Computer Science',
+	'computer-operator-jobs': 'Computer Operator',
 	'information-technology-jobs': 'Information Technology',
 	'llb-jobs': 'LLB & Law',
 	'mbbs-jobs': 'MBBS & Medical',
@@ -541,10 +568,12 @@ export function getJobCategoryTags(): JobCategoryTag[] {
 			page.h1.replace(/\s+government jobs in Pakistan$/i, '')
 	})).sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }));
 
-	const latest = tags.find((tag) => tag.slug === LATEST_POSTED_JOBS_SLUG);
-	if (!latest) return tags;
-
-	return [latest, ...tags.filter((tag) => tag.slug !== LATEST_POSTED_JOBS_SLUG)];
+	const pinnedSlugs = [LATEST_POSTED_JOBS_SLUG, CLOSING_SOON_JOBS_SLUG];
+	const pinned = pinnedSlugs
+		.map((slug) => tags.find((tag) => tag.slug === slug))
+		.filter((tag): tag is JobCategoryTag => Boolean(tag));
+	const pinnedSet = new Set(pinned.map((tag) => tag.slug));
+	return [...pinned, ...tags.filter((tag) => !pinnedSet.has(tag.slug))];
 }
 
 export function getJobCategoryTagLabel(slug: string): string {

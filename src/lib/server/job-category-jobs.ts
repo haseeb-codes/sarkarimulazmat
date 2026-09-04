@@ -36,9 +36,22 @@ function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	};
 }
 
+function titleTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
+	return {
+		OR: terms.map((term) => ({
+			title: { contains: term, mode: 'insensitive' as const }
+		}))
+	};
+}
+
 export type JobCategoryFilter = Pick<
 	JobCategoryPageDef,
-	'column' | 'degree_area_terms' | 'latest_posted_day' | 'transgender_applicable'
+	| 'column'
+	| 'degree_area_terms'
+	| 'title_terms'
+	| 'latest_posted_day'
+	| 'closing_soon_within_days'
+	| 'transgender_applicable'
 >;
 
 function activeNonExpiredWhere(): Prisma.JobPostingsWhereInput {
@@ -51,6 +64,19 @@ function activeNonExpiredWhere(): Prisma.JobPostingsWhereInput {
 				OR: [{ last_date_to_apply: null }, { last_date_to_apply: { gte: startOfToday } }]
 			}
 		]
+	};
+}
+
+/** Apply-by date from today through today+withinDays (inclusive). */
+function closingSoonWhere(withinDays: number): Prisma.JobPostingsWhereInput {
+	const startOfToday = startOfTodayUtc();
+	const endOfWindow = new Date(startOfToday);
+	endOfWindow.setUTCDate(endOfWindow.getUTCDate() + withinDays);
+	return {
+		last_date_to_apply: {
+			gte: startOfToday,
+			lte: endOfWindow
+		}
 	};
 }
 
@@ -110,8 +136,14 @@ export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.Jo
 	if (category.latest_posted_day) {
 		return {};
 	}
+	if (category.closing_soon_within_days != null) {
+		return closingSoonWhere(category.closing_soon_within_days);
+	}
 	if (category.degree_area_terms?.length) {
 		return degreeAreaTermsWhere(category.degree_area_terms);
+	}
+	if (category.title_terms?.length) {
+		return titleTermsWhere(category.title_terms);
 	}
 	if (category.transgender_applicable) {
 		return transgenderApplicableWhere();
@@ -134,8 +166,12 @@ export async function buildJobCategoryWhere(
 		} else {
 			and.push({ row_id: -1 });
 		}
+	} else if (category.closing_soon_within_days != null) {
+		and.push(closingSoonWhere(category.closing_soon_within_days));
 	} else if (category.degree_area_terms?.length) {
 		and.push(degreeAreaTermsWhere(category.degree_area_terms));
+	} else if (category.title_terms?.length) {
+		and.push(titleTermsWhere(category.title_terms));
 	} else if (category.transgender_applicable) {
 		and.push(transgenderApplicableWhere());
 	} else if (category.column) {
@@ -152,6 +188,16 @@ const jobCategoryOrderBy = [
 	{ file_creation_date: { sort: 'desc' as const, nulls: 'last' as const } },
 	{ row_id: 'desc' as const }
 ];
+
+const closingSoonOrderBy = [
+	{ last_date_to_apply: { sort: 'asc' as const, nulls: 'last' as const } },
+	{ ad_date: { sort: 'desc' as const, nulls: 'last' as const } },
+	{ row_id: 'desc' as const }
+];
+
+function orderByForCategory(category: JobCategoryFilter) {
+	return category.closing_soon_within_days != null ? closingSoonOrderBy : jobCategoryOrderBy;
+}
 
 function filterJobsWithRowId<T extends { row_id: number | null }>(
 	rawJobs: T[]
@@ -193,6 +239,7 @@ export async function loadJobCategoryJobs(
 				]
 			}
 		: await buildJobCategoryWhere(category);
+	const orderBy = orderByForCategory(category);
 	const updatedAt = new Date().toISOString();
 
 	if (opts?.page != null || opts?.pageSize != null) {
@@ -205,7 +252,7 @@ export async function loadJobCategoryJobs(
 
 		const rawJobs = await db.jobPostings.findMany({
 			where,
-			orderBy: jobCategoryOrderBy,
+			orderBy,
 			skip,
 			take: pageSize
 		});
@@ -223,7 +270,7 @@ export async function loadJobCategoryJobs(
 
 	const rawJobs = await db.jobPostings.findMany({
 		where,
-		orderBy: jobCategoryOrderBy
+		orderBy
 	});
 
 	return {
