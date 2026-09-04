@@ -30,18 +30,40 @@ function dateFromKey(dateKey: string): Date {
 
 function degreeAreaTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	return {
-		OR: terms.map((term) => ({
-			degree_area: { contains: term, mode: 'insensitive' as const }
-		}))
+		OR: terms.flatMap((term) => fieldContainsTerm('degree_area', term))
 	};
 }
 
 function titleTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	return {
-		OR: terms.map((term) => ({
-			title: { contains: term, mode: 'insensitive' as const }
-		}))
+		OR: terms.flatMap((term) => fieldContainsTerm('title', term))
 	};
+}
+
+/** Approximate word-boundary matching for short tokens like "HR". */
+function fieldContainsTerm(
+	field: 'title' | 'degree_area' | 'education_level',
+	term: string
+): Prisma.JobPostingsWhereInput[] {
+	const mode = 'insensitive' as const;
+	if (term.length <= 2) {
+		return [
+			{ [field]: { equals: term, mode } },
+			{ [field]: { startsWith: `${term} `, mode } },
+			{ [field]: { startsWith: `${term}/`, mode } },
+			{ [field]: { startsWith: `${term}-`, mode } },
+			{ [field]: { endsWith: ` ${term}`, mode } },
+			{ [field]: { contains: ` ${term} `, mode } },
+			{ [field]: { contains: ` ${term}/`, mode } },
+			{ [field]: { contains: ` ${term},`, mode } },
+			{ [field]: { contains: ` ${term}-`, mode } },
+			{ [field]: { contains: `/${term}`, mode } },
+			{ [field]: { contains: `(${term}`, mode } },
+			{ [field]: { contains: `-${term}`, mode } },
+			{ [field]: { contains: `${term}-`, mode } }
+		];
+	}
+	return [{ [field]: { contains: term, mode } }];
 }
 
 function educationLevelTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
@@ -57,11 +79,46 @@ export type JobCategoryFilter = Pick<
 	| 'column'
 	| 'degree_area_terms'
 	| 'title_terms'
+	| 'title_exclude_terms'
+	| 'degrees_terms'
 	| 'education_level_terms'
 	| 'latest_posted_day'
 	| 'closing_soon_within_days'
 	| 'transgender_applicable'
 >;
+
+function degreesTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
+	return {
+		OR: terms.map((term) => ({
+			degrees: { contains: term, mode: 'insensitive' as const }
+		}))
+	};
+}
+
+function categoryMatchWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput | null {
+	const parts: Prisma.JobPostingsWhereInput[] = [];
+	if (category.degree_area_terms?.length) {
+		parts.push(degreeAreaTermsWhere(category.degree_area_terms));
+	}
+	if (category.title_terms?.length) {
+		parts.push(titleTermsWhere(category.title_terms));
+	}
+	if (category.degrees_terms?.length) {
+		parts.push(degreesTermsWhere(category.degrees_terms));
+	}
+	if (category.education_level_terms?.length) {
+		parts.push(educationLevelTermsWhere(category.education_level_terms));
+	}
+	if (category.transgender_applicable) {
+		parts.push(transgenderApplicableWhere());
+	}
+	if (category.column) {
+		parts.push({ [category.column]: 1 });
+	}
+	if (!parts.length) return null;
+	if (parts.length === 1) return parts[0]!;
+	return { OR: parts };
+}
 
 function activeNonExpiredWhere(): Prisma.JobPostingsWhereInput {
 	const startOfToday = startOfTodayUtc();
@@ -140,6 +197,16 @@ function transgenderApplicableWhere(): Prisma.JobPostingsWhereInput {
 	return { gender: { contains: 'Transgender', mode: 'insensitive' } };
 }
 
+function titleExcludeTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
+	return {
+		NOT: {
+			OR: terms.map((term) => ({
+				title: { contains: term, mode: 'insensitive' as const }
+			}))
+		}
+	};
+}
+
 /** Tag filter clause for the main job list (`buildJobWhere`). */
 export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
 	if (category.latest_posted_day) {
@@ -148,30 +215,14 @@ export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.Jo
 	if (category.closing_soon_within_days != null) {
 		return closingSoonWhere(category.closing_soon_within_days);
 	}
-	if (category.degree_area_terms?.length) {
-		const degreeWhere = degreeAreaTermsWhere(category.degree_area_terms);
-		if (category.column) {
-			return { OR: [{ [category.column]: 1 }, degreeWhere] };
-		}
-		return degreeWhere;
+
+	const match = categoryMatchWhere(category);
+	if (!match) return {};
+
+	if (category.title_exclude_terms?.length) {
+		return { AND: [match, titleExcludeTermsWhere(category.title_exclude_terms)] };
 	}
-	if (category.title_terms?.length) {
-		const titleWhere = titleTermsWhere(category.title_terms);
-		if (category.column) {
-			return { OR: [{ [category.column]: 1 }, titleWhere] };
-		}
-		return titleWhere;
-	}
-	if (category.education_level_terms?.length) {
-		return educationLevelTermsWhere(category.education_level_terms);
-	}
-	if (category.transgender_applicable) {
-		return transgenderApplicableWhere();
-	}
-	if (!category.column) {
-		return {};
-	}
-	return { [category.column]: 1 };
+	return match;
 }
 
 export async function buildJobCategoryWhere(
@@ -188,26 +239,13 @@ export async function buildJobCategoryWhere(
 		}
 	} else if (category.closing_soon_within_days != null) {
 		and.push(closingSoonWhere(category.closing_soon_within_days));
-	} else if (category.degree_area_terms?.length) {
-		const degreeWhere = degreeAreaTermsWhere(category.degree_area_terms);
-		and.push(
-			category.column
-				? { OR: [{ [category.column]: 1 }, degreeWhere] }
-				: degreeWhere
-		);
-	} else if (category.title_terms?.length) {
-		const titleWhere = titleTermsWhere(category.title_terms);
-		and.push(
-			category.column
-				? { OR: [{ [category.column]: 1 }, titleWhere] }
-				: titleWhere
-		);
-	} else if (category.education_level_terms?.length) {
-		and.push(educationLevelTermsWhere(category.education_level_terms));
-	} else if (category.transgender_applicable) {
-		and.push(transgenderApplicableWhere());
-	} else if (category.column) {
-		and.push({ [category.column]: 1 });
+	} else {
+		const match = categoryMatchWhere(category);
+		if (match) and.push(match);
+	}
+
+	if (category.title_exclude_terms?.length) {
+		and.push(titleExcludeTermsWhere(category.title_exclude_terms));
 	}
 
 	return { AND: and };

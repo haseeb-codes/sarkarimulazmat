@@ -51,6 +51,10 @@ export type JobCategoryPageDef = {
 	degree_area_terms?: string[];
 	/** When set, jobs match if `title` contains any term (instead of the flag column). */
 	title_terms?: string[];
+	/** When set, jobs are excluded if `title` contains any of these terms. */
+	title_exclude_terms?: string[];
+	/** When set, jobs match if `degrees` contains any term. */
+	degrees_terms?: string[];
 	/** When set, jobs match if `education_level` contains any term (instead of the flag column). */
 	education_level_terms?: string[];
 	/** Active jobs posted or updated on today, or the most recent posting day. */
@@ -65,6 +69,24 @@ export type JobCategoryPageDef = {
 	metaDescription: string;
 	emptyMessage: string;
 };
+
+/** Title terms for sanitary / cleaning roles (also excluded from Naib Qasid). */
+export const SANITARY_WORKER_TITLE_TERMS = [
+	'Aya',
+	'Cleaner',
+	'Sanitary',
+	'Sweeper',
+	'Khakrob'
+] as const;
+
+/** Terms for Human Resource Management (matched in title and degree_area). */
+export const HUMAN_RESOURCE_TERMS = [
+	'HRM',
+	'Human Resource Management',
+	'Human Resources',
+	'Human Resource',
+	'HR'
+] as const;
 
 export const LATEST_POSTED_JOBS_SLUG = 'latest-jobs';
 export const CLOSING_SOON_JOBS_SLUG = 'closing-soon-jobs';
@@ -147,6 +169,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'nursing-jobs',
 		column: 'is_nursing_job',
+		title_terms: ['Nurse', 'Nursing'],
 		title: 'Nursing Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Nursing government jobs in Pakistan',
 		metaDescription:
@@ -165,6 +188,8 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'bds-jobs',
 		column: 'is_bds_job',
+		degree_area_terms: ['BDS', 'dentistry', 'dentist', 'dental'],
+		title_terms: ['BDS', 'dentistry', 'dentist', 'dental'],
 		title: 'BDS & Dentistry Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'BDS & dentistry government jobs in Pakistan',
 		metaDescription:
@@ -184,6 +209,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		slug: 'naib-qasid-jobs',
 		column: 'is_naib_qasid_job',
 		title_terms: ['Naib Qasid'],
+		title_exclude_terms: [...SANITARY_WORKER_TITLE_TERMS],
 		title: 'Naib Qasid Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Naib qasid government jobs in Pakistan',
 		metaDescription:
@@ -243,11 +269,11 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	},
 	{
 		slug: 'sanitary-worker-jobs',
-		title_terms: ['Aya', 'Cleaner', 'Sanitary', 'Sweeper'],
+		title_terms: [...SANITARY_WORKER_TITLE_TERMS],
 		title: 'Sanitary Worker Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Sanitary worker government jobs in Pakistan',
 		metaDescription:
-			'Government sanitary worker, sweeper, cleaner, and aya job openings in Pakistan.',
+			'Government sanitary worker, sweeper, cleaner, khakrob, and aya job openings in Pakistan.',
 		emptyMessage: 'No active sanitary worker job openings right now'
 	},
 	{
@@ -262,6 +288,8 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'information-technology-jobs',
 		column: 'is_information_technology_job',
+		degree_area_terms: ['Information Technology', 'IT'],
+		title_terms: ['Information Technology'],
 		title: 'Information Technology Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Information technology government jobs in Pakistan',
 		metaDescription:
@@ -287,8 +315,19 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		emptyMessage: 'No active MBBS job openings right now'
 	},
 	{
+		slug: 'surgery-jobs',
+		degree_area_terms: ['surgery', 'surgeon'],
+		title_terms: ['surgery', 'surgeon'],
+		title: 'Surgery & Surgeon Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Surgery and surgeon government jobs in Pakistan',
+		metaDescription:
+			'Government surgery and surgeon job openings in Pakistan.',
+		emptyMessage: 'No active surgery or surgeon job openings right now'
+	},
+	{
 		slug: 'pharmacist-jobs',
 		column: 'is_pharmacist_job',
+		title_terms: ['Pharmacist'],
 		title: 'Pharmacist Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Pharmacist government jobs in Pakistan',
 		metaDescription:
@@ -307,11 +346,12 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'education-degree-jobs',
 		column: 'is_education_degree_job',
-		title: 'Education Degree Government Jobs in Pakistan — Sarkari Mulazmat',
-		h1: 'Education degree government jobs in Pakistan',
+		degrees_terms: ['B.Ed', 'M.Ed', 'B.Ed.', 'M.Ed.', 'B Ed', 'M Ed'],
+		title: 'B.Ed / M.Ed Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'B.Ed and M.Ed government jobs in Pakistan',
 		metaDescription:
 			'Government jobs in Pakistan requiring education degrees such as B.Ed or M.Ed.',
-		emptyMessage: 'No active education degree job openings right now'
+		emptyMessage: 'No active B.Ed or M.Ed job openings right now'
 	},
 	{
 		slug: 'civil-engineer-jobs',
@@ -336,15 +376,17 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'electrical-engineer-jobs',
 		column: 'is_electrical_engineer_job',
-		title: 'Electrical Engineer Government Jobs in Pakistan — Sarkari Mulazmat',
-		h1: 'Electrical engineer government jobs in Pakistan',
+		degree_area_terms: ['electrical', 'electronics'],
+		title: 'Electrical & Electronics Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Electrical and electronics government jobs in Pakistan',
 		metaDescription:
-			'Government electrical engineering job openings in Pakistan.',
-		emptyMessage: 'No active electrical engineer job openings right now'
+			'Government electrical and electronics engineering job openings in Pakistan.',
+		emptyMessage: 'No active electrical or electronics job openings right now'
 	},
 	{
 		slug: 'chemical-metallurgy-engineer-jobs',
 		column: 'is_chemical_metallurgy_engineer_job',
+		degree_area_terms: ['chemical', 'metallurgy', 'metallurgical'],
 		title: 'Chemical & Metallurgy Engineer Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Chemical & metallurgy engineer government jobs in Pakistan',
 		metaDescription:
@@ -354,6 +396,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'mechatronics-engineer-jobs',
 		column: 'is_mechatronics_engineer_job',
+		degree_area_terms: ['mechatronics'],
 		title: 'Mechatronics Engineer Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Mechatronics engineer government jobs in Pakistan',
 		metaDescription:
@@ -387,6 +430,16 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		metaDescription:
 			'Government job openings in Pakistan requiring MBA or business administration qualifications.',
 		emptyMessage: 'No active MBA job openings right now'
+	},
+	{
+		slug: 'human-resource-management-jobs',
+		degree_area_terms: [...HUMAN_RESOURCE_TERMS],
+		title_terms: [...HUMAN_RESOURCE_TERMS],
+		title: 'Human Resource Management Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Human resource management government jobs in Pakistan',
+		metaDescription:
+			'Government HR and human resource management job openings in Pakistan.',
+		emptyMessage: 'No active human resource management job openings right now'
 	},
 	{
 		slug: 'mcom-jobs',
@@ -506,8 +559,36 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		emptyMessage: 'No active library science job openings right now'
 	},
 	{
+		slug: 'english-jobs',
+		degree_area_terms: ['English'],
+		title: 'English Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'English government jobs in Pakistan',
+		metaDescription:
+			'Government English language and literature job openings in Pakistan.',
+		emptyMessage: 'No active English job openings right now'
+	},
+	{
+		slug: 'urdu-jobs',
+		degree_area_terms: ['Urdu'],
+		title: 'Urdu Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Urdu government jobs in Pakistan',
+		metaDescription:
+			'Government Urdu language and literature job openings in Pakistan.',
+		emptyMessage: 'No active Urdu job openings right now'
+	},
+	{
+		slug: 'physiology-jobs',
+		degree_area_terms: ['physiology'],
+		title: 'Physiology Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Physiology government jobs in Pakistan',
+		metaDescription:
+			'Government physiology job openings in Pakistan.',
+		emptyMessage: 'No active physiology job openings right now'
+	},
+	{
 		slug: 'agriculture-jobs',
 		column: 'is_agriculture_job',
+		degree_area_terms: ['Agriculture', 'Agronomy', 'Agricultural'],
 		title: 'Agriculture Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Agriculture government jobs in Pakistan',
 		metaDescription:
@@ -517,6 +598,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'environmental-sciences-jobs',
 		column: 'is_environmental_sciences_job',
+		degree_area_terms: ['Environmental', 'Environment'],
 		title: 'Environmental Sciences Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Environmental sciences government jobs in Pakistan',
 		metaDescription:
@@ -526,6 +608,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'social-science-jobs',
 		column: 'is_social_science_job',
+		degree_area_terms: ['Social Science', 'Social Sciences'],
 		title: 'Social Science Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Social science government jobs in Pakistan',
 		metaDescription:
@@ -553,6 +636,7 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 	{
 		slug: 'communication-studies-jobs',
 		column: 'is_communication_studies_job',
+		degree_area_terms: ['communication'],
 		title: 'Communication Studies Government Jobs in Pakistan — Sarkari Mulazmat',
 		h1: 'Communication studies government jobs in Pakistan',
 		metaDescription:
@@ -607,17 +691,19 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'information-technology-jobs': 'Information Technology',
 	'llb-jobs': 'LLB & Law',
 	'mbbs-jobs': 'MBBS & Medical',
+	'surgery-jobs': 'Surgery/Surgeon',
 	'pharmacist-jobs': 'Pharmacist',
 	'teaching-jobs': 'Teaching',
-	'education-degree-jobs': 'Education Degree (B.Ed / M.Ed)',
+	'education-degree-jobs': 'B.Ed/M.Ed',
 	'civil-engineer-jobs': 'Civil Engineer',
 	'mechanical-engineer-jobs': 'Mechanical Engineer',
-	'electrical-engineer-jobs': 'Electrical Engineer',
-	'chemical-metallurgy-engineer-jobs': 'Chemical & Metallurgy Engineer',
-	'mechatronics-engineer-jobs': 'Mechatronics Engineer',
+	'electrical-engineer-jobs': 'Electrical/Electronics',
+	'chemical-metallurgy-engineer-jobs': 'Chemical & Metallurgy',
+	'mechatronics-engineer-jobs': 'Mechatronics',
 	'aviation-aeronautics-jobs': 'Aviation & Aeronautics',
 	'dae-jobs': 'DAE',
 	'mba-jobs': 'MBA',
+	'human-resource-management-jobs': 'Human Resource Management',
 	'mcom-jobs': 'Commerce (M.COM/B.COM)',
 	'bcom-jobs': 'B.Com',
 	'commerce-jobs': 'Commerce',
@@ -631,6 +717,9 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'physics-jobs': 'Physics',
 	'chemistry-jobs': 'Chemistry',
 	'library-science-jobs': 'Library Science',
+	'english-jobs': 'English',
+	'urdu-jobs': 'Urdu',
+	'physiology-jobs': 'Physiology',
 	'agriculture-jobs': 'Agriculture',
 	'environmental-sciences-jobs': 'Environmental Sciences',
 	'social-science-jobs': 'Social Science',
@@ -687,11 +776,18 @@ export function getJobCategoryTagLabel(slug: string): string {
 /** Category links shown on job cards (home / browse) — only these slugs. */
 export const JOB_CARD_CATEGORY_SLUGS = [
 	'mbbs-jobs',
+	'surgery-jobs',
+	'bds-jobs',
 	'llb-jobs',
+	'pharmacist-jobs',
+	'nursing-jobs',
+	'education-degree-jobs',
+	'communication-studies-jobs',
 	'accounting-finance-jobs',
 	'dae-jobs',
 	'islamic-studies-jobs',
 	'computer-science-jobs',
+	'information-technology-jobs',
 	'computer-operator-jobs',
 	'helper-jobs',
 	'clerk-jobs',
@@ -700,6 +796,7 @@ export const JOB_CARD_CATEGORY_SLUGS = [
 	'naib-qasid-jobs',
 	'driver-jobs',
 	'mba-jobs',
+	'human-resource-management-jobs',
 	'mcom-jobs',
 	'acca-jobs',
 	'biology-jobs',
@@ -707,10 +804,19 @@ export const JOB_CARD_CATEGORY_SLUGS = [
 	'physics-jobs',
 	'chemistry-jobs',
 	'library-science-jobs',
+	'english-jobs',
+	'urdu-jobs',
+	'physiology-jobs',
+	'social-science-jobs',
+	'agriculture-jobs',
+	'environmental-sciences-jobs',
 	'statistician-jobs',
 	'civil-engineer-jobs',
 	'mechanical-engineer-jobs',
 	'electrical-engineer-jobs',
+	'chemical-metallurgy-engineer-jobs',
+	'mechatronics-engineer-jobs',
+	'law-enforcement-jobs',
 	'army-officer-jobs',
 	'economist-jobs'
 ] as const;
@@ -728,7 +834,19 @@ export type JobCategoryMatchInput = {
 
 export type JobCategoryTagRef = { slug: string; label: string };
 
-/** Allowlisted category tags for a job card (MBBS, LLB, Accounting & Finance, DAE, Islamic Studies, Computer Science, Computer Operator, Helper, Clerk, Sanitary Workers, Admin, Naib Qasid, Driver, MBA, Commerce M.COM/B.COM, ACCA, Biology, Mathematics, Physics, Chemistry, Library Science, Statistician, Civil Engineer, Mechanical Engineer, Electrical Engineer, Army Officer, Economist). */
+function textMatchesTerm(text: string, term: string): boolean {
+	const needle = term.toLowerCase();
+	const haystack = text.toLowerCase();
+	// Short tokens like "HR" need word boundaries to avoid false positives.
+	if (needle.length <= 3) {
+		return new RegExp(`(?:^|[^a-z0-9])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[^a-z0-9]|$)`).test(
+			haystack
+		);
+	}
+	return haystack.includes(needle);
+}
+
+/** Allowlisted category tags for a job card (MBBS, Surgery/Surgeon, BDS & Dentistry, LLB, Pharmacist, Nursing, B.Ed/M.Ed, Communication Studies, Accounting & Finance, DAE, Islamic Studies, Computer Science, Information Technology, Computer Operator, Helper, Clerk, Sanitary Workers, Admin, Naib Qasid, Driver, MBA, Human Resource Management, Commerce M.COM/B.COM, ACCA, Biology, Mathematics, Physics, Chemistry, Library Science, English, Urdu, Physiology, Social Science, Agriculture, Environmental Sciences, Statistician, Civil Engineer, Mechanical Engineer, Electrical/Electronics, Chemical & Metallurgy, Mechatronics, Law Enforcement, Army Officer, Economist). */
 export function getJobCategoryTagsForJob(job: JobCategoryMatchInput): JobCategoryTagRef[] {
 	const tags: JobCategoryTagRef[] = [];
 
@@ -736,21 +854,26 @@ export function getJobCategoryTagsForJob(job: JobCategoryMatchInput): JobCategor
 		if (!JOB_CARD_CATEGORY_SLUG_SET.has(page.slug)) continue;
 
 		let matches = false;
-		if (page.degree_area_terms?.length) {
-			const area = job.degree_area?.toLowerCase() ?? '';
-			const degreeMatch = page.degree_area_terms.some((term) =>
-				area.includes(term.toLowerCase())
+		if (page.degree_area_terms?.length || page.title_terms?.length) {
+			const area = job.degree_area ?? '';
+			const title = job.title ?? '';
+			const degreeMatch = Boolean(
+				page.degree_area_terms?.some((term) => textMatchesTerm(area, term))
 			);
-			// When a flag column is also set, include either match (e.g. Civil flag OR "Civil" in degree_area).
-			matches =
-				degreeMatch || Boolean(page.column && job[page.column] === 1);
-		} else if (page.title_terms?.length) {
-			const title = job.title?.toLowerCase() ?? '';
-			const titleMatch = page.title_terms.some((term) =>
-				title.includes(term.toLowerCase())
+			const titleMatch = Boolean(
+				page.title_terms?.some((term) => textMatchesTerm(title, term))
 			);
 			matches =
-				titleMatch || Boolean(page.column && job[page.column] === 1);
+				degreeMatch ||
+				titleMatch ||
+				Boolean(page.column && job[page.column] === 1);
+		} else if (page.degrees_terms?.length) {
+			const degrees = job.degrees ?? '';
+			const degreesMatch = page.degrees_terms.some((term) =>
+				textMatchesTerm(degrees, term)
+			);
+			matches =
+				degreesMatch || Boolean(page.column && job[page.column] === 1);
 		} else if (page.education_level_terms?.length) {
 			const level = job.education_level?.toLowerCase() ?? '';
 			matches = page.education_level_terms.some((term) => level.includes(term.toLowerCase()));
@@ -765,6 +888,15 @@ export function getJobCategoryTagsForJob(job: JobCategoryMatchInput): JobCategor
 				(job.degrees ?? '').toLowerCase().includes('acca');
 		} else if (page.column) {
 			matches = job[page.column] === 1;
+		}
+
+		if (matches && page.title_exclude_terms?.length) {
+			const title = job.title?.toLowerCase() ?? '';
+			if (
+				page.title_exclude_terms.some((term) => title.includes(term.toLowerCase()))
+			) {
+				matches = false;
+			}
 		}
 
 		if (matches) {
