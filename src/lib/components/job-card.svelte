@@ -352,7 +352,7 @@
 		</div>
 
 		{#if !isStatic && categoryTags.length}
-			<div class="flex flex-wrap justify-end gap-x-2.5 gap-y-0.5 border-t border-border/60 px-2 pb-2 pt-1.5 sm:px-4 lg:justify-start">
+			<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 px-2 pb-2 pt-1.5 sm:px-4">
 				{#each categoryTags as tag (tag.slug)}
 					<a
 						href="/{tag.slug}"
@@ -597,7 +597,7 @@
 				</div>
 			{/if}
 			{#if !isStatic && categoryTags.length}
-				<div class="flex flex-wrap justify-end gap-x-2.5 gap-y-0.5 border-t border-border/60 pt-1.5 lg:justify-start">
+				<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 pt-1.5">
 					{#each categoryTags as tag (tag.slug)}
 						<a
 							href="/{tag.slug}"
