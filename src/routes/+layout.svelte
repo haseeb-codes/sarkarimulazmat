@@ -7,6 +7,7 @@
 	import { isJobCategoryShareSlug } from '$lib/job-category-pages';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeToggle from '$lib/components/theme-toggle.svelte';
+	import FacebookLink from '$lib/components/facebook-link.svelte';
 	import UserNavMenu from '$lib/components/user-nav-menu.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
@@ -97,6 +98,7 @@
 					</nav>
 
 					<div class="ml-auto flex items-center gap-0.5 md:ml-0 md:gap-1">
+						<FacebookLink size="sm" class="mx-0.5" />
 						<UserNavMenu
 							{isSignedIn}
 							{profileHref}
@@ -155,20 +157,23 @@
 			</main>
 
 			<footer class="border-t border-border py-4 text-sm text-muted-foreground sm:py-6">
-				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<p>
 						A unified portal for all government jobs in Pakistan — filter by age, education, gender,
 						domicile, and more.
 					</p>
-					<p>
-						<a href="/about" class="hover:text-foreground hover:underline">About</a>
-						<span class="mx-2">·</span>
-						<a href="/contact" class="hover:text-foreground hover:underline">Contact</a>
-						<span class="mx-2">·</span>
-						<a href="/privacy" class="hover:text-foreground hover:underline">Privacy</a>
-						<span class="mx-2">·</span>
-						<a href="/terms" class="hover:text-foreground hover:underline">Terms</a>
-					</p>
+					<div class="flex flex-wrap items-center gap-x-2 gap-y-2">
+						<FacebookLink size="sm" />
+						<p>
+							<a href="/about" class="hover:text-foreground hover:underline">About</a>
+							<span class="mx-2">·</span>
+							<a href="/contact" class="hover:text-foreground hover:underline">Contact</a>
+							<span class="mx-2">·</span>
+							<a href="/privacy" class="hover:text-foreground hover:underline">Privacy</a>
+							<span class="mx-2">·</span>
+							<a href="/terms" class="hover:text-foreground hover:underline">Terms</a>
+						</p>
+					</div>
 				</div>
 			</footer>
 		</div>

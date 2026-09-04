@@ -27,6 +27,7 @@
 	} from "$lib/jobs-utils";
 	import ImageIcon from "@lucide/svelte/icons/image";
 	import BuildingIcon from "@lucide/svelte/icons/building-2";
+	import type { JobCategoryTagRef } from "$lib/job-category-pages";
 
 	type JobCardJob = {
 		row_id: number;
@@ -53,6 +54,7 @@
 		application_online_address?: string | null;
 		email?: string | null;
 		url_web_title?: string | null;
+		tags?: JobCategoryTagRef[];
 	};
 
 	let {
@@ -103,6 +105,7 @@
 	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	const categoryTags = $derived(job.tags ?? []);
 	const cardAccentClass = $derived(
 		fresh
 			? "job-card-fresh ring-2 ring-primary/70"
@@ -160,7 +163,7 @@
 							variant="secondary"
 							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
-							class="underline-offset-2 hover:underline"
+							class="underline-offset-2 hover:underline sm:hidden"
 						>
 							{job.grade}
 						</Badge>
@@ -175,7 +178,7 @@
 					{/if}
 				</div>
 
-				<div class="flex items-start gap-1.5">
+				<div class="flex flex-wrap items-start gap-1.5">
 					<a
 						{href}
 						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -186,6 +189,16 @@
 							{job.title ?? "Untitled posting"}
 						</span>
 					</a>
+					{#if job.grade}
+						<Badge
+							variant="secondary"
+							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
+							aria-label="Filter by grade {job.grade}"
+							class="mt-0.5 hidden shrink-0 underline-offset-2 hover:underline sm:inline-flex"
+						>
+							{job.grade}
+						</Badge>
+					{/if}
 					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
 						<GenderIcons gender={job.gender} />
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
@@ -337,6 +350,19 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if !isStatic && categoryTags.length}
+			<div class="flex flex-wrap justify-end gap-x-2.5 gap-y-0.5 border-t border-border/60 px-2 pb-2 pt-1.5 sm:px-4 lg:justify-start">
+				{#each categoryTags as tag (tag.slug)}
+					<a
+						href="/{tag.slug}"
+						class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+					>
+						All {tag.label} jobs →
+					</a>
+				{/each}
+			</div>
+		{/if}
 	</Card.Root>
 {:else}
 	<Card.Root
@@ -371,7 +397,7 @@
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
-					class="flex items-start gap-1.5 text-sm! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+					class="flex flex-wrap items-start gap-1.5 text-sm! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
 				>
 					<a
 						{href}
@@ -379,6 +405,16 @@
 					>
 						{job.title ?? "Untitled posting"}
 					</a>
+					{#if job.grade}
+						<Badge
+							variant="secondary"
+							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
+							aria-label="Filter by grade {job.grade}"
+							class="mt-0.5 hidden shrink-0 text-xs! font-medium underline-offset-2 hover:underline md:inline-flex"
+						>
+							{job.grade}
+						</Badge>
+					{/if}
 					<span class="mt-0.5 inline-flex items-center gap-0.5">
 						<GenderIcons gender={job.gender} />
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
@@ -403,7 +439,7 @@
 							variant="secondary"
 							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
-							class="underline-offset-2 hover:underline"
+							class="underline-offset-2 hover:underline md:hidden"
 						>
 							{job.grade}
 						</Badge>
@@ -558,6 +594,18 @@
 						text={job.department}
 						class={adUrl ? "shrink-0" : "w-full"}
 					/>
+				</div>
+			{/if}
+			{#if !isStatic && categoryTags.length}
+				<div class="flex flex-wrap justify-end gap-x-2.5 gap-y-0.5 border-t border-border/60 pt-1.5 lg:justify-start">
+					{#each categoryTags as tag (tag.slug)}
+						<a
+							href="/{tag.slug}"
+							class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+						>
+							All {tag.label} jobs →
+						</a>
+					{/each}
 				</div>
 			{/if}
 		</Card.Content>

@@ -1,3 +1,8 @@
+import {
+	getJobCategoryTagsForJob,
+	type JobCategoryColumn,
+	type JobCategoryTagRef
+} from '$lib/job-category-pages';
 import type { JobPostings } from '$lib/server/generated/prisma/client';
 
 /** Public job shape for browse lists, API, and SvelteKit hydration — no internal DB fields. */
@@ -26,6 +31,8 @@ export type ListJob = {
 	application_online_address: string | null;
 	email: string | null;
 	url_web_title: string | null;
+	/** Curated category tags shown on the job card (allowlisted). */
+	tags: JobCategoryTagRef[];
 };
 
 type ListJobSource = Pick<
@@ -54,7 +61,8 @@ type ListJobSource = Pick<
 	| 'application_online_address'
 	| 'email'
 	| 'url_web_title'
-> & { row_id: number };
+> &
+	Partial<Record<JobCategoryColumn, number | null>> & { row_id: number };
 
 export function toListJob(job: ListJobSource): ListJob {
 	return {
@@ -83,7 +91,8 @@ export function toListJob(job: ListJobSource): ListJob {
 		supabase_file_path: job.supabase_file_path,
 		application_online_address: job.application_online_address,
 		email: job.email,
-		url_web_title: job.url_web_title
+		url_web_title: job.url_web_title,
+		tags: getJobCategoryTagsForJob(job)
 	};
 }
 

@@ -17,6 +17,7 @@
 				label: string;
 				count: number;
 				degree_areas?: string[];
+				education_level?: string;
 				q?: string;
 			}[];
 		}[];

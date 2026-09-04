@@ -139,6 +139,7 @@ export type BrowseJobInterestLeaf = {
 	label: string;
 	count: number;
 	degree_areas?: string[];
+	education_level?: string;
 	q?: string;
 };
 
@@ -193,7 +194,7 @@ function defaultListJobsCacheKey(filters: JobFilters): string | null {
 
 const JOB_INTEREST_TAXONOMY: {
 	label: string;
-	children: { label: string; degree_areas?: string[]; q?: string }[];
+	children: { label: string; degree_areas?: string[]; education_level?: string; q?: string }[];
 }[] = [
 	{
 		label: 'Engineering',
@@ -294,7 +295,7 @@ const JOB_INTEREST_TAXONOMY: {
 	{
 		label: 'Technical & Skilled',
 		children: [
-			{ label: 'Diploma (DAE)', degree_areas: ['DAE'] },
+			{ label: 'Diploma (DAE)', education_level: 'Diploma' },
 			{ label: 'Matric', degree_areas: ['Matric'] },
 			{ label: 'Technician', q: 'technician' },
 			{ label: 'Fitter', q: 'fitter' },
@@ -1371,9 +1372,11 @@ export async function getBrowseByCategoryData(): Promise<BrowseByCategoryData> {
 					branch.children.map(async (child) => ({
 						label: child.label,
 						degree_areas: child.degree_areas,
+						education_level: child.education_level,
 						q: child.q,
 						count: await countJobsMatching({
 							degree_areas: child.degree_areas ?? [],
+							education_level: child.education_level ?? null,
 							q: child.q ?? null
 						})
 					}))

@@ -74,7 +74,33 @@
 		const qs = params.toString();
 		return qs ? `/${category.slug}?${qs}` : `/${category.slug}`;
 	};
-	const pageNumbers = $derived(Array.from({ length: totalPages }, (_, index) => index + 1));
+
+	/** Compact page list: first/last + a small window around the current page. */
+	const PAGE_WINDOW = 2;
+	type PageItem = number | 'ellipsis';
+	const pageItems = $derived.by((): PageItem[] => {
+		if (totalPages <= 7) {
+			return Array.from({ length: totalPages }, (_, index) => index + 1);
+		}
+
+		const pages = new Set<number>();
+		pages.add(1);
+		pages.add(totalPages);
+		for (let p = page - PAGE_WINDOW; p <= page + PAGE_WINDOW; p++) {
+			if (p >= 1 && p <= totalPages) pages.add(p);
+		}
+
+		const sorted = [...pages].sort((a, b) => a - b);
+		const items: PageItem[] = [];
+		for (let i = 0; i < sorted.length; i++) {
+			const current = sorted[i]!;
+			const prev = sorted[i - 1];
+			if (prev != null && current - prev > 1) items.push('ellipsis');
+			items.push(current);
+		}
+		return items;
+	});
+
 	const canonical = $derived(`${SITE_HREF}${pageHref(page)}`);
 	const prevHref = $derived(page > 1 ? `${SITE_HREF}${pageHref(page - 1)}` : null);
 	const nextHref = $derived(page < totalPages ? `${SITE_HREF}${pageHref(page + 1)}` : null);
@@ -182,17 +208,26 @@
 							</a>
 						{/if}
 
-						{#each pageNumbers as pageNumber (pageNumber)}
-							<a
-								href={pageHref(pageNumber)}
-								aria-current={pageNumber === page ? 'page' : undefined}
-								class="min-w-9 rounded-md border px-3 py-1.5 text-center text-sm font-medium transition-colors {pageNumber ===
-								page
-									? 'border-primary bg-primary text-primary-foreground'
-									: 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'}"
-							>
-								{pageNumber}
-							</a>
+						{#each pageItems as item, index (typeof item === 'number' ? item : `e-${index}`)}
+							{#if item === 'ellipsis'}
+								<span
+									class="min-w-9 px-1 py-1.5 text-center text-sm text-muted-foreground"
+									aria-hidden="true"
+								>
+									…
+								</span>
+							{:else}
+								<a
+									href={pageHref(item)}
+									aria-current={item === page ? 'page' : undefined}
+									class="min-w-9 rounded-md border px-3 py-1.5 text-center text-sm font-medium transition-colors {item ===
+									page
+										? 'border-primary bg-primary text-primary-foreground'
+										: 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'}"
+								>
+									{item}
+								</a>
+							{/if}
 						{/each}
 
 						{#if page < totalPages}

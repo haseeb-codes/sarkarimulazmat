@@ -44,11 +44,20 @@ function titleTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 	};
 }
 
+function educationLevelTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
+	return {
+		OR: terms.map((term) => ({
+			education_level: { contains: term, mode: 'insensitive' as const }
+		}))
+	};
+}
+
 export type JobCategoryFilter = Pick<
 	JobCategoryPageDef,
 	| 'column'
 	| 'degree_area_terms'
 	| 'title_terms'
+	| 'education_level_terms'
 	| 'latest_posted_day'
 	| 'closing_soon_within_days'
 	| 'transgender_applicable'
@@ -140,10 +149,21 @@ export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.Jo
 		return closingSoonWhere(category.closing_soon_within_days);
 	}
 	if (category.degree_area_terms?.length) {
-		return degreeAreaTermsWhere(category.degree_area_terms);
+		const degreeWhere = degreeAreaTermsWhere(category.degree_area_terms);
+		if (category.column) {
+			return { OR: [{ [category.column]: 1 }, degreeWhere] };
+		}
+		return degreeWhere;
 	}
 	if (category.title_terms?.length) {
-		return titleTermsWhere(category.title_terms);
+		const titleWhere = titleTermsWhere(category.title_terms);
+		if (category.column) {
+			return { OR: [{ [category.column]: 1 }, titleWhere] };
+		}
+		return titleWhere;
+	}
+	if (category.education_level_terms?.length) {
+		return educationLevelTermsWhere(category.education_level_terms);
 	}
 	if (category.transgender_applicable) {
 		return transgenderApplicableWhere();
@@ -169,9 +189,21 @@ export async function buildJobCategoryWhere(
 	} else if (category.closing_soon_within_days != null) {
 		and.push(closingSoonWhere(category.closing_soon_within_days));
 	} else if (category.degree_area_terms?.length) {
-		and.push(degreeAreaTermsWhere(category.degree_area_terms));
+		const degreeWhere = degreeAreaTermsWhere(category.degree_area_terms);
+		and.push(
+			category.column
+				? { OR: [{ [category.column]: 1 }, degreeWhere] }
+				: degreeWhere
+		);
 	} else if (category.title_terms?.length) {
-		and.push(titleTermsWhere(category.title_terms));
+		const titleWhere = titleTermsWhere(category.title_terms);
+		and.push(
+			category.column
+				? { OR: [{ [category.column]: 1 }, titleWhere] }
+				: titleWhere
+		);
+	} else if (category.education_level_terms?.length) {
+		and.push(educationLevelTermsWhere(category.education_level_terms));
 	} else if (category.transgender_applicable) {
 		and.push(transgenderApplicableWhere());
 	} else if (category.column) {

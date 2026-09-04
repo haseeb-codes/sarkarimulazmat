@@ -9,6 +9,7 @@
 		label: string;
 		count: number;
 		degree_areas?: string[];
+		education_level?: string;
 		q?: string;
 	};
 
@@ -30,6 +31,9 @@
 			.flatMap((value) => value.split(',').map((part) => part.trim().toLowerCase()))
 			.filter(Boolean)
 	);
+	const activeEducationLevel = $derived(
+		page.url.searchParams.get('education_level')?.trim().toLowerCase() ?? ''
+	);
 	const activeQuery = $derived(page.url.searchParams.get('q')?.trim().toLowerCase() ?? '');
 
 	function formatCount(value: number): string {
@@ -39,6 +43,9 @@
 	function isLeafActive(leaf: InterestLeaf): boolean {
 		if (leaf.q) {
 			return activeQuery === leaf.q.trim().toLowerCase();
+		}
+		if (leaf.education_level) {
+			return activeEducationLevel === leaf.education_level.trim().toLowerCase();
 		}
 		if (!leaf.degree_areas?.length) return false;
 		return leaf.degree_areas.some((area) => activeDegreeAreas.includes(area.toLowerCase()));
@@ -92,6 +99,7 @@
 							<a
 								href={filtersToHref({
 									degree_areas: leaf.degree_areas ?? [],
+									education_level: leaf.education_level ?? null,
 									q: leaf.q ?? null
 								})}
 								data-sveltekit-noscroll
