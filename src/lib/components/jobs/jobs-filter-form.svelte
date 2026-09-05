@@ -23,6 +23,7 @@
 		collarLevelDescription,
 		enabledCollarLevels,
 		filtersToHref,
+		formatDateLabel,
 		formatQualificationLevel,
 		formatCollarLevel,
 		isAgeFilterActive,
@@ -36,18 +37,31 @@
 	} from '$lib/jobs-utils';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import { JOB_PORTAL_BY_LABEL, type JobPortal } from '$lib/job-portals';
+	import ClosingOnFilterSkeleton from '$lib/components/jobs/closing-on-filter-skeleton.svelte';
 	type Options = {
 		portals: string[];
 		specializations: string[];
 	};
 
+	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
+		return (
+			typeof value === 'object' &&
+			value !== null &&
+			'then' in value &&
+			typeof (value as Promise<T>).then === 'function'
+		);
+	}
+
 	let {
 		filters,
 		options,
+		closingOnDates = null,
 		idPrefix = ''
 	}: {
 		filters: FilterParams;
 		options: Options;
+		/** Unique YYYY-MM-DD deadlines for active jobs; null hides the Closing On filter. */
+		closingOnDates?: Promise<string[]> | string[] | null;
 		idPrefix?: string;
 	} = $props();
 
@@ -55,6 +69,7 @@
 	let ageSliderDraft = $state(AGE_FILTER_DEFAULT);
 	let qualificationDraft = $state<number | null>(null);
 	let gradeDraft = $state<string | null>(null);
+	let closingOnDraft = $state<string | null>(null);
 	let portalDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey | null>(null);
 	let degreeAreasDraft = $state<string[]>([]);
@@ -103,6 +118,7 @@
 		ageEnabledDraft = isAgeFilterActive(filters);
 		ageSliderDraft = isAgeFilterActive(filters) ? resolvedUserAge(filters) : AGE_FILTER_DEFAULT;
 		gradeDraft = filters.grade ?? null;
+		closingOnDraft = filters.closing_on ?? null;
 		portalDraft = filters.portal ?? null;
 		const regions = selectedDomicileRegions(filters).filter((key) => key !== 'any');
 		domicileRegionDraft = regions[0] ?? null;
@@ -196,6 +212,11 @@
 	function setGrade(next: string | null) {
 		gradeDraft = next;
 		navigate({ grade: next });
+	}
+
+	function setClosingOn(next: string | null) {
+		closingOnDraft = next;
+		navigate({ closing_on: next });
 	}
 
 	function setPortal(next: string | null) {
@@ -334,11 +355,37 @@
 	{/if}
 {/snippet}
 
+{#snippet closingOnSelect(dates: string[])}
+	{@const options =
+		closingOnDraft && !dates.includes(closingOnDraft)
+			? [closingOnDraft, ...dates]
+			: dates}
+	<div class="space-y-2">
+		<Label for="{idPrefix}filter-closing-on" class="text-xs lg:text-sm">Closing On</Label>
+		<Select.Root
+			type="single"
+			value={closingOnDraft ?? ''}
+			onValueChange={(v) => setClosingOn(v || null)}
+		>
+			<Select.Trigger id="{idPrefix}filter-closing-on" class="w-full">
+				{formatDateLabel(closingOnDraft) ?? 'Any'}
+			</Select.Trigger>
+			<Select.Content class="max-h-72">
+				<Select.Item value="" label="Any">Any</Select.Item>
+				{#each options as date (date)}
+					{@const label = formatDateLabel(date) ?? date}
+					<Select.Item value={date} {label}>{label}</Select.Item>
+				{/each}
+			</Select.Content>
+		</Select.Root>
+	</div>
+{/snippet}
+
 <div class="space-y-5">
 	<div class="flex items-center justify-between gap-3">
 		<div class="min-w-0 space-y-0.5">
 			<Label for="{idPrefix}filter-permanent" class="cursor-pointer text-xs lg:text-sm"
-				>Permanent jobs only</Label
+				>Regular jobs only</Label
 			>
 			<p class="text-xs text-muted-foreground">Show jobs with employment type Permanent.</p>
 		</div>
@@ -346,7 +393,7 @@
 			id="{idPrefix}filter-permanent"
 			type="button"
 			role="switch"
-			aria-label="Permanent jobs only"
+			aria-label="Regular jobs only"
 			aria-checked={permanentOnlyDraft}
 			onclick={() => setPermanentOnly(!permanentOnlyDraft)}
 			class={switchClass(permanentOnlyDraft)}
@@ -375,6 +422,22 @@
 			</Select.Content>
 		</Select.Root>
 	</div>
+
+	{#if closingOnDates != null}
+		<Separator />
+
+		{#if isPromise(closingOnDates)}
+			{#await closingOnDates}
+				<ClosingOnFilterSkeleton />
+			{:then dates}
+				{@render closingOnSelect(dates)}
+			{:catch}
+				{@render closingOnSelect([])}
+			{/await}
+		{:else}
+			{@render closingOnSelect(closingOnDates)}
+		{/if}
+	{/if}
 
 	<Separator />
 

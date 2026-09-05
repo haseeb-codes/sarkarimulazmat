@@ -269,6 +269,8 @@ export type FilterParams = {
 	degree_areas?: string[];
 	education_level?: string | null;
 	ad_date?: string | null;
+	/** Exact match on last date to apply (YYYY-MM-DD). */
+	closing_on?: string | null;
 	posted_by?: string | null;
 	donor_name?: string | null;
 	portal?: string | null;
@@ -367,6 +369,7 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	}
 	if (filters.education_level) params.set('education_level', filters.education_level);
 	if (filters.ad_date) params.set('ad_date', filters.ad_date);
+	if (filters.closing_on) params.set('closing_on', filters.closing_on);
 	if (filters.posted_by) params.set('posted_by', filters.posted_by);
 	if (filters.donor_name) params.set('donor_name', filters.donor_name);
 	if (filters.portal) params.set('portal', filters.portal);
@@ -485,6 +488,14 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 			id: 'ad_date',
 			label: `Posted: ${filters.ad_date}`,
 			clear: { ad_date: null }
+		});
+	}
+
+	if (filters.closing_on) {
+		chips.push({
+			id: 'closing_on',
+			label: `Closing: ${formatDateLabel(filters.closing_on) ?? filters.closing_on}`,
+			clear: { closing_on: null }
 		});
 	}
 
@@ -660,7 +671,7 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	if (filters.permanent_only) {
 		chips.push({
 			id: 'permanent',
-			label: 'Permanent',
+			label: 'Regular',
 			clear: { permanent_only: false }
 		});
 	}
@@ -959,6 +970,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(isQualificationFilterActive(filters) ? 1 : 0) +
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
+		(filters.closing_on ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
 		(isCollarFilterActive(filters) ? 1 : 0) +
 		(filters.portal ? 1 : 0) +
@@ -1014,6 +1026,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 			.map((v) => v.trim())
 			.filter(Boolean),
 		grade: normalizeGradeFilter(params.get('grade')),
+		closing_on: toDateKey(params.get('closing_on')),
 		domicile_region: selectedDomicileRegions({
 			domicile_region: params.getAll('domicile_region')
 		}),

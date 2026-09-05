@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import {
 	filtersAreActive,
 	countJobs,
+	getClosingOnDates,
 	listJobs,
 	parseJobFilters
 } from '$lib/server/jobs';
@@ -37,10 +38,17 @@ export const load: PageServerLoad = ({ url, locals }) => {
 			};
 		});
 
+	// Non-blocking: Closing On dropdown options stream after the shell paints.
+	const closingOnDates = getClosingOnDates().catch((err) => {
+		console.error('Failed to load closing-on dates', err);
+		return [] as string[];
+	});
+
 	return {
 		filters: snapshot,
 		filtered,
 		resultCount,
-		listing
+		listing,
+		closingOnDates
 	};
 };

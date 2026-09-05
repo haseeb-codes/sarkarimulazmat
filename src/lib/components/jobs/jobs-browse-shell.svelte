@@ -30,11 +30,14 @@
 		filters,
 		listing: listingInput,
 		resultCount: resultCountInput,
+		closingOnDates = null,
 		loading = false
 	}: {
 		filters: FilterParams;
 		listing: ListingResult | Promise<ListingResult>;
 		resultCount?: number | Promise<number>;
+		/** Unique last-date-to-apply values for the Closing On filter (streamed). */
+		closingOnDates?: Promise<string[]> | string[] | null;
 		loading?: boolean;
 	} = $props();
 
@@ -118,6 +121,7 @@
 	countLoading={showCountLoading}
 	listingLoading={showListingLoading}
 	listingError={listing?.error ?? null}
+	{closingOnDates}
 >
 	<JobList
 		jobs={(listing ?? EMPTY_LISTING).jobs}

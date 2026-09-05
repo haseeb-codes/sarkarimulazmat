@@ -6,6 +6,7 @@ export function jobFiltersSnapshot(filters: JobFilters) {
 		degree_areas: filters.degree_areas,
 		education_level: filters.education_level,
 		ad_date: filters.ad_date,
+		closing_on: filters.closing_on,
 		posted_by: filters.posted_by,
 		donor_name: filters.donor_name,
 		portal: filters.portal,

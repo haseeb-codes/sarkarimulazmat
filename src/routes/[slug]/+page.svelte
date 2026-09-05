@@ -78,6 +78,7 @@
 			filters={data.filters}
 			listing={data.listing}
 			resultCount={data.resultCount}
+			closingOnDates={data.closingOnDates}
 			loading={isNavigating}
 		/>
 	</div>

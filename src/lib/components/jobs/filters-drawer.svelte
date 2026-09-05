@@ -26,6 +26,7 @@
 		countLoading = false,
 		listingLoading = false,
 		listingError = null,
+		closingOnDates = null,
 		children
 	}: {
 		filters: FilterParams;
@@ -34,6 +35,8 @@
 		countLoading?: boolean;
 		listingLoading?: boolean;
 		listingError?: string | null;
+		/** Unique last-date-to-apply values for Closing On (streamed promise or resolved). */
+		closingOnDates?: Promise<string[]> | string[] | null;
 		children?: Snippet;
 	} = $props();
 
@@ -208,6 +211,7 @@
 			<JobsFilterForm
 				filters={displayFilters}
 				options={STATIC_DRAWER_FILTER_OPTIONS}
+				{closingOnDates}
 				idPrefix="sidebar-"
 			/>
 		</div>
@@ -287,14 +291,15 @@
 												</div>
 											</div>
 										<Drawer.Description>
-											Narrow jobs by age, qualification, degree specialization, BPS grade, permanent
-											jobs, and domicile.
+											Narrow jobs by closing date, age, qualification, degree specialization, BPS
+											grade, regular jobs, and domicile.
 										</Drawer.Description>
 									</Drawer.Header>
 									<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
 										<JobsFilterForm
 											filters={displayFilters}
 											options={STATIC_DRAWER_FILTER_OPTIONS}
+											{closingOnDates}
 											idPrefix="drawer-"
 										/>
 									</div>

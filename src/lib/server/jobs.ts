@@ -36,6 +36,8 @@ export type JobFilters = FilterParams & {
 	degree_areas: string[];
 	education_level: string | null;
 	ad_date: string | null;
+	/** Exact match on `last_date_to_apply` (YYYY-MM-DD). */
+	closing_on: string | null;
 	posted_by: string | null;
 	donor_name: string | null;
 	portal: string | null;
@@ -408,6 +410,7 @@ const SEARCHABLE_TEXT_FIELDS = [
 ] as const satisfies readonly (keyof Prisma.JobPostingsWhereInput)[];
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
+let closingOnDatesCache: { data: string[]; expiresAt: number } | null = null;
 let browseCountsCache: { data: BrowseByCategoryData; expiresAt: number } | null = null;
 let portalCountsCache: { data: PortalJobCount[]; expiresAt: number } | null = null;
 
@@ -498,6 +501,7 @@ export function parseJobFilters(url: URL): JobFilters {
 		degree_areas: parseDegreeAreas(url),
 		education_level: firstParam(url, 'education_level'),
 		ad_date: toDateKey(firstParam(url, 'ad_date')),
+		closing_on: toDateKey(firstParam(url, 'closing_on')),
 		posted_by: firstParam(url, 'posted_by'),
 		donor_name: firstParam(url, 'donor_name'),
 		portal: firstParam(url, 'portal'),
@@ -546,6 +550,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 		filters.degree_areas.length ||
 			filters.education_level ||
 			filters.ad_date ||
+			filters.closing_on ||
 			filters.posted_by ||
 			filters.donor_name ||
 			filters.portal ||
@@ -712,6 +717,10 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	if (filters.ad_date) {
 		and.push({ ad_date: new Date(`${filters.ad_date}T00:00:00.000Z`) });
+	}
+
+	if (filters.closing_on) {
+		and.push({ last_date_to_apply: new Date(`${filters.closing_on}T00:00:00.000Z`) });
 	}
 
 	if (filters.posted_by) {
@@ -1246,12 +1255,50 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 	return data;
 }
 
+/**
+ * Unique `last_date_to_apply` values for active, non-expired jobs (ascending).
+ * Cached briefly so the Closing On filter dropdown stays cheap.
+ */
+export async function getClosingOnDates(): Promise<string[]> {
+	const now = Date.now();
+	if (closingOnDatesCache && closingOnDatesCache.expiresAt > now) {
+		return closingOnDatesCache.data;
+	}
+
+	const startOfToday = new Date();
+	startOfToday.setUTCHours(0, 0, 0, 0);
+
+	const rows = await db.jobPostings.groupBy({
+		by: ['last_date_to_apply'],
+		where: {
+			AND: [
+				IS_ACTIVE_JOB,
+				{
+					last_date_to_apply: {
+						not: null,
+						gte: startOfToday
+					}
+				}
+			]
+		},
+		orderBy: { last_date_to_apply: 'asc' }
+	});
+
+	const data = rows
+		.map((row) => toDateKey(row.last_date_to_apply))
+		.filter((key): key is string => key != null);
+
+	closingOnDatesCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
+	return data;
+}
+
 /** Baseline filters for browse counts — active, non-expired postings only. */
 function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 	return {
 		degree_areas: [],
 		education_level: null,
 		ad_date: null,
+		closing_on: null,
 		posted_by: null,
 		donor_name: null,
 		portal: null,

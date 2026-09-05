@@ -4,7 +4,13 @@ import { getJobCategoryPage } from '$lib/job-category-pages';
 import { loadJobCategoryJobs, TAG_SHARE_PAGE_SIZE } from '$lib/server/job-category-jobs';
 import { parseSocialImagePage } from '$lib/social-job-images';
 import db from '$lib/server/db';
-import { listJobs, countJobs, parseJobFilters, type JobFilters } from '$lib/server/jobs';
+import {
+	listJobs,
+	countJobs,
+	getClosingOnDates,
+	parseJobFilters,
+	type JobFilters
+} from '$lib/server/jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } from '$lib/jobs-utils';
@@ -46,6 +52,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		degree_areas: preset.degree_areas?.length ? preset.degree_areas : urlFilters.degree_areas,
 		education_level: preset.education_level ?? urlFilters.education_level,
 		ad_date: urlFilters.ad_date,
+		closing_on: urlFilters.closing_on,
 		posted_by: urlFilters.posted_by,
 		donor_name: urlFilters.donor_name,
 		portal: urlFilters.portal,
@@ -98,6 +105,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 
 	const filtered = Boolean(
 		urlFilters.ad_date ||
+			urlFilters.closing_on ||
 			urlFilters.posted_by ||
 			urlFilters.donor_name ||
 			urlFilters.portal ||
@@ -152,6 +160,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			};
 		});
 
+	const closingOnDates = getClosingOnDates().catch((err) => {
+		console.error('Failed to load closing-on dates', err);
+		return [] as string[];
+	});
+
 	return {
 		kind: 'category' as const,
 		category: {
@@ -164,6 +177,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		filters: filtersSnapshot,
 		filtered,
 		resultCount,
-		listing
+		listing,
+		closingOnDates
 	};
 };
