@@ -9,7 +9,6 @@
 	import * as Select from '$lib/components/ui/select/index.js';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
-	import { getJobCategoryTagLabel, getJobCategoryTags } from '$lib/job-category-pages';
 	import {
 		DOMICILE_REGIONS,
 		selectedDomicileRegions,
@@ -43,6 +42,7 @@
 	type Options = {
 		portals: string[];
 		specializations: string[];
+		tags?: { slug: string; label: string }[];
 	};
 
 	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
@@ -92,7 +92,12 @@
 	let openCollarInfo = $state<CollarLevel | null>(null);
 	let failedPortalLogos = $state<Set<string>>(new Set());
 
-	const tagOptions = $derived(getJobCategoryTags());
+	const tagOptions = $derived(options.tags ?? []);
+	const tagLabelBySlug = $derived.by(() => {
+		const map = new Map<string, string>();
+		for (const tag of tagOptions) map.set(tag.slug.toLowerCase(), tag.label);
+		return map;
+	});
 	const specializationOptions = $derived(options.specializations ?? []);
 
 	const syncTagSearch = debounce((value: string) => {
@@ -176,7 +181,7 @@
 		tagsDraft.length === 0
 			? 'Any tag'
 			: tagsDraft.length === 1
-				? getJobCategoryTagLabel(tagsDraft[0]!)
+				? (tagLabelBySlug.get(tagsDraft[0]!.toLowerCase()) ?? tagsDraft[0]!)
 				: `${tagsDraft.length} selected`
 	);
 

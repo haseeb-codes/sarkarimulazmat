@@ -7,6 +7,7 @@
 		grades: string[];
 		portals: string[];
 		specializations: string[];
+		tags?: { slug: string; label: string }[];
 		salary_max: number;
 	};
 

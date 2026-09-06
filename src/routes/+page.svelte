@@ -59,7 +59,7 @@
 			<h1 class="sr-only">Government jobs in Pakistan</h1>
 		{/if}
 		<HomePageHero showIntro={!data.filtered} />
-		<TagChipsAsync />
+		<TagChipsAsync tags={data.topTags} />
 	</div>
 
 	<JobsBrowseShell

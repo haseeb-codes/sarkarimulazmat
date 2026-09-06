@@ -129,12 +129,13 @@
 
 {#snippet programBlock()}
 	{#if job.project_program_name?.trim()}
-		<div class="space-y-1">
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 			{@render facetLabel("Program")}
 			<MultiValueBadges
 				value={job.project_program_name}
 				{sort}
 				param="program"
+				containerClass="contents"
 				class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1 {facetBadgeClass.program}"
 			/>
 		</div>
@@ -143,7 +144,7 @@
 
 {#snippet specializationRow()}
 	{#if job.degree_area}
-		<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
 			{@render facetLabel("Specialization")}
 			<MultiValueBadges
 				value={job.degree_area}
@@ -192,6 +193,29 @@
 				class={facetBadgeClass.degree}
 			/>
 		</div>
+	{/if}
+{/snippet}
+
+{#snippet departmentLink(nameClass: string)}
+	{#if job.department && departmentHref}
+		<a
+			href={departmentHref}
+			data-sveltekit-noscroll
+			onclick={onFilterLinkClick}
+			class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline sm:text-sm"
+			aria-label="Filter by department {job.department}"
+		>
+			<span class="group relative inline-flex shrink-0">
+				<BuildingIcon class="size-3.5" aria-hidden="true" />
+				<span
+					role="tooltip"
+					class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs font-normal whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+				>
+					Department
+				</span>
+			</span>
+			<span class={nameClass} title={job.department}>{job.department}</span>
+		</a>
 	{/if}
 {/snippet}
 
@@ -399,31 +423,21 @@
 					</span>
 				</div>
 
-				{#if job.department && departmentHref}
-					<a
-						href={departmentHref}
-						data-sveltekit-noscroll
-						onclick={onFilterLinkClick}
-						title={job.department}
-						class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline sm:text-sm"
-						aria-label="Filter by department {job.department}"
-					>
-						<BuildingIcon class="size-3.5 shrink-0" aria-hidden="true" />
-						<span class="truncate">{job.department}</span>
-					</a>
-				{/if}
+				{@render departmentLink("truncate")}
 
 				{@render programBlock()}
-				{@render degreesRow()}
-				{@render specializationRow()}
+
+				{#if job.degrees || job.degree_area}
+					<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
+						{@render degreesRow()}
+						{@render specializationRow()}
+					</div>
+				{/if}
 
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
 					{@render locationRow()}
+					{@render salaryChip()}
 					{@render ageChip()}
-					<!-- Salary moves into the rail from md up so deadlines stay aligned -->
-					<div class="contents md:hidden">
-						{@render salaryChip()}
-					</div>
 				</div>
 				<JobApplyLink
 					applicationOnlineAddress={job.application_online_address}
@@ -437,11 +451,6 @@
 			>
 				{#if applyByLabel}
 					{@render deadlineRail()}
-				{/if}
-				{#if salaryLabel}
-					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-						{@render salaryChip()}
-					</div>
 				{/if}
 				{#if !isStatic}
 					<div class="flex flex-col gap-2 pt-1">
@@ -552,25 +561,17 @@
 					{/if}
 				</div>
 			</div>
-			{#if job.department && departmentHref}
-				<a
-					href={departmentHref}
-					data-sveltekit-noscroll
-					onclick={onFilterLinkClick}
-					title={job.department}
-					class="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline md:text-sm"
-					aria-label="Filter by department {job.department}"
-				>
-					<BuildingIcon class="size-3.5 shrink-0" aria-hidden="true" />
-					<span class="line-clamp-2">{job.department}</span>
-				</a>
-			{/if}
+			{@render departmentLink("line-clamp-2")}
 		</Card.Header>
 
 		<Card.Content class="space-y-2 pt-0 sm:space-y-2.5">
 			{@render programBlock()}
-			{@render degreesRow()}
-			{@render specializationRow()}
+			{#if job.degrees || job.degree_area}
+				<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+					{@render degreesRow()}
+					{@render specializationRow()}
+				</div>
+			{/if}
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
 				{@render locationRow()}
 				{@render salaryChip()}

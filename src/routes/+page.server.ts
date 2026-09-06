@@ -6,6 +6,7 @@ import {
 	listJobs,
 	parseJobFilters
 } from '$lib/server/jobs';
+import { getTopTagCounts } from '$lib/server/job-category-jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 
@@ -44,11 +45,18 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		return [] as string[];
 	});
 
+	// Non-blocking: home tag chips with counts stream independently of listing.
+	const topTags = getTopTagCounts().catch((err) => {
+		console.error('Failed to load top tags', err);
+		return [] as Awaited<ReturnType<typeof getTopTagCounts>>;
+	});
+
 	return {
 		filters: snapshot,
 		filtered,
 		resultCount,
 		listing,
-		closingOnDates
+		closingOnDates,
+		topTags
 	};
 };

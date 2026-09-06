@@ -1,38 +1,37 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import TagChips from '$lib/components/jobs/tag-chips.svelte';
 	import TagChipsSkeleton from '$lib/components/jobs/tag-chips-skeleton.svelte';
 
 	type TagCount = { slug: string; label: string; count: number };
 
-	let tags = $state<TagCount[] | null>(null);
-
-	$effect(() => {
-		if (!browser) return;
-
-		let cancelled = false;
-
-		void fetch('/api/tags/top')
-			.then((res) => {
-				if (!res.ok) throw new Error('Failed to load tag counts');
-				return res.json() as Promise<{ tags: TagCount[] }>;
-			})
-			.then((data) => {
-				if (!cancelled) tags = data.tags;
-			})
-			.catch((err) => {
-				console.error('Failed to load tag counts', err);
-				if (!cancelled) tags = [];
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	});
+	let {
+		tags
+	}: {
+		/** Streamed from load — must not be awaited in +page.server.ts. */
+		tags: Promise<TagCount[]> | TagCount[];
+	} = $props();
 </script>
 
-{#if tags === null}
+{#snippet pending()}
 	<TagChipsSkeleton />
-{:else}
-	<TagChips tags={tags} />
-{/if}
+{/snippet}
+
+{#snippet failed(error: unknown)}
+	<div
+		class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+		role="alert"
+	>
+		Could not load tags.
+		<span class="sr-only">{String(error)}</span>
+	</div>
+{/snippet}
+
+<svelte:boundary {pending} {failed}>
+	{#await tags}
+		<TagChipsSkeleton />
+	{:then resolved}
+		<TagChips tags={resolved} />
+	{:catch error}
+		{@render failed(error)}
+	{/await}
+</svelte:boundary>
