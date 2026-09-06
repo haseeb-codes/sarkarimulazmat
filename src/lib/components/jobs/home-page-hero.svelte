@@ -76,12 +76,15 @@
 <div class="space-y-1.5 sm:space-y-3 lg:space-y-4">
 	{#if showIntro}
 		<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 sm:gap-x-3">
-			<h1 class="shrink-0 text-lg sm:text-2xl lg:text-3xl">Government jobs in Pakistan</h1>
+			<h1 class="shrink-0 text-lg sm:text-2xl lg:text-3xl">
+				Latest government jobs in Pakistan
+			</h1>
 			<p
 				class="min-w-0 text-xs leading-snug text-muted-foreground sm:text-sm sm:leading-relaxed lg:text-base"
 			>
-				Sarkari Mulazmat is the first unified portal where government jobs from every major official
-				source are posted together — one search instead of checking each website separately.
+				Search government vacancies collected from major official sources across Pakistan. Filter
+				jobs by education, age, domicile, gender, BPS, and closing date — then review the original
+				advertisement before applying.
 			</p>
 		</div>
 	{/if}

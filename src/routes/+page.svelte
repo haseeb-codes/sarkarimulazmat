@@ -14,7 +14,7 @@
 	const title = $derived(
 		data.filtered
 			? `Filtered Government Jobs — Sarkari Mulazmat`
-			: `Government Jobs in Pakistan — Sarkari Mulazmat`
+			: `Latest Government Jobs in Pakistan | Sarkari Mulazmat`
 	);
 
 	const canonical = $derived(new URL('/', page.url.origin).href);
@@ -26,7 +26,7 @@
 		name="description"
 		content={data.filtered
 			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
-			: `The first unified portal for government jobs in Pakistan — aggregated from CTSP, FPSC, PPSC, NTS, ETEA, NJP, and every major official source.`}
+			: `Find the latest government jobs in Pakistan from FPSC, PPSC, NTS, NJP, ETEA and other official sources. Filter vacancies by education, age, domicile and deadline.`}
 	/>
 	<link rel="canonical" href={canonical} />
 	{#if data.filtered}
@@ -37,7 +37,7 @@
 		property="og:description"
 		content={data.filtered
 			? `Browse government job postings matching your filters on Sarkari Mulazmat.`
-			: `The first unified portal for government jobs in Pakistan — aggregated from CTSP, FPSC, PPSC, NTS, ETEA, NJP, and every major official source.`}
+			: `Find the latest government jobs in Pakistan from FPSC, PPSC, NTS, NJP, ETEA and other official sources. Filter vacancies by education, age, domicile and deadline.`}
 	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={page.url.href} />

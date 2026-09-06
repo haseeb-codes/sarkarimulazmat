@@ -161,8 +161,7 @@
 			<footer class="border-t border-border py-4 text-sm text-muted-foreground sm:py-6">
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<p>
-						A unified portal for all government jobs in Pakistan — filter by age, education, gender,
-						domicile, and more.
+						Government job vacancies from major official sources — all in one search.
 					</p>
 					<div class="flex flex-wrap items-center gap-x-2 gap-y-2">
 						<FacebookLink size="sm" />
