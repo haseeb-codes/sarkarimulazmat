@@ -386,6 +386,40 @@ export async function countJobCategoryJobs(category: JobCategoryFilter) {
 	});
 }
 
+const TAG_COUNT_TTL_MS = 5 * 60 * 1000;
+const tagCountCache = new Map<string, { count: number; expiresAt: number }>();
+
+/** Counts for arbitrary category slugs — per-slug cache, unknown slugs omitted. */
+export async function getTagCountsBySlugs(slugs: string[]): Promise<Record<string, number>> {
+	const now = Date.now();
+	const unique = [...new Set(slugs.map((s) => s.trim().toLowerCase()).filter(Boolean))];
+	const tagBySlug = new Map(getJobCategoryTags().map((tag) => [tag.slug, tag]));
+	const result: Record<string, number> = {};
+	const missing: string[] = [];
+
+	for (const slug of unique) {
+		const cached = tagCountCache.get(slug);
+		if (cached && cached.expiresAt > now) {
+			result[slug] = cached.count;
+		} else if (tagBySlug.has(slug)) {
+			missing.push(slug);
+		}
+	}
+
+	if (missing.length) {
+		await Promise.all(
+			missing.map(async (slug) => {
+				const tag = tagBySlug.get(slug)!;
+				const count = await countJobCategoryJobs(tag);
+				tagCountCache.set(slug, { count, expiresAt: now + TAG_COUNT_TTL_MS });
+				result[slug] = count;
+			})
+		);
+	}
+
+	return result;
+}
+
 /** Home page tag counts — fixed curated list, cached briefly. */
 export async function getTopTagCounts(): Promise<TagJobCount[]> {
 	const now = Date.now();
@@ -394,18 +428,17 @@ export async function getTopTagCounts(): Promise<TagJobCount[]> {
 	}
 
 	const tagBySlug = new Map(getJobCategoryTags().map((tag) => [tag.slug, tag]));
-	const data = await Promise.all(
-		HOME_PAGE_TAG_SLUGS.map(async (slug) => {
-			const tag = tagBySlug.get(slug);
-			if (!tag) throw new Error(`Unknown home page tag slug: ${slug}`);
+	const counts = await getTagCountsBySlugs([...HOME_PAGE_TAG_SLUGS]);
+	const data = HOME_PAGE_TAG_SLUGS.map((slug) => {
+		const tag = tagBySlug.get(slug);
+		if (!tag) throw new Error(`Unknown home page tag slug: ${slug}`);
 
-			return {
-				slug: tag.slug,
-				label: HOME_PAGE_TAG_LABELS[slug] ?? tag.label,
-				count: await countJobCategoryJobs(tag)
-			};
-		})
-	);
+		return {
+			slug: tag.slug,
+			label: HOME_PAGE_TAG_LABELS[slug] ?? tag.label,
+			count: counts[slug] ?? 0
+		};
+	});
 
 	topTagsCache = { data, expiresAt: now + TOP_TAGS_TTL_MS };
 	return data;

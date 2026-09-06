@@ -30,6 +30,14 @@
 	import ImageIcon from "@lucide/svelte/icons/image";
 	import BuildingIcon from "@lucide/svelte/icons/building-2";
 	import type { JobCategoryTagRef } from "$lib/job-category-pages";
+	import { browser } from "$app/environment";
+	import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+	import {
+		ensureTagCounts,
+		getCachedTagCount,
+		isTagCountSettled,
+		subscribeTagCounts,
+	} from "$lib/tag-job-counts";
 
 	type JobCardJob = {
 		row_id: number;
@@ -121,6 +129,27 @@
 	);
 
 	let adOpen = $state(false);
+
+	/** Bumped when the shared tag-count cache updates so links re-read counts. */
+	let tagCountTick = $state(0);
+
+	$effect(() => {
+		if (!browser || isStatic || !categoryTags.length) return;
+		ensureTagCounts(categoryTags.map((tag) => tag.slug));
+		return subscribeTagCounts(() => {
+			tagCountTick += 1;
+		});
+	});
+
+	function tagJobCount(slug: string): number | undefined {
+		void tagCountTick;
+		return getCachedTagCount(slug);
+	}
+
+	function tagCountPending(slug: string): boolean {
+		void tagCountTick;
+		return !isTagCountSettled(slug);
+	}
 </script>
 
 {#snippet facetLabel(text: string)}
@@ -321,11 +350,22 @@
 {#snippet categoryTagLinks(className: string)}
 	<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 {className}">
 		{#each categoryTags as tag (tag.slug)}
+			{@const count = tagJobCount(tag.slug)}
+			{@const pending = tagCountPending(tag.slug)}
 			<a
 				href="/{tag.slug}"
-				class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+				class="inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
 			>
-				All {tag.label} jobs →
+				All {tag.label} jobs
+				{#if pending}
+					<span class="inline-flex items-center" aria-hidden="true">
+						(<Skeleton class="inline-block h-2.5 w-5 align-middle" />)
+					</span>
+					<span class="sr-only">(loading count)</span>
+				{:else if count != null}
+					<span class="tabular-nums">({count.toLocaleString("en-PK")})</span>
+				{/if}
+				→
 			</a>
 		{/each}
 	</div>
