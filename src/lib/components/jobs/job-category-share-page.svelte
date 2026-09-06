@@ -116,17 +116,8 @@
 	const isClosingSoonTag = $derived(category.slug === CLOSING_SOON_JOBS_SLUG);
 
 	const shareGridClass = $derived.by(() => {
-		const columnCount = Math.min(jobs.length, 4);
-		switch (columnCount) {
-			case 1:
-				return 'grid-cols-1';
-			case 2:
-				return 'grid-cols-1 sm:grid-cols-2';
-			case 3:
-				return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
-			default:
-				return 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4';
-		}
+		const columnCount = Math.min(jobs.length, 2);
+		return columnCount === 1 ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2';
 	});
 </script>
 
@@ -193,68 +184,74 @@
 			</div>
 		{:else}
 			<div class="space-y-4">
-				<nav
-					aria-label="Job list pages"
-					class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3"
-				>
-					<div class="mr-auto flex shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 px-1 text-sm">
-						<span class="font-semibold">Page: {page}/{totalPages}</span>
-						<span class="text-muted-foreground/60" aria-hidden="true">·</span>
-						<span class="text-muted-foreground">
-							{total.toLocaleString('en-PK')} active opening{total === 1 ? '' : 's'}
-						</span>
-					</div>
+				{#snippet paginationNav(label: string)}
+					<nav
+						aria-label={label}
+						class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-3"
+					>
+						<div class="mr-auto flex shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 px-1 text-sm">
+							<span class="font-semibold">Page: {page}/{totalPages}</span>
+							<span class="text-muted-foreground/60" aria-hidden="true">·</span>
+							<span class="text-muted-foreground">
+								{total.toLocaleString('en-PK')} active opening{total === 1 ? '' : 's'}
+							</span>
+						</div>
 
-					{#if showPagination}
-						{#if page > 1}
-							<a
-								href={pageHref(page - 1)}
-								class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
-							>
-								← Previous
-							</a>
-						{/if}
-
-						{#each pageItems as item, index (typeof item === 'number' ? item : `e-${index}`)}
-							{#if item === 'ellipsis'}
-								<span
-									class="min-w-9 px-1 py-1.5 text-center text-sm text-muted-foreground"
-									aria-hidden="true"
-								>
-									…
-								</span>
-							{:else}
+						{#if showPagination}
+							{#if page > 1}
 								<a
-									href={pageHref(item)}
-									aria-current={item === page ? 'page' : undefined}
-									class="min-w-9 rounded-md border px-3 py-1.5 text-center text-sm font-medium transition-colors {item ===
-									page
-										? 'border-primary bg-primary text-primary-foreground'
-										: 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'}"
+									href={pageHref(page - 1)}
+									class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
 								>
-									{item}
+									← Previous
 								</a>
 							{/if}
-						{/each}
 
-						{#if page < totalPages}
-							<a
-								href={pageHref(page + 1)}
-								class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
-							>
-								Next →
-							</a>
+							{#each pageItems as item, index (typeof item === 'number' ? item : `e-${index}`)}
+								{#if item === 'ellipsis'}
+									<span
+										class="min-w-9 px-1 py-1.5 text-center text-sm text-muted-foreground"
+										aria-hidden="true"
+									>
+										…
+									</span>
+								{:else}
+									<a
+										href={pageHref(item)}
+										aria-current={item === page ? 'page' : undefined}
+										class="min-w-9 rounded-md border px-3 py-1.5 text-center text-sm font-medium transition-colors {item ===
+										page
+											? 'border-primary bg-primary text-primary-foreground'
+											: 'border-border bg-background hover:border-primary/40 hover:bg-primary/5'}"
+									>
+										{item}
+									</a>
+								{/if}
+							{/each}
+
+							{#if page < totalPages}
+								<a
+									href={pageHref(page + 1)}
+									class="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary/5"
+								>
+									Next →
+								</a>
+							{/if}
 						{/if}
-					{/if}
-				</nav>
+					</nav>
+				{/snippet}
+
+				{@render paginationNav('Job list pages')}
 
 				<ul class="grid auto-rows-auto gap-3 {shareGridClass}">
 					{#each jobs as job (job.slug)}
 						<li class="min-w-0">
-							<JobCard {job} static={true} />
+							<JobCard {job} static={true} layout="list" />
 						</li>
 					{/each}
 				</ul>
+
+				{@render paginationNav('Job list pages (bottom)')}
 			</div>
 		{/if}
 

@@ -107,9 +107,9 @@
 	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
-	/** Only images preview as a thumbnail; PDFs keep the button. */
+	/** Only images preview as a thumbnail; PDFs keep the button. Shown on tag/share pages too. */
 	const adThumbUrl = $derived(
-		!isStatic && getJobAdKind(job.supabase_file_path) === "image" ? adUrl : null,
+		getJobAdKind(job.supabase_file_path) === "image" ? adUrl : null,
 	);
 	const categoryTags = $derived(job.tags ?? []);
 	const cardAccentClass = $derived(
@@ -267,7 +267,7 @@
 				{/if}
 			</span>
 		{/if}
-		{#if !isStatic}
+		{#if adUrl || !isStatic}
 			<div class="ml-auto flex shrink-0 gap-2">
 				{#if adUrl}
 					<Button type="button" variant="outline" size="sm" onclick={() => (adOpen = true)}>
@@ -275,7 +275,9 @@
 						View Ad
 					</Button>
 				{/if}
-				<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+				{#if !isStatic}
+					<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -329,7 +331,7 @@
 	</div>
 {/snippet}
 
-{#if adUrl && !isStatic}
+{#if adUrl}
 	<JobAdModal
 		bind:open={adOpen}
 		title={job.title}
@@ -452,7 +454,7 @@
 				{#if applyByLabel}
 					{@render deadlineRail()}
 				{/if}
-				{#if !isStatic}
+				{#if (adUrl && !adThumbUrl) || !isStatic}
 					<div class="flex flex-col gap-2 pt-1">
 						{#if adUrl && !adThumbUrl}
 							<Button
@@ -465,7 +467,9 @@
 								View Ad
 							</Button>
 						{/if}
-						<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+						{#if !isStatic}
+							<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+						{/if}
 					</div>
 				{/if}
 			</div>
