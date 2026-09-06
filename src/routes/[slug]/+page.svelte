@@ -59,6 +59,7 @@
 		totalPages={data.totalPages}
 		updatedAt={data.updatedAt}
 		postedDay={data.postedDay}
+		closingOn={data.closingOn}
 	/>
 {:else}
 	<div class="space-y-6">

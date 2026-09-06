@@ -146,6 +146,24 @@ function closingSoonWhere(withinDays: number): Prisma.JobPostingsWhereInput {
 	};
 }
 
+/** Exact match on `last_date_to_apply` for a YYYY-MM-DD key. */
+function closingOnExactWhere(dateKey: string): Prisma.JobPostingsWhereInput {
+	return { last_date_to_apply: dateFromKey(dateKey) };
+}
+
+export type JobCategoryWhereOpts = {
+	/** When set on closing-soon, replace the N-day window with this exact deadline. */
+	closing_on?: string | null;
+};
+
+function resolveClosingSoonWhere(
+	withinDays: number,
+	closingOn?: string | null
+): Prisma.JobPostingsWhereInput {
+	const dateKey = closingOn ? toDateKey(closingOn) : null;
+	return dateKey ? closingOnExactWhere(dateKey) : closingSoonWhere(withinDays);
+}
+
 /** Today if any active jobs were posted/updated today; otherwise the latest such day. */
 export async function resolveLatestPostedDay(): Promise<string | null> {
 	const startOfToday = startOfTodayUtc();
@@ -208,12 +226,15 @@ function titleExcludeTermsWhere(terms: string[]): Prisma.JobPostingsWhereInput {
 }
 
 /** Tag filter clause for the main job list (`buildJobWhere`). */
-export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.JobPostingsWhereInput {
+export function buildJobCategoryTagWhere(
+	category: JobCategoryFilter,
+	opts?: JobCategoryWhereOpts
+): Prisma.JobPostingsWhereInput {
 	if (category.latest_posted_day) {
 		return {};
 	}
 	if (category.closing_soon_within_days != null) {
-		return closingSoonWhere(category.closing_soon_within_days);
+		return resolveClosingSoonWhere(category.closing_soon_within_days, opts?.closing_on);
 	}
 
 	const match = categoryMatchWhere(category);
@@ -226,7 +247,8 @@ export function buildJobCategoryTagWhere(category: JobCategoryFilter): Prisma.Jo
 }
 
 export async function buildJobCategoryWhere(
-	category: JobCategoryFilter
+	category: JobCategoryFilter,
+	opts?: JobCategoryWhereOpts
 ): Promise<Prisma.JobPostingsWhereInput> {
 	const and: Prisma.JobPostingsWhereInput[] = [activeNonExpiredWhere()];
 
@@ -238,7 +260,7 @@ export async function buildJobCategoryWhere(
 			and.push({ row_id: -1 });
 		}
 	} else if (category.closing_soon_within_days != null) {
-		and.push(closingSoonWhere(category.closing_soon_within_days));
+		and.push(resolveClosingSoonWhere(category.closing_soon_within_days, opts?.closing_on));
 	} else {
 		const match = categoryMatchWhere(category);
 		if (match) and.push(match);
@@ -288,19 +310,27 @@ export type JobCategoryJobsPaginatedResult = JobCategoryJobsAllResult & {
 	totalPages: number;
 };
 
+export type LoadJobCategoryJobsOpts = {
+	page?: number;
+	pageSize?: number;
+	/** Exact closing date (YYYY-MM-DD); only applied for closing-soon categories. */
+	closing_on?: string | null;
+};
+
 export async function loadJobCategoryJobs(
 	category: JobCategoryFilter,
-	opts: { page?: number; pageSize?: number }
+	opts: LoadJobCategoryJobsOpts & { page: number; pageSize?: number }
 ): Promise<JobCategoryJobsPaginatedResult>;
 export async function loadJobCategoryJobs(
 	category: JobCategoryFilter,
-	opts?: undefined
+	opts?: LoadJobCategoryJobsOpts
 ): Promise<JobCategoryJobsAllResult>;
 export async function loadJobCategoryJobs(
 	category: JobCategoryFilter,
-	opts?: { page?: number; pageSize?: number }
+	opts?: LoadJobCategoryJobsOpts
 ): Promise<JobCategoryJobsAllResult | JobCategoryJobsPaginatedResult> {
 	const postedDay = category.latest_posted_day ? await resolveLatestPostedDay() : null;
+	const whereOpts: JobCategoryWhereOpts = { closing_on: opts?.closing_on };
 	const where = category.latest_posted_day
 		? {
 				AND: [
@@ -308,7 +338,7 @@ export async function loadJobCategoryJobs(
 					postedDay ? latestPostedDayWhere(postedDay) : { row_id: -1 }
 				]
 			}
-		: await buildJobCategoryWhere(category);
+		: await buildJobCategoryWhere(category, whereOpts);
 	const orderBy = orderByForCategory(category);
 	const updatedAt = new Date().toISOString();
 

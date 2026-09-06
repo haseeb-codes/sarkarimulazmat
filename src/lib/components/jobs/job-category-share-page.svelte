@@ -7,6 +7,7 @@
 		SITE_HREF,
 		SITE_NAME,
 		SITE_URL,
+		CLOSING_SOON_JOBS_SLUG,
 		LATEST_POSTED_JOBS_SLUG,
 		type JobCategoryPageDef
 	} from '$lib/job-category-pages';
@@ -46,7 +47,8 @@
 		page,
 		totalPages,
 		updatedAt,
-		postedDay = null
+		postedDay = null,
+		closingOn = null
 	}: {
 		category: JobCategoryPageDef;
 		jobs: ShareJob[];
@@ -55,6 +57,7 @@
 		totalPages: number;
 		updatedAt: string;
 		postedDay?: string | null;
+		closingOn?: string | null;
 	} = $props();
 
 	const updatedLabel = $derived(
@@ -108,7 +111,9 @@
 	const postedDayLabel = $derived(
 		postedDay ? formatDateLabel(postedDay) : null
 	);
+	const closingOnLabel = $derived(closingOn ? formatDateLabel(closingOn) : null);
 	const isLatestPostedTag = $derived(category.slug === LATEST_POSTED_JOBS_SLUG);
+	const isClosingSoonTag = $derived(category.slug === CLOSING_SOON_JOBS_SLUG);
 
 	const shareGridClass = $derived.by(() => {
 		const columnCount = Math.min(jobs.length, 4);
@@ -170,6 +175,8 @@
 				<p class="text-xs text-muted-foreground sm:text-sm">
 					{#if isLatestPostedTag && postedDayLabel}
 						Posted {postedDayLabel}
+					{:else if isClosingSoonTag && closingOnLabel}
+						Closing {closingOnLabel}
 					{:else}
 						Updated {updatedLabel}
 					{/if}

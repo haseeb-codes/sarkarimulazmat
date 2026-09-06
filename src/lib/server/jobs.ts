@@ -798,7 +798,9 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 		for (const slug of filters.tag) {
 			const category = getJobCategoryPage(slug);
 			if (category) {
-				tagOr.push(buildJobCategoryTagWhere(category));
+				tagOr.push(
+					buildJobCategoryTagWhere(category, { closing_on: filters.closing_on })
+				);
 			}
 		}
 		if (tagOr.length) and.push({ OR: tagOr });

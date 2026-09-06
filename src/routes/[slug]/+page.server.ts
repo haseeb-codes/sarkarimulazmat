@@ -13,15 +13,22 @@ import {
 } from '$lib/server/jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
-import { isAgeFilterActive, selectedDomiciles, selectedQualificationLevels } from '$lib/jobs-utils';
+import {
+	isAgeFilterActive,
+	selectedDomiciles,
+	selectedQualificationLevels,
+	toDateKey
+} from '$lib/jobs-utils';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const jobCategory = getJobCategoryPage(params.slug);
 	if (jobCategory) {
 		const page = parseSocialImagePage(url.searchParams.get('page'));
+		const closing_on = toDateKey(url.searchParams.get('closing_on'));
 		const result = await loadJobCategoryJobs(jobCategory, {
 			page,
-			pageSize: TAG_SHARE_PAGE_SIZE
+			pageSize: TAG_SHARE_PAGE_SIZE,
+			closing_on
 		});
 		return {
 			kind: 'share' as const,
@@ -32,7 +39,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			pageSize: result.pageSize,
 			totalPages: result.totalPages,
 			updatedAt: result.updatedAt,
-			postedDay: result.postedDay
+			postedDay: result.postedDay,
+			closingOn: closing_on
 		};
 	}
 
