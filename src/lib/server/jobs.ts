@@ -188,10 +188,17 @@ type ListJobsResult = {
 let defaultListJobsCache: { key: string; data: ListJobsResult; expiresAt: number } | null = null;
 const defaultListJobsInflight = new Map<string, Promise<ListJobsResult>>();
 
-/** Cache key for default browse (no user filters). Null when filters are active. */
+/**
+ * Cache key for default browse (no user filters). Null when filters are active.
+ *
+ * The key embeds the built WHERE clause so a filter that `filtersAreActive()` does not know
+ * about can never share a slot with the unfiltered list and serve its narrowed rows to
+ * everyone browsing the homepage.
+ */
 function defaultListJobsCacheKey(filters: JobFilters): string | null {
 	if (filtersAreActive(filters)) return null;
-	return `page=${filters.page}|pageSize=${filters.pageSize}|sort=${filters.sort}`;
+	const where = JSON.stringify(buildJobWhere(filters));
+	return `page=${filters.page}|pageSize=${filters.pageSize}|sort=${filters.sort}|where=${where}`;
 }
 
 const JOB_INTEREST_TAXONOMY: {
@@ -565,6 +572,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.department ||
 			isCollarFilterActive(filters) ||
 			filters.province != null ||
+			filters.program ||
 			filters.keyword ||
 			filters.q ||
 			filters.has_salary ||

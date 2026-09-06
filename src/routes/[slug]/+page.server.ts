@@ -123,6 +123,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			urlFilters.domicile_region.length ||
 			urlFilters.tag.length ||
 			urlFilters.department ||
+			urlFilters.program ||
 			urlFilters.collar.length ||
 			urlFilters.has_salary ||
 			urlFilters.permanent_only ||
