@@ -744,7 +744,6 @@ export const HOME_PAGE_TAG_SLUGS = [
 
 /** Optional home page display labels (defaults to `JOB_CATEGORY_LABELS`). */
 export const HOME_PAGE_TAG_LABELS: Partial<Record<(typeof HOME_PAGE_TAG_SLUGS)[number], string>> = {
-	'accounting-finance-jobs': 'Finance/M.COM/ACCA/CA/ACMA/B.COM',
 	'mbbs-jobs': 'MBBS Doctors',
 	'economist-jobs': 'Economics'
 };

@@ -165,7 +165,7 @@
 				{sort}
 				param="program"
 				containerClass="contents"
-				class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1 {facetBadgeClass.program}"
+				class="h-auto whitespace-normal break-words overflow-visible leading-4 py-0.5 {facetBadgeClass.program}"
 			/>
 		</div>
 	{/if}
@@ -337,7 +337,7 @@
 			alt=""
 			loading="lazy"
 			decoding="async"
-			class="h-24 w-20 bg-muted object-cover object-top transition-transform duration-200 group-hover/thumb:scale-105 lg:h-28 lg:w-24"
+			class="h-20 w-16 bg-muted object-cover object-top transition-transform duration-200 group-hover/thumb:scale-105 lg:h-24 lg:w-20"
 		/>
 		<span
 			class="absolute inset-x-0 bottom-0 bg-foreground/75 py-0.5 text-center text-[10px] font-medium text-background opacity-0 transition-opacity group-hover/thumb:opacity-100"
@@ -348,7 +348,9 @@
 {/snippet}
 
 {#snippet categoryTagLinks(className: string)}
-	<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 {className}">
+	<div
+		class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 py-1.5 leading-snug {className}"
+	>
 		{#each categoryTags as tag (tag.slug)}
 			{@const count = tagJobCount(tag.slug)}
 			{@const pending = tagCountPending(tag.slug)}
@@ -382,61 +384,53 @@
 {#if layout === "list"}
 	<Card.Root
 		size="sm"
-		class="transition-[color,border-color,box-shadow] hover:shadow-md {cardAccentClass} {expired
+		class="gap-0 py-0 transition-[color,border-color,box-shadow] hover:shadow-md {cardAccentClass} {expired
 			? 'opacity-70'
 			: ''}"
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<div
-			class="flex flex-col gap-2 p-2 sm:flex-row sm:items-start sm:gap-3 sm:p-3 sm:px-4 sm:py-3 lg:gap-4"
+			class="flex flex-col gap-2 p-2.5 sm:flex-row sm:items-start sm:gap-3 sm:px-4 sm:py-2.5"
 		>
 			{#if adThumbUrl}
 				{@render adThumb()}
 			{/if}
 
-			<div class="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
-				<div class="flex flex-wrap items-center gap-1.5">
-					{#if recentAd}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-								? ''
-								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-						>
-							New
-						</span>
-					{/if}
-					{#if expired}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
-						>
-							Expired
-						</span>
-					{:else if closingSoon}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
-						>
-							Closing soon
-						</span>
-					{/if}
-					{#if job.grade}
-						<Badge
-							variant="secondary"
-							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
-							aria-label="Filter by grade {job.grade}"
-							class="underline-offset-2 hover:underline sm:hidden"
-						>
-							{job.grade}
-						</Badge>
-					{/if}
-					{#if job.donor_name}
-						<span
-							class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
-							title={job.donor_name}
-						>
-							{job.donor_name}
-						</span>
-					{/if}
-				</div>
+			<div class="min-w-0 flex-1 space-y-1.5">
+				{#if recentAd || expired || closingSoon || job.donor_name}
+					<div class="flex flex-wrap items-center gap-1.5">
+						{#if recentAd}
+							<span
+								class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+									? ''
+									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+							>
+								New
+							</span>
+						{/if}
+						{#if expired}
+							<span
+								class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
+							>
+								Expired
+							</span>
+						{:else if closingSoon}
+							<span
+								class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
+							>
+								Closing soon
+							</span>
+						{/if}
+						{#if job.donor_name}
+							<span
+								class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+								title={job.donor_name}
+							>
+								{job.donor_name}
+							</span>
+						{/if}
+					</div>
+				{/if}
 
 				<div class="flex flex-wrap items-start gap-1.5">
 					<a
@@ -444,7 +438,7 @@
 						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<span
-							class="text-base font-semibold tracking-tight text-foreground group-hover:text-primary md:text-lg"
+							class="text-base font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary"
 						>
 							{job.title ?? "Untitled posting"}
 						</span>
@@ -454,12 +448,12 @@
 							variant="secondary"
 							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
-							class="mt-0.5 hidden shrink-0 underline-offset-2 hover:underline sm:inline-flex md:mt-1"
+							class="mt-0.5 shrink-0 underline-offset-2 hover:underline"
 						>
 							{job.grade}
 						</Badge>
 					{/if}
-					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5 md:mt-1">
+					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
 						<GenderIcons gender={job.gender} />
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
 					</span>
@@ -470,13 +464,13 @@
 				{@render programBlock()}
 
 				{#if job.degrees || job.degree_area}
-					<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
+					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 						{@render degreesRow()}
 						{@render specializationRow()}
 					</div>
 				{/if}
 
-				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 					{@render locationRow()}
 					{@render salaryChip()}
 					{@render ageChip()}
@@ -489,13 +483,13 @@
 			</div>
 
 			<div
-				class="hidden shrink-0 md:flex md:w-44 md:flex-col md:gap-2 md:self-stretch md:border-l md:border-border/60 md:pl-3 lg:w-52 lg:pl-4"
+				class="hidden shrink-0 md:flex md:w-40 md:flex-col md:gap-2 md:self-stretch md:border-l md:border-border/60 md:pl-3 lg:w-44 lg:pl-3.5"
 			>
 				{#if applyByLabel}
 					{@render deadlineRail()}
 				{/if}
 				{#if (adUrl && !adThumbUrl) || !isStatic}
-					<div class="flex flex-col gap-2 pt-1">
+					<div class="flex flex-col gap-2">
 						{#if adUrl && !adThumbUrl}
 							<Button
 								type="button"
@@ -516,11 +510,11 @@
 		</div>
 
 		{#if applyByLabel || !isStatic}
-			{@render deadlineActionBar("px-2 py-2 sm:px-4 md:hidden")}
+			{@render deadlineActionBar("px-2.5 py-1.5 sm:px-4 md:hidden")}
 		{/if}
 
 		{#if !isStatic && categoryTags.length}
-			{@render categoryTagLinks("px-2 pb-2 pt-1.5 sm:px-4")}
+			{@render categoryTagLinks("px-2.5 sm:px-4")}
 		{/if}
 	</Card.Root>
 {:else}
@@ -528,12 +522,12 @@
 		size="sm"
 		class="h-full transition-[color,border-color,box-shadow] hover:shadow-md {cardAccentClass} {expired
 			? 'opacity-70'
-			: ''}"
+			: ''} {!isStatic && categoryTags.length ? 'pb-0' : ''}"
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<Card.Header class="gap-1 pb-1.5 sm:gap-1.5 sm:pb-2">
 			{#if recentAd || job.donor_name}
-				<div class="mb-1 flex flex-wrap items-center gap-1.5 sm:mb-1.5">
+				<div class="mb-1 flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
 						<span
 							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
@@ -556,7 +550,7 @@
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
-					class="flex flex-wrap items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+					class="flex flex-wrap items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground"
 				>
 					<a
 						{href}
@@ -608,15 +602,15 @@
 			{@render departmentLink("line-clamp-2")}
 		</Card.Header>
 
-		<Card.Content class="space-y-2 pt-0 sm:space-y-2.5">
+		<Card.Content class="space-y-2 pt-0">
 			{@render programBlock()}
 			{#if job.degrees || job.degree_area}
-				<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 					{@render degreesRow()}
 					{@render specializationRow()}
 				</div>
 			{/if}
-			<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
 				{@render locationRow()}
 				{@render salaryChip()}
 				{@render ageChip()}
@@ -627,10 +621,10 @@
 				urlWebTitle={job.url_web_title}
 			/>
 			{#if applyByLabel || !isStatic}
-				{@render deadlineActionBar("pt-2")}
+				{@render deadlineActionBar("pt-1.5")}
 			{/if}
 			{#if !isStatic && categoryTags.length}
-				{@render categoryTagLinks("pt-1.5")}
+				{@render categoryTagLinks("-mt-2")}
 			{/if}
 		</Card.Content>
 	</Card.Root>

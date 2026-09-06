@@ -283,7 +283,7 @@
 					</div>
 				{/if}
 				{#if viewMode === 'list'}
-					<ul class="relative z-0 flex flex-col gap-2 sm:gap-3">
+					<ul class="relative z-0 flex flex-col gap-2">
 						{#each group.jobs as job (job.slug)}
 							<li>
 								<JobCard
@@ -297,9 +297,9 @@
 					</ul>
 				{:else}
 					<!-- z-0: CSS columns otherwise paint card rings above sticky search/header -->
-					<ul class="relative z-0 columns-1 gap-2 sm:columns-2 sm:gap-3 lg:columns-3">
+					<ul class="relative z-0 columns-1 gap-2 sm:columns-2 sm:gap-2.5 lg:columns-3">
 						{#each group.jobs as job (job.slug)}
-							<li class="mb-2 break-inside-avoid sm:mb-3">
+							<li class="mb-2 break-inside-avoid sm:mb-2.5">
 								<JobCard
 									{job}
 									sort={filters.sort}
@@ -314,30 +314,30 @@
 
 			{#if loadingMore}
 				{#if viewMode === 'list'}
-					<ul class="flex flex-col gap-2 sm:gap-3" aria-hidden="true">
+					<ul class="flex flex-col gap-2" aria-hidden="true">
 						{#each Array(3) as _, i (i)}
 							<li>
-								<Card.Root size="sm">
-									<div class="flex gap-4 p-3 sm:px-4">
-										<div class="min-w-0 flex-1 space-y-2">
+								<Card.Root size="sm" class="gap-0 py-0">
+									<div class="flex gap-3 p-2.5 sm:px-4 sm:py-2.5">
+										<div class="min-w-0 flex-1 space-y-1.5">
 											<Skeleton class="h-4 w-24" />
 											<Skeleton class="h-5 w-3/4 max-w-[20rem]" />
 											<Skeleton class="h-4 w-1/2 max-w-[14rem]" />
 										</div>
-										<Skeleton class="h-8 w-20 shrink-0" />
+										<Skeleton class="h-12 w-16 shrink-0" />
 									</div>
 								</Card.Root>
 							</li>
 						{/each}
 					</ul>
 				{:else}
-					<ul class="columns-1 gap-2 sm:columns-2 sm:gap-3 lg:columns-3" aria-hidden="true">
+					<ul class="columns-1 gap-2 sm:columns-2 sm:gap-2.5 lg:columns-3" aria-hidden="true">
 						{#each Array(3) as _, i (i)}
-							<li class="mb-2 break-inside-avoid sm:mb-3">
-								<Card.Root>
-									<Card.Header>
+							<li class="mb-2 break-inside-avoid sm:mb-2.5">
+								<Card.Root size="sm">
+									<Card.Header class="gap-1 pb-1.5">
 										<Skeleton class="h-4 w-24" />
-										<Skeleton class="mt-2 h-5 w-3/4" />
+										<Skeleton class="mt-1.5 h-5 w-3/4" />
 									</Card.Header>
 									<Card.Content class="space-y-2">
 										<Skeleton class="h-4 w-full" />
