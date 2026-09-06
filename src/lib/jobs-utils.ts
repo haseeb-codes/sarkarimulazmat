@@ -972,6 +972,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(filters.grade ? 1 : 0) +
 		(filters.closing_on ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
+		(selectedTags(filters).length ? 1 : 0) +
 		(isCollarFilterActive(filters) ? 1 : 0) +
 		(filters.portal ? 1 : 0) +
 		(filters.permanent_only ? 1 : 0) +

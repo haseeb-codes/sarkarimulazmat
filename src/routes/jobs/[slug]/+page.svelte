@@ -8,6 +8,7 @@
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
 	import { onFilterLinkClick } from '$lib/filter-nav';
+	import { facetBadgeClass } from '$lib/facet-badge';
 	import {
 		badgeFilterHref,
 		mergeFilterFlagHref,
@@ -255,7 +256,11 @@
 						Domicile
 					</dt>
 					<dd class="mt-1">
-						<MultiValueBadges value={job.domicile} param="domicile" />
+						<MultiValueBadges
+							value={job.domicile}
+							param="domicile"
+							class={facetBadgeClass.domicile}
+						/>
 					</dd>
 				</div>
 			{/if}
@@ -268,7 +273,7 @@
 						<MultiValueBadges
 							value={job.place_of_posting}
 							param="place_of_posting"
-							class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
+							class={facetBadgeClass.location}
 						/>
 					</dd>
 				</div>
@@ -283,7 +288,7 @@
 							variant="outline"
 							href={hasSalaryHref}
 							aria-label="Show jobs with salary listed"
-							class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
+							class="underline-offset-2 hover:underline {facetBadgeClass.salary}"
 						>
 							Rs. {salaryLabel}
 						</Badge>
@@ -338,9 +343,12 @@
 				<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					Specialization
 				</p>
-				<MultiValueBadges value={job.degree_area} />
+				<MultiValueBadges
+					value={job.degree_area}
+					class={facetBadgeClass.specialization}
+				/>
 				{#if job.degrees}
-					<MultiValueBadges value={job.degrees} />
+					<MultiValueBadges value={job.degrees} class={facetBadgeClass.degree} />
 				{/if}
 			</div>
 		{/if}

@@ -9,6 +9,7 @@
 	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
 	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
 	import { onFilterLinkClick } from "$lib/filter-nav";
+	import { facetBadgeClass } from "$lib/facet-badge";
 	import { page } from "$app/state";
 	import {
 		badgeFilterHref,
@@ -17,6 +18,7 @@
 		daysUntilDate,
 		formatDateLabel,
 		formatSalary,
+		getJobAdKind,
 		getJobAdUrl,
 		isRecentAd,
 		isClosingSoon,
@@ -80,11 +82,11 @@
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
 	const daysLeft = $derived(daysUntilDate(job.last_date_to_apply));
-	const daysLeftLabel = $derived(
+	const daysLeftText = $derived(
 		!expired && daysLeft != null && daysLeft < 4
 			? daysLeft === 0
-				? "(Expiring Today)"
-				: `(${daysLeft} ${daysLeft === 1 ? "day" : "days"} left)`
+				? "Expiring today"
+				: `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
 			: null,
 	);
 	const salaryLabel = $derived(formatSalary(job.salary));
@@ -105,6 +107,10 @@
 	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
+	/** Only images preview as a thumbnail; PDFs keep the button. */
+	const adThumbUrl = $derived(
+		!isStatic && getJobAdKind(job.supabase_file_path) === "image" ? adUrl : null,
+	);
 	const categoryTags = $derived(job.tags ?? []);
 	const cardAccentClass = $derived(
 		fresh
@@ -117,6 +123,188 @@
 	let adOpen = $state(false);
 </script>
 
+{#snippet facetLabel(text: string)}
+	<span class="shrink-0 text-xs font-medium text-muted-foreground">{text}</span>
+{/snippet}
+
+{#snippet programBlock()}
+	{#if job.project_program_name?.trim()}
+		<div class="space-y-1">
+			{@render facetLabel("Program")}
+			<MultiValueBadges
+				value={job.project_program_name}
+				{sort}
+				param="program"
+				class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1 {facetBadgeClass.program}"
+			/>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet specializationRow()}
+	{#if job.degree_area}
+		<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+			{@render facetLabel("Specialization")}
+			<MultiValueBadges
+				value={job.degree_area}
+				{sort}
+				containerClass="contents"
+				class={facetBadgeClass.specialization}
+			/>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet locationRow()}
+	{#if job.domicile?.trim()}
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+			{@render facetLabel("Domicile")}
+			<MultiValueBadges
+				value={job.domicile}
+				{sort}
+				param="domicile"
+				containerClass="contents"
+				class={facetBadgeClass.domicile}
+			/>
+		</div>
+	{:else if job.place_of_posting}
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+			{@render facetLabel("Location")}
+			<MultiValueBadges
+				value={job.place_of_posting}
+				{sort}
+				param="place_of_posting"
+				containerClass="contents"
+				class={facetBadgeClass.location}
+			/>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet degreesRow()}
+	{#if job.degrees}
+		<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+			{@render facetLabel("Degrees")}
+			<MultiValueBadges
+				value={job.degrees}
+				{sort}
+				containerClass="contents"
+				class={facetBadgeClass.degree}
+			/>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet salaryChip()}
+	{#if salaryLabel}
+		<span class="inline-flex items-center gap-1.5">
+			{@render facetLabel("Salary")}
+			<Badge
+				variant="outline"
+				href={hasSalaryHref}
+				aria-label="Show jobs with salary listed"
+				class="underline-offset-2 hover:underline {facetBadgeClass.salary}"
+			>
+				Rs. {salaryLabel}
+			</Badge>
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet ageChip()}
+	{#if job.max_age != null}
+		<span class="inline-flex items-center gap-1.5">
+			{@render facetLabel("Max Age")}
+			<Badge variant="outline" class={facetBadgeClass.age}>
+				{job.max_age}y
+			</Badge>
+		</span>
+	{:else if ageLabel}
+		<span class="inline-flex items-center gap-1.5">
+			{@render facetLabel("Age")}
+			<span class="text-foreground">{ageLabel}</span>
+		</span>
+	{/if}
+{/snippet}
+
+<!-- Deadline sits next to the actions wherever there is no rail, so it always ends
+     up in the same spot on the card instead of mid-flow -->
+{#snippet deadlineActionBar(className: string)}
+	<div class="flex flex-wrap items-center gap-2 border-t border-border/60 {className}">
+		{#if applyByLabel}
+			<span
+				class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 {applyByClass}"
+			>
+				<span class="text-xs font-semibold tracking-wide">
+					{expired ? "Closed" : "Apply by"} {applyByLabel}
+				</span>
+				{#if daysLeftText}
+					<span class="text-[11px] font-medium opacity-90">· {daysLeftText}</span>
+				{/if}
+			</span>
+		{/if}
+		{#if !isStatic}
+			<div class="ml-auto flex shrink-0 gap-2">
+				{#if adUrl}
+					<Button type="button" variant="outline" size="sm" onclick={() => (adOpen = true)}>
+						<ImageIcon data-icon="inline-start" />
+						View Ad
+					</Button>
+				{/if}
+				<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
+<!-- Deadline gets its own block in the wide rail so it lands at the same spot on every row -->
+{#snippet deadlineRail()}
+	<div class="rounded-lg px-2.5 py-2 {applyByClass}">
+		<p class="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+			{expired ? "Closed" : "Apply by"}
+		</p>
+		<p class="mt-0.5 text-sm font-semibold tabular-nums">{applyByLabel}</p>
+		{#if daysLeftText}
+			<p class="text-[11px] font-medium">{daysLeftText}</p>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet adThumb()}
+	<button
+		type="button"
+		onclick={() => (adOpen = true)}
+		class="group/thumb relative hidden shrink-0 overflow-hidden rounded-md ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-ring sm:block"
+		aria-label="View advertisement for {job.title ?? 'this posting'}"
+	>
+		<img
+			src={adThumbUrl}
+			alt=""
+			loading="lazy"
+			decoding="async"
+			class="h-24 w-20 bg-muted object-cover object-top transition-transform duration-200 group-hover/thumb:scale-105 lg:h-28 lg:w-24"
+		/>
+		<span
+			class="absolute inset-x-0 bottom-0 bg-foreground/75 py-0.5 text-center text-[10px] font-medium text-background opacity-0 transition-opacity group-hover/thumb:opacity-100"
+		>
+			View ad
+		</span>
+	</button>
+{/snippet}
+
+{#snippet categoryTagLinks(className: string)}
+	<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 {className}">
+		{#each categoryTags as tag (tag.slug)}
+			<a
+				href="/{tag.slug}"
+				class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+			>
+				All {tag.label} jobs →
+			</a>
+		{/each}
+	</div>
+{/snippet}
+
 {#if adUrl && !isStatic}
 	<JobAdModal
 		bind:open={adOpen}
@@ -128,12 +316,18 @@
 {#if layout === "list"}
 	<Card.Root
 		size="sm"
-		class="transition-colors {cardAccentClass} {expired ? 'opacity-70' : ''}"
+		class="transition-[color,border-color,box-shadow] hover:shadow-md {cardAccentClass} {expired
+			? 'opacity-70'
+			: ''}"
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<div
-			class="flex flex-col gap-2 p-2 sm:flex-row sm:items-start sm:gap-3 sm:p-3 sm:px-4 sm:py-3"
+			class="flex flex-col gap-2 p-2 sm:flex-row sm:items-start sm:gap-3 sm:p-3 sm:px-4 sm:py-3 lg:gap-4"
 		>
+			{#if adThumbUrl}
+				{@render adThumb()}
+			{/if}
+
 			<div class="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
 				<div class="flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
@@ -184,7 +378,7 @@
 						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						<span
-							class="text-sm font-semibold tracking-tight text-foreground group-hover:text-primary sm:text-base"
+							class="text-base font-semibold tracking-tight text-foreground group-hover:text-primary md:text-lg"
 						>
 							{job.title ?? "Untitled posting"}
 						</span>
@@ -194,12 +388,12 @@
 							variant="secondary"
 							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
-							class="mt-0.5 hidden shrink-0 underline-offset-2 hover:underline sm:inline-flex"
+							class="mt-0.5 hidden shrink-0 underline-offset-2 hover:underline sm:inline-flex md:mt-1"
 						>
 							{job.grade}
 						</Badge>
 					{/if}
-					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
+					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5 md:mt-1">
 						<GenderIcons gender={job.gender} />
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
 					</span>
@@ -219,155 +413,67 @@
 					</a>
 				{/if}
 
-				{#if job.project_program_name?.trim()}
-					<div class="space-y-1">
-						<p class="text-xs font-medium text-muted-foreground">Program</p>
-						<MultiValueBadges
-							value={job.project_program_name}
-							{sort}
-							param="program"
-							class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
-						/>
-					</div>
-				{/if}
-				{#if job.degree_area}
-					<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
-						<span class="shrink-0 text-xs font-medium text-muted-foreground"
-							>Specialization</span
-						>
-						<MultiValueBadges
-							value={job.degree_area}
-							{sort}
-							containerClass="contents"
-						/>
-					</div>
-				{/if}
+				{@render programBlock()}
+				{@render degreesRow()}
+				{@render specializationRow()}
+
 				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-x-4 sm:gap-y-1.5">
-					{#if job.domicile?.trim()}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-							<span class="shrink-0 text-xs font-medium text-muted-foreground"
-								>Domicile</span
-							>
-							<MultiValueBadges
-								value={job.domicile}
-								{sort}
-								param="domicile"
-								containerClass="contents"
-							/>
-						</div>
-					{:else if job.place_of_posting}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-							<span class="shrink-0 text-xs font-medium text-muted-foreground"
-								>Location</span
-							>
-							<MultiValueBadges
-								value={job.place_of_posting}
-								{sort}
-								param="place_of_posting"
-								containerClass="contents"
-								class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
-							/>
-						</div>
-					{/if}
-					{#if job.degrees}
-						<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-							<span class="shrink-0 text-xs font-medium text-muted-foreground"
-								>Degrees</span
-							>
-							<MultiValueBadges
-								value={job.degrees}
-								{sort}
-								containerClass="contents"
-							/>
-						</div>
-					{/if}
-					{#if salaryLabel}
-						<span class="inline-flex items-center gap-1.5">
-							<span class="text-xs font-medium text-muted-foreground">Salary</span>
-							<Badge
-								variant="outline"
-								href={hasSalaryHref}
-								aria-label="Show jobs with salary listed"
-								class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
-							>
-								Rs. {salaryLabel}
-							</Badge>
-						</span>
-					{/if}
-					{#if job.max_age != null}
-						<span class="inline-flex items-center gap-1.5">
-							<span class="text-xs font-medium text-muted-foreground">Max Age</span>
-							<Badge
-								variant="outline"
-								class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
-							>
-								{job.max_age}y
-							</Badge>
-						</span>
-					{:else if ageLabel}
-						<span class="inline-flex items-center gap-1.5">
-							<span class="text-xs font-medium text-muted-foreground">Age</span>
-							<span class="text-foreground">{ageLabel}</span>
-						</span>
-					{/if}
-					{#if applyByLabel}
-						<span class="inline-flex items-center gap-1.5">
-							<span class="text-xs font-medium text-muted-foreground">Deadline</span>
-							<span
-								class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
-							>
-								{applyByLabel}{#if daysLeftLabel}&nbsp;{daysLeftLabel}{/if}
-							</span>
-							{#if expired}
-								<span class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed">
-									Expired
-								</span>
-							{/if}
-						</span>
-					{/if}
-					<JobApplyLink
-						applicationOnlineAddress={job.application_online_address}
-						email={job.email}
-						urlWebTitle={job.url_web_title}
-					/>
+					{@render locationRow()}
+					{@render ageChip()}
+					<!-- Salary moves into the rail from md up so deadlines stay aligned -->
+					<div class="contents md:hidden">
+						{@render salaryChip()}
+					</div>
 				</div>
+				<JobApplyLink
+					applicationOnlineAddress={job.application_online_address}
+					email={job.email}
+					urlWebTitle={job.url_web_title}
+				/>
 			</div>
 
-			{#if !isStatic}
-				<div class="flex shrink-0 gap-2 sm:flex-col sm:items-stretch lg:flex-row">
-					{#if adUrl}
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onclick={() => (adOpen = true)}
-						>
-							<ImageIcon data-icon="inline-start" />
-							View Ad
-						</Button>
-					{/if}
-					<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
-				</div>
-			{/if}
+			<div
+				class="hidden shrink-0 md:flex md:w-44 md:flex-col md:gap-2 md:self-stretch md:border-l md:border-border/60 md:pl-3 lg:w-52 lg:pl-4"
+			>
+				{#if applyByLabel}
+					{@render deadlineRail()}
+				{/if}
+				{#if salaryLabel}
+					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+						{@render salaryChip()}
+					</div>
+				{/if}
+				{#if !isStatic}
+					<div class="flex flex-col gap-2 pt-1">
+						{#if adUrl && !adThumbUrl}
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onclick={() => (adOpen = true)}
+							>
+								<ImageIcon data-icon="inline-start" />
+								View Ad
+							</Button>
+						{/if}
+						<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+					</div>
+				{/if}
+			</div>
 		</div>
 
+		{#if applyByLabel || !isStatic}
+			{@render deadlineActionBar("px-2 py-2 sm:px-4 md:hidden")}
+		{/if}
+
 		{#if !isStatic && categoryTags.length}
-			<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 px-2 pb-2 pt-1.5 sm:px-4">
-				{#each categoryTags as tag (tag.slug)}
-					<a
-						href="/{tag.slug}"
-						class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
-					>
-						All {tag.label} jobs →
-					</a>
-				{/each}
-			</div>
+			{@render categoryTagLinks("px-2 pb-2 pt-1.5 sm:px-4")}
 		{/if}
 	</Card.Root>
 {:else}
 	<Card.Root
 		size="sm"
-		class="h-full transition-colors {cardAccentClass} {expired
+		class="h-full transition-[color,border-color,box-shadow] hover:shadow-md {cardAccentClass} {expired
 			? 'opacity-70'
 			: ''}"
 		data-fresh={fresh ? "true" : undefined}
@@ -397,7 +503,7 @@
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
-					class="flex flex-wrap items-start gap-1.5 text-sm! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
+					class="flex flex-wrap items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground md:text-lg!"
 				>
 					<a
 						{href}
@@ -462,151 +568,24 @@
 		</Card.Header>
 
 		<Card.Content class="space-y-2 pt-0 sm:space-y-2.5">
-			{#if job.project_program_name?.trim()}
-				<div class="space-y-1">
-					<p class="text-xs font-medium text-muted-foreground">Program</p>
-					<MultiValueBadges
-						value={job.project_program_name}
-						{sort}
-						param="program"
-						class="h-auto whitespace-normal break-words overflow-visible leading-4 py-1"
-					/>
-				</div>
-			{/if}
-			{#if job.degree_area}
-				<div class="flex w-full min-w-0 flex-wrap items-center gap-1.5">
-					<span class="shrink-0 text-xs font-medium text-muted-foreground"
-						>Specialization</span
-					>
-					<MultiValueBadges
-						value={job.degree_area}
-						{sort}
-						containerClass="contents"
-					/>
-				</div>
-			{/if}
+			{@render programBlock()}
+			{@render degreesRow()}
+			{@render specializationRow()}
 			<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-				{#if job.domicile?.trim()}
-					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-						<span class="shrink-0 text-xs font-medium text-muted-foreground"
-							>Domicile</span
-						>
-						<MultiValueBadges
-							value={job.domicile}
-							{sort}
-							param="domicile"
-							containerClass="contents"
-						/>
-					</div>
-				{:else if job.place_of_posting}
-					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-						<span class="shrink-0 text-xs font-medium text-muted-foreground"
-							>Location</span
-						>
-						<MultiValueBadges
-							value={job.place_of_posting}
-							{sort}
-							param="place_of_posting"
-							containerClass="contents"
-							class="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200 dark:hover:bg-sky-900/60"
-						/>
-					</div>
-				{/if}
-				{#if job.degrees}
-					<div class="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-						<span class="shrink-0 text-xs font-medium text-muted-foreground"
-							>Degrees</span
-						>
-						<MultiValueBadges
-							value={job.degrees}
-							{sort}
-							containerClass="contents"
-						/>
-					</div>
-				{/if}
-				{#if salaryLabel}
-					<span class="inline-flex items-center gap-1.5">
-						<span class="text-xs font-medium text-muted-foreground">Salary</span>
-						<Badge
-							variant="outline"
-							href={hasSalaryHref}
-							aria-label="Show jobs with salary listed"
-							class="border-emerald-200 bg-emerald-50 text-emerald-900 underline-offset-2 hover:bg-emerald-100 hover:underline dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:hover:bg-emerald-900/60"
-						>
-							Rs. {salaryLabel}
-						</Badge>
-					</span>
-				{/if}
-				{#if job.max_age != null}
-					<span class="inline-flex items-center gap-1.5">
-						<span class="text-xs font-medium text-muted-foreground">Max Age</span>
-						<Badge
-							variant="outline"
-							class="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
-						>
-							{job.max_age}y
-						</Badge>
-					</span>
-				{:else if ageLabel}
-					<span class="inline-flex items-center gap-1.5">
-						<span class="text-xs font-medium text-muted-foreground">Age</span>
-						<span class="text-foreground">{ageLabel}</span>
-					</span>
-				{/if}
-				{#if applyByLabel}
-					<span class="inline-flex items-center gap-1.5">
-						<span class="text-xs font-medium text-muted-foreground">Deadline</span>
-						<span
-							class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide {applyByClass}"
-						>
-							{applyByLabel}{#if daysLeftLabel}&nbsp;{daysLeftLabel}{/if}
-						</span>
-						{#if expired}
-							<span class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed">
-								Expired
-							</span>
-						{/if}
-					</span>
-				{/if}
-				<JobApplyLink
-					applicationOnlineAddress={job.application_online_address}
-					email={job.email}
-					urlWebTitle={job.url_web_title}
-				/>
+				{@render locationRow()}
+				{@render salaryChip()}
+				{@render ageChip()}
 			</div>
-			{#if !isStatic}
-				<div class="flex gap-2">
-					{#if adUrl}
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							class="min-w-0 flex-1"
-							onclick={() => (adOpen = true)}
-						>
-							<ImageIcon data-icon="inline-start" />
-							View Ad
-						</Button>
-					{/if}
-					<ShareJobButton
-						url={shareUrl}
-						title={job.title}
-						text={job.department}
-						class={adUrl ? "shrink-0" : "w-full"}
-					/>
-				</div>
+			<JobApplyLink
+				applicationOnlineAddress={job.application_online_address}
+				email={job.email}
+				urlWebTitle={job.url_web_title}
+			/>
+			{#if applyByLabel || !isStatic}
+				{@render deadlineActionBar("pt-2")}
 			{/if}
 			{#if !isStatic && categoryTags.length}
-				<div class="flex flex-wrap justify-start gap-x-2.5 gap-y-0.5 border-t border-border/60 pt-1.5">
-					{#each categoryTags as tag (tag.slug)}
-						<a
-							href="/{tag.slug}"
-							class="text-[11px] text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
-						>
-							All {tag.label} jobs →
-						</a>
-					{/each}
-				</div>
+				{@render categoryTagLinks("pt-1.5")}
 			{/if}
 		</Card.Content>
 	</Card.Root>

@@ -9,6 +9,7 @@
 	import * as Select from '$lib/components/ui/select/index.js';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import { debounce, SEARCH_DEBOUNCE_MS } from '$lib/debounce';
+	import { getJobCategoryTagLabel, getJobCategoryTags } from '$lib/job-category-pages';
 	import {
 		DOMICILE_REGIONS,
 		selectedDomicileRegions,
@@ -29,6 +30,7 @@
 		isAgeFilterActive,
 		resolvedUserAge,
 		selectedQualificationLevels,
+		selectedTags,
 		type CollarLevel,
 		type FilterParams,
 		BPS_GRADE_GROUPS,
@@ -72,6 +74,10 @@
 	let closingOnDraft = $state<string | null>(null);
 	let portalDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey | null>(null);
+	let tagsDraft = $state<string[]>([]);
+	let tagSearch = $state('');
+	let debouncedTagSearch = $state('');
+	let tagOpen = $state(false);
 	let degreeAreasDraft = $state<string[]>([]);
 	let specializationSearch = $state('');
 	let debouncedSpecializationSearch = $state('');
@@ -86,7 +92,12 @@
 	let openCollarInfo = $state<CollarLevel | null>(null);
 	let failedPortalLogos = $state<Set<string>>(new Set());
 
+	const tagOptions = $derived(getJobCategoryTags());
 	const specializationOptions = $derived(options.specializations ?? []);
+
+	const syncTagSearch = debounce((value: string) => {
+		debouncedTagSearch = value;
+	}, SEARCH_DEBOUNCE_MS);
 
 	const syncSpecializationSearch = debounce((value: string) => {
 		debouncedSpecializationSearch = value;
@@ -97,14 +108,28 @@
 	}, SEARCH_DEBOUNCE_MS);
 
 	onDestroy(() => {
+		syncTagSearch.cancel();
 		syncSpecializationSearch.cancel();
 		scheduleAgeCommit.cancel();
 	});
+
+	function onTagSearchInput(value: string) {
+		tagSearch = value;
+		syncTagSearch(value);
+	}
 
 	function onSpecializationSearchInput(value: string) {
 		specializationSearch = value;
 		syncSpecializationSearch(value);
 	}
+
+	$effect(() => {
+		if (!tagOpen) {
+			tagSearch = '';
+			debouncedTagSearch = '';
+			syncTagSearch.cancel();
+		}
+	});
 
 	$effect(() => {
 		if (!specializationOpen) {
@@ -122,6 +147,7 @@
 		portalDraft = filters.portal ?? null;
 		const regions = selectedDomicileRegions(filters).filter((key) => key !== 'any');
 		domicileRegionDraft = regions[0] ?? null;
+		tagsDraft = selectedTags(filters);
 		degreeAreasDraft = [...(filters.degree_areas ?? [])];
 		permanentOnlyDraft = Boolean(filters.permanent_only);
 		womenOnlyDraft = Boolean(filters.women_only);
@@ -133,6 +159,26 @@
 		const levels = selectedQualificationLevels(filters);
 		qualificationDraft = levels.length ? levels[0]! : null;
 	});
+
+	const filteredTagOptions = $derived.by(() => {
+		const query = debouncedTagSearch.trim().toLowerCase();
+		if (!query) return tagOptions;
+		const selected = new Set(tagsDraft.map((slug) => slug.toLowerCase()));
+		return tagOptions.filter(
+			(tag) =>
+				selected.has(tag.slug.toLowerCase()) ||
+				tag.label.toLowerCase().includes(query) ||
+				tag.slug.toLowerCase().includes(query)
+		);
+	});
+
+	const tagTriggerLabel = $derived(
+		tagsDraft.length === 0
+			? 'Any tag'
+			: tagsDraft.length === 1
+				? getJobCategoryTagLabel(tagsDraft[0]!)
+				: `${tagsDraft.length} selected`
+	);
 
 	const filteredSpecializationOptions = $derived.by(() => {
 		const query = debouncedSpecializationSearch.trim().toLowerCase();
@@ -232,6 +278,11 @@
 		}
 		domicileRegionDraft = next as DomicileRegionKey;
 		navigate({ domicile_region: [next], domicile: [] });
+	}
+
+	function setTags(next: string[]) {
+		tagsDraft = next;
+		navigate({ tag: next });
 	}
 
 	function setDegreeAreas(next: string[]) {
@@ -804,5 +855,48 @@
 		>
 			<span aria-hidden="true" class={switchThumbClass(showExpiredDraft)}></span>
 		</button>
+	</div>
+
+	<Separator />
+
+	<div class="space-y-2">
+		<Label for="{idPrefix}filter-tag" class="text-xs lg:text-sm">Tags</Label>
+		<DropdownMenu.Root bind:open={tagOpen}>
+			<DropdownMenu.Trigger
+				id="{idPrefix}filter-tag"
+				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 lg:text-sm dark:bg-input/30"
+			>
+				<span class="truncate">{tagTriggerLabel}</span>
+				<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" />
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content class="max-h-72 w-(--bits-dropdown-menu-anchor-width) p-0" align="start">
+				<div class="sticky top-0 z-10 border-b bg-popover p-2">
+					<Input
+						id="{idPrefix}filter-tag-search"
+						type="search"
+						placeholder="Search tags..."
+						aria-label="Search tags"
+						class="h-8"
+						value={tagSearch}
+						oninput={(e) => onTagSearchInput(e.currentTarget.value)}
+						onkeydown={(e) => e.stopPropagation()}
+					/>
+				</div>
+				<DropdownMenu.CheckboxGroup value={tagsDraft} onValueChange={setTags}>
+					<div class="max-h-52 overflow-y-auto p-1">
+						{#each filteredTagOptions as tag (tag.slug)}
+							<DropdownMenu.CheckboxItem value={tag.slug} class="whitespace-normal">
+								{tag.label}
+							</DropdownMenu.CheckboxItem>
+						{:else}
+							<p class="px-2 py-3 text-sm text-muted-foreground">No matching tags.</p>
+						{/each}
+					</div>
+				</DropdownMenu.CheckboxGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+		<p class="text-xs text-muted-foreground">
+			Same tags as the <a href="/tags" class="underline underline-offset-2">Browse by tag</a> page.
+		</p>
 	</div>
 </div>
