@@ -7,6 +7,7 @@ import { getDomicileRegion, selectedDomicileRegions } from '$lib/domicile-region
 import { countJobCategoryJobs, buildJobCategoryTagWhere } from '$lib/server/job-category-jobs';
 import { DEGREE_SPECIALIZATIONS } from '$lib/degree-specializations';
 import { PORTAL_OPTIONS } from '$lib/filter-static-options';
+import { JOB_PORTAL_BY_LABEL } from '$lib/job-portals';
 import {
 	splitMultiValue,
 	toDateKey,
@@ -741,7 +742,9 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 	}
 
 	if (filters.portal) {
-		and.push({ url_web_title: { contains: filters.portal, mode: 'insensitive' } });
+		const portalMatch =
+			JOB_PORTAL_BY_LABEL.get(filters.portal)?.urlWebTitleMatch ?? filters.portal;
+		and.push({ url_web_title: { contains: portalMatch, mode: 'insensitive' } });
 	}
 
 	if (filters.gender) {

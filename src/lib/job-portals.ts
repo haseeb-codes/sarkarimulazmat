@@ -8,6 +8,11 @@ export type JobPortal = {
 	website: string;
 	/** Static asset path (served from /portals/*). */
 	logoSrc: string;
+	/**
+	 * Substring matched against `url_web_title` for portal filters/counts.
+	 * Defaults to `label` when omitted.
+	 */
+	urlWebTitleMatch?: string;
 };
 
 export const JOB_PORTALS: JobPortal[] = [
@@ -44,7 +49,8 @@ export const JOB_PORTALS: JobPortal[] = [
 		shortLabel: 'IW4S',
 		slug: 'iwork4sindh',
 		website: 'https://www.iwork4sindh.com.pk',
-		logoSrc: '/portals/iwork4sindh.png'
+		logoSrc: '/portals/iwork4sindh.png',
+		urlWebTitleMatch: 'iWork4Sindh'
 	},
 	{
 		label: 'National Jobs Portal (NJP)',
