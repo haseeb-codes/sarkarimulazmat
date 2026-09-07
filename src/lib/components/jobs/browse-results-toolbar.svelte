@@ -7,6 +7,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import {
 		browseShownCount,
+		browseLoadedPage,
 		browseViewMode,
 		setBrowseViewMode,
 		type BrowseViewMode
@@ -58,13 +59,23 @@
 	const viewMode = $derived($browseViewMode);
 	const shown = $derived($browseShownCount);
 
-	const currentPage = $derived(Math.max(1, filters.page ?? 1));
+	/**
+	 * Infinite scroll bumps `browseLoadedPage` while `filters.page` stays on the
+	 * server snapshot; during full page navigations `loading` is true and filters update.
+	 */
+	const currentPage = $derived(
+		loading
+			? Math.max(1, filters.page ?? 1)
+			: Math.max(1, $browseLoadedPage, filters.page ?? 1)
+	);
 	const pages = $derived(Math.max(1, totalPages));
 	const showPageJump = $derived(!error && pages > 1);
 
 	let pageInput = $state('1');
+	let pageInputFocused = $state(false);
 
 	$effect(() => {
+		if (pageInputFocused) return;
 		pageInput = String(currentPage);
 	});
 
@@ -118,7 +129,7 @@
 
 	function submitPageJump(event: Event) {
 		event.preventDefault();
-		const parsed = Number.parseInt(pageInput.trim(), 10);
+		const parsed = Number.parseInt(String(pageInput).trim(), 10);
 		if (!Number.isFinite(parsed)) {
 			pageInput = String(currentPage);
 			return;
@@ -236,6 +247,11 @@
 					disabled={loading}
 					class="h-6 w-8 border-0 px-0.5 text-center text-[11px] tabular-nums shadow-none focus-visible:ring-1 sm:w-10 sm:text-xs"
 					aria-label="Page number"
+					onfocus={() => (pageInputFocused = true)}
+					onblur={() => {
+						pageInputFocused = false;
+						pageInput = String(currentPage);
+					}}
 				/>
 				<span class="whitespace-nowrap pr-0.5 text-[11px] text-muted-foreground tabular-nums sm:text-xs">
 					/{pages.toLocaleString()}

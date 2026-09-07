@@ -21,6 +21,9 @@ export const browseViewMode = writable<BrowseViewMode>(readStoredView());
 /** Infinite-scroll “shown” count for the sticky results toolbar. */
 export const browseShownCount = writable(0);
 
+/** Furthest page loaded via infinite scroll — drives the sticky page input. */
+export const browseLoadedPage = writable(1);
+
 export function setBrowseViewMode(next: BrowseViewMode) {
 	browseViewMode.set(next);
 	try {

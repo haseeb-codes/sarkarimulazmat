@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { browseShownCount, browseViewMode, initBrowseViewModeForViewport } from '$lib/browse-view-mode';
+	import { browseShownCount, browseLoadedPage, browseViewMode, initBrowseViewModeForViewport } from '$lib/browse-view-mode';
 	import {
 		filtersToSearchParams,
 		urlHasSearchParams,
@@ -160,12 +160,17 @@
 	});
 
 	$effect(() => {
+		browseLoadedPage.set(loadedPage);
+	});
+
+	$effect(() => {
 		initBrowseViewModeForViewport();
 	});
 
 	$effect(() => {
 		return () => {
 			browseShownCount.set(0);
+			browseLoadedPage.set(1);
 			if (freshClearTimer) clearTimeout(freshClearTimer);
 		};
 	});
@@ -175,6 +180,7 @@
 		void resultKey;
 		void filters.page;
 		appended = { key: '', groups: [] };
+		browseLoadedPage.set(Math.max(1, filters.page));
 		loadMoreError = null;
 		clearFreshHighlight();
 	});
@@ -210,6 +216,7 @@
 			const newJobs = data.jobs.filter((job) => !seen.has(job.slug));
 			const groups = appended.key === key ? appended.groups : [];
 			appended = { key, groups: [...groups, { page: data.page, jobs: newJobs }] };
+			browseLoadedPage.set(data.page);
 			markFresh(newJobs.map((job) => job.slug));
 			syncPageToUrl(data.page);
 		} catch (err) {
