@@ -503,7 +503,8 @@ function parseQualificationLevels(url: URL): number[] {
 
 export function parseJobFilters(url: URL): JobFilters {
 	const sortParam = firstParam(url, 'sort');
-	const sort: JobSort = sortParam === 'closing_soon' ? 'closing_soon' : 'newest';
+	const sort: JobSort =
+		sortParam === 'closing_soon' ? 'closing_soon' : sortParam === 'salary' ? 'salary' : 'newest';
 	const userAge = parseUserAge(url);
 
 	return {
@@ -903,6 +904,9 @@ function buildOrderBy(sort: JobSort): Prisma.JobPostingsOrderByWithRelationInput
 	if (sort === 'closing_soon') {
 		return [{ last_date_to_apply: { sort: 'asc', nulls: 'last' } }, { row_id: 'desc' }];
 	}
+	if (sort === 'salary') {
+		return [{ salary_estimated: { sort: 'desc', nulls: 'last' } }, { row_id: 'desc' }];
+	}
 	return [
 		{ ad_date: { sort: 'desc', nulls: 'last' } },
 		{ file_creation_date: { sort: 'desc', nulls: 'last' } },
@@ -953,24 +957,41 @@ function compareNullableDates(
 	return direction === 'asc' ? diff : -diff;
 }
 
+function compareNullableNumbers(
+	a: number | null | undefined,
+	b: number | null | undefined,
+	direction: 'asc' | 'desc'
+): number {
+	if (a == null && b == null) return 0;
+	if (a == null) return 1; // nulls last
+	if (b == null) return -1;
+	const diff = a - b;
+	return direction === 'asc' ? diff : -diff;
+}
+
 function compareJobsBySort(
 	a: {
 		row_id: number | null;
 		ad_date: Date | null;
 		file_creation_date: Date | null;
 		last_date_to_apply: Date | null;
+		salary_estimated: number | null;
 	},
 	b: {
 		row_id: number | null;
 		ad_date: Date | null;
 		file_creation_date: Date | null;
 		last_date_to_apply: Date | null;
+		salary_estimated: number | null;
 	},
 	sort: JobSort
 ): number {
 	if (sort === 'closing_soon') {
 		const byClosing = compareNullableDates(a.last_date_to_apply, b.last_date_to_apply, 'asc');
 		if (byClosing !== 0) return byClosing;
+	} else if (sort === 'salary') {
+		const bySalary = compareNullableNumbers(a.salary_estimated, b.salary_estimated, 'desc');
+		if (bySalary !== 0) return bySalary;
 	} else {
 		const byAd = compareNullableDates(a.ad_date, b.ad_date, 'desc');
 		if (byAd !== 0) return byAd;
@@ -1071,7 +1092,8 @@ async function queryListJobs(filters: JobFilters): Promise<ListJobsResult> {
 				project_program_name: true,
 				ad_date: true,
 				file_creation_date: true,
-				last_date_to_apply: true
+				last_date_to_apply: true,
+				salary_estimated: true
 			}
 		});
 

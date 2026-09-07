@@ -445,19 +445,13 @@
 {/snippet}
 
 {#snippet statusShareCluster()}
-	{#if expired || closingSoon || !isStatic || showViewAdBesideShare}
+	{#if expired || !isStatic || showViewAdBesideShare}
 		<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
 			{#if expired}
 				<span
 					class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
 				>
 					Expired
-				</span>
-			{:else if closingSoon}
-				<span
-					class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
-				>
-					Closing soon
 				</span>
 			{/if}
 			{#if showViewAdBesideShare || !isStatic}
@@ -644,12 +638,6 @@
 							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
 						>
 							Expired
-						</span>
-					{:else if closingSoon}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
-						>
-							Closing soon
 						</span>
 					{/if}
 					{#if showViewAdBesideShare || !isStatic}

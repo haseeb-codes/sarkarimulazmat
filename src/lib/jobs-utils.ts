@@ -3,7 +3,7 @@
 import { getDomicileRegionLabel, selectedDomicileRegions } from '$lib/domicile-regions';
 import { getJobCategoryTagLabel, isJobCategoryShareSlug } from '$lib/job-category-pages';
 
-export type JobSort = 'newest' | 'closing_soon';
+export type JobSort = 'newest' | 'closing_soon' | 'salary';
 
 /** Split comma-delimited multi-value fields consistently. */
 export function splitMultiValue(raw: string | null | undefined): string[] {
@@ -759,7 +759,12 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	if (filters.sort && filters.sort !== 'newest') {
 		chips.push({
 			id: 'sort',
-			label: filters.sort === 'closing_soon' ? 'Closing soon' : filters.sort,
+			label:
+				filters.sort === 'closing_soon'
+					? 'Closing soon'
+					: filters.sort === 'salary'
+						? 'Salary'
+						: filters.sort,
 			clear: { sort: 'newest' }
 		});
 	}

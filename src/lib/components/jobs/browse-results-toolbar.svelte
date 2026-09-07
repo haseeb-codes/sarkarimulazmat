@@ -22,7 +22,7 @@
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
 	import ListIcon from '@lucide/svelte/icons/list';
 
-	type ResultsSortOption = 'closing_soon' | 'newest';
+	type ResultsSortOption = 'closing_soon' | 'newest' | 'salary';
 	type CollarFilterOption = 'white' | 'grey' | 'blue';
 	type ToolbarDropdownOption = ResultsSortOption | CollarFilterOption;
 
@@ -30,6 +30,8 @@
 		{ value: 'closing_soon', label: 'Closing soon' },
 		{ value: 'newest', label: 'Newly Posted' }
 	] as const;
+
+	const SALARY_SORT_OPTION = { value: 'salary', label: 'Salary' } as const;
 
 	const COLLAR_FILTER_OPTIONS = [
 		{ value: 'white', label: 'Educated Jobs' },
@@ -68,6 +70,7 @@
 
 	const resultsSort = $derived.by((): ResultsSortOption => {
 		if (filters.sort === 'closing_soon') return 'closing_soon';
+		if (filters.sort === 'salary') return 'salary';
 		return 'newest';
 	});
 
@@ -87,6 +90,7 @@
 				COLLAR_FILTER_OPTIONS.find((o) => o.value === activeCollar)?.label ?? 'Educated Jobs'
 			);
 		}
+		if (resultsSort === 'salary') return SALARY_SORT_OPTION.label;
 		return RESULTS_SORT_OPTIONS.find((o) => o.value === resultsSort)?.label ?? 'Newly Posted';
 	});
 
@@ -156,7 +160,7 @@
 			filtersToHref(
 				{
 					...filters,
-					sort: option === 'closing_soon' ? 'closing_soon' : 'newest',
+					sort: option,
 					collar: [],
 					page: 1
 				},
@@ -328,6 +332,10 @@
 							{option.label}
 						</DropdownMenu.RadioItem>
 					{/each}
+					<DropdownMenu.Separator />
+					<DropdownMenu.RadioItem value={SALARY_SORT_OPTION.value}>
+						{SALARY_SORT_OPTION.label}
+					</DropdownMenu.RadioItem>
 				</DropdownMenu.RadioGroup>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>

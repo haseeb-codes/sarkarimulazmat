@@ -316,14 +316,23 @@
 				type="single"
 				value={filters.sort}
 				onValueChange={(v) =>
-					navigate({ sort: v === 'closing_soon' ? 'closing_soon' : 'newest', page: 1 })}
+					navigate({
+						sort:
+							v === 'closing_soon' ? 'closing_soon' : v === 'salary' ? 'salary' : 'newest',
+						page: 1
+					})}
 			>
 				<Select.Trigger id="sort" class="w-full">
-					{filters.sort === 'closing_soon' ? 'Closing soon' : 'Newest'}
+					{filters.sort === 'closing_soon'
+						? 'Closing soon'
+						: filters.sort === 'salary'
+							? 'Salary'
+							: 'Newest'}
 				</Select.Trigger>
 				<Select.Content>
 					<Select.Item value="newest" label="Newest">Newest</Select.Item>
 					<Select.Item value="closing_soon" label="Closing soon">Closing soon</Select.Item>
+					<Select.Item value="salary" label="Salary">Salary</Select.Item>
 				</Select.Content>
 			</Select.Root>
 		</div>
