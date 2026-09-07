@@ -628,7 +628,7 @@
 							variant="secondary"
 							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
 							aria-label="Filter by grade {job.grade}"
-							class="mt-0.5 hidden shrink-0 text-xs! font-medium underline-offset-2 hover:underline md:inline-flex"
+							class="mt-0.5 shrink-0 text-xs! font-medium underline-offset-2 hover:underline"
 						>
 							{job.grade}
 						</Badge>
@@ -651,16 +651,6 @@
 						>
 							Closing soon
 						</span>
-					{/if}
-					{#if job.grade}
-						<Badge
-							variant="secondary"
-							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
-							aria-label="Filter by grade {job.grade}"
-							class="underline-offset-2 hover:underline md:hidden"
-						>
-							{job.grade}
-						</Badge>
 					{/if}
 					{#if showViewAdBesideShare || !isStatic}
 						<div class="flex flex-row items-center gap-1">
