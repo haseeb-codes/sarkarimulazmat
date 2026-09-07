@@ -54,21 +54,29 @@
 	}
 </script>
 
-<Button
-	type="button"
-	variant="outline"
-	{size}
-	class="border-primary/35 bg-primary/10 text-primary hover:bg-primary/18 hover:text-primary {copied
-		? 'border-status-open/40 bg-status-open-bg text-status-open hover:bg-status-open-bg hover:text-status-open'
-		: ''} {className}"
-	onclick={share}
-	aria-label={copied ? 'Link copied' : `Share ${shareTitle}`}
->
-	{#if copied}
-		<CheckIcon data-icon="inline-start" />
-		Copied
-	{:else}
-		<Share2Icon data-icon="inline-start" />
-		Share
-	{/if}
-</Button>
+<span class="group relative inline-flex" title={copied ? 'Link copied' : 'Share'}>
+	<span
+		class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md bg-foreground px-2 py-0.5 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+		role="tooltip"
+	>
+		{copied ? 'Link copied' : 'Share'}
+	</span>
+	<Button
+		type="button"
+		variant="outline"
+		{size}
+		class="border-primary/35 bg-primary/10 text-primary hover:bg-primary/18 hover:text-primary {copied
+			? 'border-status-open/40 bg-status-open-bg text-status-open hover:bg-status-open-bg hover:text-status-open'
+			: ''} {className}"
+		onclick={share}
+		aria-label={copied ? 'Link copied' : `Share ${shareTitle}`}
+	>
+		{#if copied}
+			<CheckIcon />
+			<span class="hidden sm:inline">Copied</span>
+		{:else}
+			<Share2Icon />
+			<span class="hidden sm:inline">Share</span>
+		{/if}
+	</Button>
+</span>

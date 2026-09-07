@@ -47,9 +47,19 @@ export function daysSinceDate(value: string | Date | null | undefined): number |
 	return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function isRecentAd(adDate: string | Date | null | undefined, withinDays = 2): boolean {
-	const days = daysSinceDate(adDate);
-	return days != null && days >= 0 && days <= withinDays;
+/**
+ * True when the ad was posted on the latest posting day (today if any jobs
+ * were added today, otherwise the most recent prior day with postings).
+ * Without `latestPostedDay`, falls back to “posted today” only.
+ */
+export function isRecentAd(
+	adDate: string | Date | null | undefined,
+	latestPostedDay?: string | null
+): boolean {
+	const dateKey = toDateKey(adDate);
+	if (!dateKey) return false;
+	if (latestPostedDay) return dateKey === latestPostedDay;
+	return daysSinceDate(adDate) === 0;
 }
 
 export function isJobExpired(lastDate: string | Date | null | undefined): boolean {

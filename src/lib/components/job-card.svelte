@@ -28,6 +28,7 @@
 		jobDetailHref,
 		type JobSort,
 	} from "$lib/jobs-utils";
+	import { latestPostedDay } from "$lib/latest-posted-day";
 	import ImageIcon from "@lucide/svelte/icons/image";
 	import BuildingIcon from "@lucide/svelte/icons/building-2";
 	import type { JobCategoryTagRef } from "$lib/job-category-pages";
@@ -87,7 +88,7 @@
 
 	const expired = $derived(isJobExpired(job.last_date_to_apply));
 	const closingSoon = $derived(isClosingSoon(job.last_date_to_apply));
-	const recentAd = $derived(isRecentAd(job.ad_date));
+	const recentAd = $derived(isRecentAd(job.ad_date, $latestPostedDay));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
 	const adDateLabel = $derived(formatDateLabel(job.ad_date));
@@ -433,18 +434,31 @@
 	</div>
 {/snippet}
 
+{#snippet viewAdButton(extraClass = "")}
+	<span class="group relative inline-flex {extraClass}" title="View ad">
+		<span
+			class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md bg-foreground px-2 py-0.5 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+			role="tooltip"
+		>
+			View ad
+		</span>
+		<Button
+			type="button"
+			variant="outline"
+			size="sm"
+			class="w-full"
+			onclick={() => (adOpen = true)}
+		>
+			<ImageIcon data-icon="inline-start" />
+			<span class="sm:hidden">Ad</span>
+			<span class="hidden sm:inline">View Ad</span>
+		</Button>
+	</span>
+{/snippet}
+
 {#snippet statusShareCluster()}
-	{#if recentAd || expired || closingSoon || !isStatic || showViewAdBesideShare}
+	{#if expired || closingSoon || !isStatic || showViewAdBesideShare}
 		<div class="flex shrink-0 flex-wrap items-start justify-end gap-1.5">
-			{#if recentAd}
-				<span
-					class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-						? ''
-						: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-				>
-					New
-				</span>
-			{/if}
 			{#if expired}
 				<span
 					class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
@@ -464,16 +478,7 @@
 						<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
 					{/if}
 					{#if showViewAdBesideShare}
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							class={hideViewAdOnDesktop ? "sm:hidden" : ""}
-							onclick={() => (adOpen = true)}
-						>
-							<ImageIcon data-icon="inline-start" />
-							View Ad
-						</Button>
+						{@render viewAdButton(hideViewAdOnDesktop ? "sm:hidden" : "")}
 					{/if}
 				</div>
 			{/if}
@@ -506,14 +511,25 @@
 
 			<div class="flex min-w-0 flex-1 items-start gap-2">
 				<div class="min-w-0 flex-1 space-y-1.5">
-					{#if job.donor_name}
+					{#if recentAd || job.donor_name}
 						<div class="flex flex-wrap items-center gap-1.5">
-							<span
-								class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
-								title={job.donor_name}
-							>
-								{job.donor_name}
-							</span>
+							{#if recentAd}
+								<span
+									class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+										? ''
+										: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+								>
+									New
+								</span>
+							{/if}
+							{#if job.donor_name}
+								<span
+									class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+									title={job.donor_name}
+								>
+									{job.donor_name}
+								</span>
+							{/if}
 						</div>
 					{/if}
 
@@ -587,15 +603,26 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<Card.Header class="gap-1 pb-1.5 sm:gap-1.5 sm:pb-2">
-			{#if job.donor_name}
+			{#if recentAd || job.donor_name}
 				<div class="mb-1 flex flex-wrap items-center gap-1.5">
-					<span
-						class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
-							? ''
-							: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-					>
-						{job.donor_name}
-					</span>
+					{#if recentAd}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+								? ''
+								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+						>
+							New
+						</span>
+					{/if}
+					{#if job.donor_name}
+						<span
+							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+								? ''
+								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+						>
+							{job.donor_name}
+						</span>
+					{/if}
 				</div>
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
@@ -624,15 +651,6 @@
 					</span>
 				</Card.Title>
 				<div class="flex shrink-0 flex-wrap items-start justify-end gap-1.5">
-					{#if recentAd}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-								? ''
-								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-						>
-							New
-						</span>
-					{/if}
 					{#if expired}
 						<span
 							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
@@ -662,15 +680,7 @@
 								<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
 							{/if}
 							{#if showViewAdBesideShare}
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onclick={() => (adOpen = true)}
-								>
-									<ImageIcon data-icon="inline-start" />
-									View Ad
-								</Button>
+								{@render viewAdButton()}
 							{/if}
 						</div>
 					{/if}

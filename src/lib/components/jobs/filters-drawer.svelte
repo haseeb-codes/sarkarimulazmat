@@ -15,6 +15,7 @@
 		urlHasSearchParams,
 		type FilterParams
 	} from '$lib/jobs-utils';
+	import { setLatestPostedDay } from '$lib/latest-posted-day';
 	import type { Snippet } from 'svelte';
 	import FilterIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import PanelLeftCloseIcon from '@lucide/svelte/icons/panel-left-close';
@@ -53,6 +54,34 @@
 	let resultsMinHeight = $state<number | null>(null);
 	/** Measured sticky chrome height for scroll-margin. */
 	let searchChromeHeight = $state(0);
+
+	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
+		return (
+			typeof value === 'object' &&
+			value !== null &&
+			'then' in value &&
+			typeof (value as Promise<T>).then === 'function'
+		);
+	}
+
+	/** Newest unique ad_date drives which jobs get the blinking "New" badge. */
+	$effect(() => {
+		const input = postedOnDates;
+		if (input == null) return;
+
+		if (!isPromise(input)) {
+			setLatestPostedDay(input);
+			return;
+		}
+
+		let cancelled = false;
+		void input.then((dates) => {
+			if (!cancelled) setLatestPostedDay(dates);
+		});
+		return () => {
+			cancelled = true;
+		};
+	});
 	const browseUrl = $derived(
 		navigating.to?.url.pathname === page.url.pathname ? navigating.to.url : page.url
 	);
