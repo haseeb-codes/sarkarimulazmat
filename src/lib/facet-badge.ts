@@ -4,7 +4,7 @@
  */
 export const facetBadgeClass = {
 	program:
-		'border-facet-program/25 bg-facet-program-bg text-facet-program hover:bg-facet-program/15 hover:text-facet-program',
+		'rounded-md border-facet-program/25 bg-facet-program-bg text-facet-program hover:bg-facet-program/15 hover:text-facet-program',
 	specialization:
 		'border-facet-spec/25 bg-facet-spec-bg text-facet-spec hover:bg-facet-spec/15 hover:text-facet-spec',
 	degree:

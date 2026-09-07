@@ -1267,7 +1267,7 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 }
 
 /**
- * Unique `last_date_to_apply` values for active, non-expired jobs (ascending).
+ * Unique `last_date_to_apply` values for active jobs in the next 45 days (ascending).
  * Cached briefly so the Closing On filter dropdown stays cheap.
  */
 export async function getClosingOnDates(): Promise<string[]> {
@@ -1279,6 +1279,9 @@ export async function getClosingOnDates(): Promise<string[]> {
 	const startOfToday = new Date();
 	startOfToday.setUTCHours(0, 0, 0, 0);
 
+	const endOfWindow = new Date(startOfToday);
+	endOfWindow.setUTCDate(endOfWindow.getUTCDate() + 45);
+
 	const rows = await db.jobPostings.groupBy({
 		by: ['last_date_to_apply'],
 		where: {
@@ -1287,7 +1290,8 @@ export async function getClosingOnDates(): Promise<string[]> {
 				{
 					last_date_to_apply: {
 						not: null,
-						gte: startOfToday
+						gte: startOfToday,
+						lte: endOfWindow
 					}
 				}
 			]
@@ -1304,7 +1308,7 @@ export async function getClosingOnDates(): Promise<string[]> {
 }
 
 /**
- * Unique `ad_date` values for active jobs (newest first).
+ * Unique `ad_date` values for active jobs (newest first), limited to the last 14 dates.
  * Cached briefly so the Posted On filter dropdown stays cheap.
  */
 export async function getPostedOnDates(): Promise<string[]> {
@@ -1323,7 +1327,8 @@ export async function getPostedOnDates(): Promise<string[]> {
 
 	const data = rows
 		.map((row) => toDateKey(row.ad_date))
-		.filter((key): key is string => key != null);
+		.filter((key): key is string => key != null)
+		.slice(0, 14);
 
 	postedOnDatesCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
 	return data;

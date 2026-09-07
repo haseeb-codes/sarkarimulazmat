@@ -858,6 +858,49 @@
 		</div>
 	</div>
 
+	<Separator />
+
+	<div class="space-y-2">
+		<Label for="{idPrefix}filter-tag" class="text-xs lg:text-sm">Tags</Label>
+		<DropdownMenu.Root bind:open={tagOpen}>
+			<DropdownMenu.Trigger
+				id="{idPrefix}filter-tag"
+				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 lg:text-sm dark:bg-input/30"
+			>
+				<span class="truncate">{tagTriggerLabel}</span>
+				<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" />
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content class="max-h-72 w-(--bits-dropdown-menu-anchor-width) p-0" align="start">
+				<div class="sticky top-0 z-10 border-b bg-popover p-2">
+					<Input
+						id="{idPrefix}filter-tag-search"
+						type="search"
+						placeholder="Search tags..."
+						aria-label="Search tags"
+						class="h-8"
+						value={tagSearch}
+						oninput={(e) => onTagSearchInput(e.currentTarget.value)}
+						onkeydown={(e) => e.stopPropagation()}
+					/>
+				</div>
+				<DropdownMenu.CheckboxGroup value={tagsDraft} onValueChange={setTags}>
+					<div class="max-h-52 overflow-y-auto p-1">
+						{#each filteredTagOptions as tag (tag.slug)}
+							<DropdownMenu.CheckboxItem value={tag.slug} class="whitespace-normal">
+								{tag.label}
+							</DropdownMenu.CheckboxItem>
+						{:else}
+							<p class="px-2 py-3 text-sm text-muted-foreground">No matching tags.</p>
+						{/each}
+					</div>
+				</DropdownMenu.CheckboxGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+		<p class="text-xs text-muted-foreground">
+			Same tags as the <a href="/tags" class="underline underline-offset-2">Browse by tag</a> page.
+		</p>
+	</div>
+
 	{#if postedOnDates != null}
 		<Separator />
 
@@ -912,48 +955,5 @@
 		>
 			<span aria-hidden="true" class={switchThumbClass(showExpiredDraft)}></span>
 		</button>
-	</div>
-
-	<Separator />
-
-	<div class="space-y-2">
-		<Label for="{idPrefix}filter-tag" class="text-xs lg:text-sm">Tags</Label>
-		<DropdownMenu.Root bind:open={tagOpen}>
-			<DropdownMenu.Trigger
-				id="{idPrefix}filter-tag"
-				class="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 lg:text-sm dark:bg-input/30"
-			>
-				<span class="truncate">{tagTriggerLabel}</span>
-				<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" />
-			</DropdownMenu.Trigger>
-			<DropdownMenu.Content class="max-h-72 w-(--bits-dropdown-menu-anchor-width) p-0" align="start">
-				<div class="sticky top-0 z-10 border-b bg-popover p-2">
-					<Input
-						id="{idPrefix}filter-tag-search"
-						type="search"
-						placeholder="Search tags..."
-						aria-label="Search tags"
-						class="h-8"
-						value={tagSearch}
-						oninput={(e) => onTagSearchInput(e.currentTarget.value)}
-						onkeydown={(e) => e.stopPropagation()}
-					/>
-				</div>
-				<DropdownMenu.CheckboxGroup value={tagsDraft} onValueChange={setTags}>
-					<div class="max-h-52 overflow-y-auto p-1">
-						{#each filteredTagOptions as tag (tag.slug)}
-							<DropdownMenu.CheckboxItem value={tag.slug} class="whitespace-normal">
-								{tag.label}
-							</DropdownMenu.CheckboxItem>
-						{:else}
-							<p class="px-2 py-3 text-sm text-muted-foreground">No matching tags.</p>
-						{/each}
-					</div>
-				</DropdownMenu.CheckboxGroup>
-			</DropdownMenu.Content>
-		</DropdownMenu.Root>
-		<p class="text-xs text-muted-foreground">
-			Same tags as the <a href="/tags" class="underline underline-offset-2">Browse by tag</a> page.
-		</p>
 	</div>
 </div>
