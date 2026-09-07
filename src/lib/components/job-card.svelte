@@ -8,6 +8,7 @@
 	import JobApplyLink from "$lib/components/jobs/job-apply-link.svelte";
 	import JobAdModal from "$lib/components/jobs/job-ad-modal.svelte";
 	import ShareJobButton from "$lib/components/jobs/share-job-button.svelte";
+	import PortalTooltip from "$lib/components/portal-tooltip.svelte";
 	import { onFilterLinkClick } from "$lib/filter-nav";
 	import { facetBadgeClass } from "$lib/facet-badge";
 	import { page } from "$app/state";
@@ -261,15 +262,9 @@
 			class="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline sm:text-sm"
 			aria-label="Filter by department {job.department}"
 		>
-			<span class="group relative inline-flex shrink-0">
+			<PortalTooltip label="Department" class="shrink-0">
 				<BuildingIcon class="size-3.5" aria-hidden="true" />
-				<span
-					role="tooltip"
-					class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 rounded-md bg-foreground px-2 py-1 text-xs font-normal whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-				>
-					Department
-				</span>
-			</span>
+			</PortalTooltip>
 			<span class={nameClass} title={job.department}>{job.department}</span>
 		</a>
 	{/if}
@@ -435,30 +430,23 @@
 {/snippet}
 
 {#snippet viewAdButton(extraClass = "")}
-	<span class="group relative inline-flex {extraClass}" title="View ad">
-		<span
-			class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md bg-foreground px-2 py-0.5 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-			role="tooltip"
-		>
-			View ad
-		</span>
+	<PortalTooltip label="View ad" class={extraClass}>
 		<Button
 			type="button"
 			variant="outline"
 			size="sm"
-			class="w-full"
 			onclick={() => (adOpen = true)}
 		>
 			<ImageIcon data-icon="inline-start" />
 			<span class="sm:hidden">Ad</span>
 			<span class="hidden sm:inline">View Ad</span>
 		</Button>
-	</span>
+	</PortalTooltip>
 {/snippet}
 
 {#snippet statusShareCluster()}
 	{#if expired || closingSoon || !isStatic || showViewAdBesideShare}
-		<div class="flex shrink-0 flex-wrap items-start justify-end gap-1.5">
+		<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
 			{#if expired}
 				<span
 					class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
@@ -473,7 +461,7 @@
 				</span>
 			{/if}
 			{#if showViewAdBesideShare || !isStatic}
-				<div class="flex flex-col items-stretch gap-1.5">
+				<div class="flex flex-row items-center gap-1">
 					{#if !isStatic}
 						<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
 					{/if}
@@ -675,7 +663,7 @@
 						</Badge>
 					{/if}
 					{#if showViewAdBesideShare || !isStatic}
-						<div class="flex flex-col items-stretch gap-1.5">
+						<div class="flex flex-row items-center gap-1">
 							{#if !isStatic}
 								<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
 							{/if}

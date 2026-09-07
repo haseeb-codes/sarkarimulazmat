@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PortalTooltip from '$lib/components/portal-tooltip.svelte';
 	import MarsIcon from '@lucide/svelte/icons/mars';
 	import VenusIcon from '@lucide/svelte/icons/venus';
 	import TransgenderIcon from '@lucide/svelte/icons/transgender';
@@ -33,13 +34,7 @@
 	>
 		{#each icons as kind (kind)}
 			{@const meta = GENDER_META[kind]}
-			<span class="group relative inline-flex" title={meta.label}>
-				<span
-					class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md bg-foreground px-2 py-0.5 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-					role="tooltip"
-				>
-					{meta.label}
-				</span>
+			<PortalTooltip label={meta.label}>
 				{#if kind === 'male'}
 					<MarsIcon class="size-4 {meta.iconClass}" aria-hidden="true" />
 				{:else if kind === 'female'}
@@ -47,7 +42,7 @@
 				{:else}
 					<TransgenderIcon class="size-4 {meta.iconClass}" aria-hidden="true" />
 				{/if}
-			</span>
+			</PortalTooltip>
 		{/each}
 	</span>
 {/if}

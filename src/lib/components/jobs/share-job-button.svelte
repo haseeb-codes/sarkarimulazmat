@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, type ButtonSize } from '$lib/components/ui/button/index.js';
+	import PortalTooltip from '$lib/components/portal-tooltip.svelte';
 	import Share2Icon from '@lucide/svelte/icons/share-2';
 	import CheckIcon from '@lucide/svelte/icons/check';
 
@@ -24,6 +25,7 @@
 	const shareText = $derived(
 		text?.trim() || `${shareTitle} on Sarkari Mulazmat`
 	);
+	const tooltipLabel = $derived(copied ? 'Link copied' : 'Share');
 
 	async function share(event: MouseEvent) {
 		event.preventDefault();
@@ -54,13 +56,7 @@
 	}
 </script>
 
-<span class="group relative inline-flex" title={copied ? 'Link copied' : 'Share'}>
-	<span
-		class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 rounded-md bg-foreground px-2 py-0.5 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-		role="tooltip"
-	>
-		{copied ? 'Link copied' : 'Share'}
-	</span>
+<PortalTooltip label={tooltipLabel}>
 	<Button
 		type="button"
 		variant="outline"
@@ -79,4 +75,4 @@
 			<span class="hidden sm:inline">Share</span>
 		{/if}
 	</Button>
-</span>
+</PortalTooltip>
