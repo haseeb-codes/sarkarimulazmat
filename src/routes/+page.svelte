@@ -67,6 +67,7 @@
 		listing={data.listing}
 		resultCount={data.resultCount}
 		closingOnDates={data.closingOnDates}
+		postedOnDates={data.postedOnDates}
 		loading={isNavigating}
 	/>
 </div>

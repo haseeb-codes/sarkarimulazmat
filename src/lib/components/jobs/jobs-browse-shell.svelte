@@ -31,6 +31,7 @@
 		listing: listingInput,
 		resultCount: resultCountInput,
 		closingOnDates = null,
+		postedOnDates = null,
 		loading = false
 	}: {
 		filters: FilterParams;
@@ -38,6 +39,8 @@
 		resultCount?: number | Promise<number>;
 		/** Unique last-date-to-apply values for the Closing On filter (streamed). */
 		closingOnDates?: Promise<string[]> | string[] | null;
+		/** Unique ad_date values for the Posted On filter (streamed). */
+		postedOnDates?: Promise<string[]> | string[] | null;
 		loading?: boolean;
 	} = $props();
 
@@ -109,6 +112,12 @@
 
 	const showListingLoading = $derived(loading || listing === null);
 	const showCountLoading = $derived(loading || resultCount === null);
+	const pageSize = $derived(filters.pageSize ?? 20);
+	const totalPages = $derived.by(() => {
+		if (listing?.totalPages != null) return listing.totalPages;
+		if (resultCount != null) return Math.max(1, Math.ceil(resultCount / pageSize));
+		return 1;
+	});
 </script>
 
 <!--
@@ -121,12 +130,14 @@
 	countLoading={showCountLoading}
 	listingLoading={showListingLoading}
 	listingError={listing?.error ?? null}
+	{totalPages}
 	{closingOnDates}
+	{postedOnDates}
 >
 	<JobList
 		jobs={(listing ?? EMPTY_LISTING).jobs}
 		total={resultCount ?? listing?.total ?? 0}
-		totalPages={listing?.totalPages ?? 1}
+		totalPages={totalPages}
 		filters={filters as any}
 		error={listing?.error ?? null}
 		loading={showListingLoading}

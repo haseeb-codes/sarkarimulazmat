@@ -58,12 +58,15 @@
 		filters,
 		options,
 		closingOnDates = null,
+		postedOnDates = null,
 		idPrefix = ''
 	}: {
 		filters: FilterParams;
 		options: Options;
 		/** Unique YYYY-MM-DD deadlines for active jobs; null hides the Closing On filter. */
 		closingOnDates?: Promise<string[]> | string[] | null;
+		/** Unique YYYY-MM-DD ad dates for active jobs; null hides the Posted On filter. */
+		postedOnDates?: Promise<string[]> | string[] | null;
 		idPrefix?: string;
 	} = $props();
 
@@ -71,6 +74,7 @@
 	let ageSliderDraft = $state(AGE_FILTER_DEFAULT);
 	let qualificationDraft = $state<number | null>(null);
 	let gradeDraft = $state<string | null>(null);
+	let postedOnDraft = $state<string | null>(null);
 	let closingOnDraft = $state<string | null>(null);
 	let portalDraft = $state<string | null>(null);
 	let domicileRegionDraft = $state<DomicileRegionKey | null>(null);
@@ -148,6 +152,7 @@
 		ageEnabledDraft = isAgeFilterActive(filters);
 		ageSliderDraft = isAgeFilterActive(filters) ? resolvedUserAge(filters) : AGE_FILTER_DEFAULT;
 		gradeDraft = filters.grade ?? null;
+		postedOnDraft = filters.ad_date ?? null;
 		closingOnDraft = filters.closing_on ?? null;
 		portalDraft = filters.portal ?? null;
 		const regions = selectedDomicileRegions(filters).filter((key) => key !== 'any');
@@ -263,6 +268,11 @@
 	function setGrade(next: string | null) {
 		gradeDraft = next;
 		navigate({ grade: next });
+	}
+
+	function setPostedOn(next: string | null) {
+		postedOnDraft = next;
+		navigate({ ad_date: next });
 	}
 
 	function setClosingOn(next: string | null) {
@@ -411,6 +421,32 @@
 	{/if}
 {/snippet}
 
+{#snippet postedOnSelect(dates: string[])}
+	{@const options =
+		postedOnDraft && !dates.includes(postedOnDraft)
+			? [postedOnDraft, ...dates]
+			: dates}
+	<div class="space-y-2">
+		<Label for="{idPrefix}filter-posted-on" class="text-xs lg:text-sm">Posted On</Label>
+		<Select.Root
+			type="single"
+			value={postedOnDraft ?? ''}
+			onValueChange={(v) => setPostedOn(v || null)}
+		>
+			<Select.Trigger id="{idPrefix}filter-posted-on" class="w-full">
+				{formatDateLabel(postedOnDraft) ?? 'Any'}
+			</Select.Trigger>
+			<Select.Content class="max-h-72">
+				<Select.Item value="" label="Any">Any</Select.Item>
+				{#each options as date (date)}
+					{@const label = formatDateLabel(date) ?? date}
+					<Select.Item value={date} {label}>{label}</Select.Item>
+				{/each}
+			</Select.Content>
+		</Select.Root>
+	</div>
+{/snippet}
+
 {#snippet closingOnSelect(dates: string[])}
 	{@const options =
 		closingOnDraft && !dates.includes(closingOnDraft)
@@ -478,22 +514,6 @@
 			</Select.Content>
 		</Select.Root>
 	</div>
-
-	{#if closingOnDates != null}
-		<Separator />
-
-		{#if isPromise(closingOnDates)}
-			{#await closingOnDates}
-				<ClosingOnFilterSkeleton />
-			{:then dates}
-				{@render closingOnSelect(dates)}
-			{:catch}
-				{@render closingOnSelect([])}
-			{/await}
-		{:else}
-			{@render closingOnSelect(closingOnDates)}
-		{/if}
-	{/if}
 
 	<Separator />
 
@@ -837,6 +857,38 @@
 			</Label>
 		</div>
 	</div>
+
+	{#if postedOnDates != null}
+		<Separator />
+
+		{#if isPromise(postedOnDates)}
+			{#await postedOnDates}
+				<ClosingOnFilterSkeleton />
+			{:then dates}
+				{@render postedOnSelect(dates)}
+			{:catch}
+				{@render postedOnSelect([])}
+			{/await}
+		{:else}
+			{@render postedOnSelect(postedOnDates)}
+		{/if}
+	{/if}
+
+	{#if closingOnDates != null}
+		<Separator />
+
+		{#if isPromise(closingOnDates)}
+			{#await closingOnDates}
+				<ClosingOnFilterSkeleton />
+			{:then dates}
+				{@render closingOnSelect(dates)}
+			{:catch}
+				{@render closingOnSelect([])}
+			{/await}
+		{:else}
+			{@render closingOnSelect(closingOnDates)}
+		{/if}
+	{/if}
 
 	<Separator />
 

@@ -12,6 +12,7 @@
 	import { facetBadgeClass } from "$lib/facet-badge";
 	import { page } from "$app/state";
 	import {
+		applicationWindowProgress,
 		badgeFilterHref,
 		mergeFilterFlagHref,
 		formatAgeRange,
@@ -89,14 +90,36 @@
 	const recentAd = $derived(isRecentAd(job.ad_date));
 	const ageLabel = $derived(formatAgeRange(job.min_age, job.max_age));
 	const applyByLabel = $derived(formatDateLabel(job.last_date_to_apply));
-	const daysLeft = $derived(daysUntilDate(job.last_date_to_apply));
-	const daysLeftText = $derived(
-		!expired && daysLeft != null && daysLeft < 4
-			? daysLeft === 0
-				? "Expiring today"
-				: `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
-			: null,
+	const adDateLabel = $derived(formatDateLabel(job.ad_date));
+	const applyByShort = $derived(
+		formatDateLabel(job.last_date_to_apply, { includeYear: false }),
 	);
+	const adDateShort = $derived(formatDateLabel(job.ad_date, { includeYear: false }));
+	const daysLeft = $derived(daysUntilDate(job.last_date_to_apply));
+	const windowProgress = $derived(
+		applicationWindowProgress(job.ad_date, job.last_date_to_apply),
+	);
+	const daysLeftText = $derived.by(() => {
+		if (expired) return null;
+		const left = windowProgress?.daysLeft ?? daysLeft;
+		if (left == null) return null;
+		if (left === 0) return "Closing Today";
+		return `${left} ${left === 1 ? "day" : "days"} left`;
+	});
+	const progressBarClass = $derived(
+		expired
+			? "bg-status-closed"
+			: closingSoon
+				? "bg-status-closing"
+				: "bg-status-open",
+	);
+	const progressAriaLabel = $derived.by(() => {
+		if (!windowProgress || !adDateShort || !applyByShort) return null;
+		const status = expired
+			? "Application closed"
+			: (daysLeftText ?? `${windowProgress.daysLeft} days left`);
+		return `${status}; ${windowProgress.progressPct}% of application window elapsed from ${adDateShort} to ${applyByShort}`;
+	});
 	const salaryLabel = $derived(formatSalary(job.salary));
 	const applyByClass = $derived(
 		expired
@@ -115,10 +138,13 @@
 	const hasSalaryHref = $derived(mergeFilterFlagHref(page.url, "has_salary", sort));
 	const womenOrTransOnly = $derived(isWomenOrTransOnly(job.gender));
 	const adUrl = $derived(getJobAdUrl(job.supabase_file_path));
-	/** Only images preview as a thumbnail; PDFs keep the button. Shown on tag/share pages too. */
+	/** Only images preview as a thumbnail; PDFs keep the button. Shown on sm+ in list layout. */
 	const adThumbUrl = $derived(
 		getJobAdKind(job.supabase_file_path) === "image" ? adUrl : null,
 	);
+	/** Desktop list uses the thumbnail instead; mobile always gets a View Ad button. */
+	const showViewAdBesideShare = $derived(Boolean(adUrl));
+	const hideViewAdOnDesktop = $derived(layout === "list" && Boolean(adThumbUrl));
 	const categoryTags = $derived(job.tags ?? []);
 	const cardAccentClass = $derived(
 		fresh
@@ -282,45 +308,79 @@
 
 <!-- Deadline sits next to the actions wherever there is no rail, so it always ends
      up in the same spot on the card instead of mid-flow -->
-{#snippet deadlineActionBar(className: string)}
-	<div class="flex flex-wrap items-center gap-2 border-t border-border/60 {className}">
-		{#if applyByLabel}
-			<span
-				class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 {applyByClass}"
-			>
-				<span class="text-xs font-semibold tracking-wide">
-					{expired ? "Closed" : "Apply by"} {applyByLabel}
-				</span>
-				{#if daysLeftText}
-					<span class="text-[11px] font-medium opacity-90">· {daysLeftText}</span>
+{#snippet deadlineProgressBar()}
+	{#if windowProgress && adDateShort && applyByShort}
+		<div
+			class="min-w-0 flex-1 space-y-1.5"
+			role="img"
+			aria-label={progressAriaLabel}
+		>
+			<div class="flex items-end justify-between gap-2">
+				<div class="min-w-0">
+					<p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+						Posted
+					</p>
+					<p class="text-xs font-semibold tabular-nums text-foreground">{adDateShort}</p>
+				</div>
+				{#if daysLeftText || expired}
+					<p
+						class="shrink-0 text-center text-[11px] font-semibold {expired
+							? 'text-status-closed'
+							: closingSoon
+								? 'text-status-closing'
+								: 'text-status-open'}"
+					>
+						{expired ? "Closed" : daysLeftText}
+					</p>
 				{/if}
-			</span>
-		{/if}
-		{#if adUrl || !isStatic}
-			<div class="ml-auto flex shrink-0 gap-2">
-				{#if adUrl}
-					<Button type="button" variant="outline" size="sm" onclick={() => (adOpen = true)}>
-						<ImageIcon data-icon="inline-start" />
-						View Ad
-					</Button>
-				{/if}
-				{#if !isStatic}
-					<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
-				{/if}
+				<div class="min-w-0 text-right">
+					<p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+						{expired ? "Closed" : "Deadline"}
+					</p>
+					<p class="text-xs font-semibold tabular-nums text-foreground">{applyByShort}</p>
+				</div>
 			</div>
-		{/if}
-	</div>
+			<div
+				class="h-1.5 overflow-hidden rounded-full bg-muted"
+				aria-hidden="true"
+			>
+				<div
+					class="h-full rounded-full transition-[width] {progressBarClass}"
+					style="width: {expired ? 100 : windowProgress.progressPct}%"
+				></div>
+			</div>
+		</div>
+	{/if}
 {/snippet}
 
-<!-- Deadline gets its own block in the wide rail so it lands at the same spot on every row -->
-{#snippet deadlineRail()}
-	<div class="rounded-lg px-2.5 py-2 {applyByClass}">
-		<p class="text-[10px] font-semibold uppercase tracking-wider opacity-80">
-			{expired ? "Closed" : "Apply by"}
-		</p>
-		<p class="mt-0.5 text-sm font-semibold tabular-nums">{applyByLabel}</p>
-		{#if daysLeftText}
-			<p class="text-[11px] font-medium">{daysLeftText}</p>
+{#snippet deadlineActionBar(className: string)}
+	{@const showProgress = Boolean(windowProgress && adDateShort && applyByShort)}
+	{@const showFallbackDates = !showProgress && Boolean(adDateLabel || applyByLabel)}
+	<div class="space-y-2 border-t border-border/60 {className}">
+		{#if showProgress}
+			{@render deadlineProgressBar()}
+		{/if}
+		{#if showFallbackDates}
+			<div class="flex flex-wrap items-center gap-2">
+				{#if adDateLabel}
+					<span class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+						<span class="font-medium">Posted</span>
+						<span class="tabular-nums font-semibold text-foreground">{adDateLabel}</span>
+					</span>
+				{/if}
+				{#if applyByLabel}
+					<span
+						class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 {applyByClass}"
+					>
+						<span class="text-xs font-semibold tracking-wide">
+							{expired ? "Closed" : "Apply by"} {applyByLabel}
+						</span>
+						{#if daysLeftText}
+							<span class="text-[11px] font-medium opacity-90">· {daysLeftText}</span>
+						{/if}
+					</span>
+				{/if}
+			</div>
 		{/if}
 	</div>
 {/snippet}
@@ -373,6 +433,54 @@
 	</div>
 {/snippet}
 
+{#snippet statusShareCluster()}
+	{#if recentAd || expired || closingSoon || !isStatic || showViewAdBesideShare}
+		<div class="flex shrink-0 flex-wrap items-start justify-end gap-1.5">
+			{#if recentAd}
+				<span
+					class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+						? ''
+						: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+				>
+					New
+				</span>
+			{/if}
+			{#if expired}
+				<span
+					class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
+				>
+					Expired
+				</span>
+			{:else if closingSoon}
+				<span
+					class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
+				>
+					Closing soon
+				</span>
+			{/if}
+			{#if showViewAdBesideShare || !isStatic}
+				<div class="flex flex-col items-stretch gap-1.5">
+					{#if !isStatic}
+						<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+					{/if}
+					{#if showViewAdBesideShare}
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							class={hideViewAdOnDesktop ? "sm:hidden" : ""}
+							onclick={() => (adOpen = true)}
+						>
+							<ImageIcon data-icon="inline-start" />
+							View Ad
+						</Button>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
+
 {#if adUrl}
 	<JobAdModal
 		bind:open={adOpen}
@@ -396,121 +504,74 @@
 				{@render adThumb()}
 			{/if}
 
-			<div class="min-w-0 flex-1 space-y-1.5">
-				{#if recentAd || expired || closingSoon || job.donor_name}
-					<div class="flex flex-wrap items-center gap-1.5">
-						{#if recentAd}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-									? ''
-									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-							>
-								New
-							</span>
-						{/if}
-						{#if expired}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
-							>
-								Expired
-							</span>
-						{:else if closingSoon}
-							<span
-								class="inline-flex h-5 items-center rounded-full bg-status-closing-bg px-2 text-xs font-medium text-status-closing"
-							>
-								Closing soon
-							</span>
-						{/if}
-						{#if job.donor_name}
+			<div class="flex min-w-0 flex-1 items-start gap-2">
+				<div class="min-w-0 flex-1 space-y-1.5">
+					{#if job.donor_name}
+						<div class="flex flex-wrap items-center gap-1.5">
 							<span
 								class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
 								title={job.donor_name}
 							>
 								{job.donor_name}
 							</span>
-						{/if}
-					</div>
-				{/if}
-
-				<div class="flex flex-wrap items-start gap-1.5">
-					<a
-						{href}
-						class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					>
-						<span
-							class="text-base font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary"
-						>
-							{job.title ?? "Untitled posting"}
-						</span>
-					</a>
-					{#if job.grade}
-						<Badge
-							variant="secondary"
-							href={badgeFilterHref(job.grade, sort, "grade", page.url)}
-							aria-label="Filter by grade {job.grade}"
-							class="mt-0.5 shrink-0 underline-offset-2 hover:underline"
-						>
-							{job.grade}
-						</Badge>
+						</div>
 					{/if}
-					<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
-						<GenderIcons gender={job.gender} />
-						<DisabilityIcon show={Boolean(job.disability_quota)} />
-					</span>
-				</div>
 
-				{@render departmentLink("truncate")}
-
-				{@render programBlock()}
-
-				{#if job.degrees || job.degree_area}
-					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-						{@render degreesRow()}
-						{@render specializationRow()}
-					</div>
-				{/if}
-
-				<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-					{@render locationRow()}
-					{@render salaryChip()}
-					{@render ageChip()}
-				</div>
-				<JobApplyLink
-					applicationOnlineAddress={job.application_online_address}
-					email={job.email}
-					urlWebTitle={job.url_web_title}
-				/>
-			</div>
-
-			<div
-				class="hidden shrink-0 md:flex md:w-40 md:flex-col md:gap-2 md:self-stretch md:border-l md:border-border/60 md:pl-3 lg:w-44 lg:pl-3.5"
-			>
-				{#if applyByLabel}
-					{@render deadlineRail()}
-				{/if}
-				{#if (adUrl && !adThumbUrl) || !isStatic}
-					<div class="flex flex-col gap-2">
-						{#if adUrl && !adThumbUrl}
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								onclick={() => (adOpen = true)}
+					<div class="flex flex-wrap items-start gap-1.5">
+						<a
+							{href}
+							class="group min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						>
+							<span
+								class="text-base font-semibold leading-snug tracking-tight text-foreground group-hover:text-primary"
 							>
-								<ImageIcon data-icon="inline-start" />
-								View Ad
-							</Button>
+								{job.title ?? "Untitled posting"}
+							</span>
+						</a>
+						{#if job.grade}
+							<Badge
+								variant="secondary"
+								href={badgeFilterHref(job.grade, sort, "grade", page.url)}
+								aria-label="Filter by grade {job.grade}"
+								class="mt-0.5 shrink-0 underline-offset-2 hover:underline"
+							>
+								{job.grade}
+							</Badge>
 						{/if}
-						{#if !isStatic}
-							<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
-						{/if}
+						<span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5">
+							<GenderIcons gender={job.gender} />
+							<DisabilityIcon show={Boolean(job.disability_quota)} />
+						</span>
 					</div>
-				{/if}
+
+					{@render departmentLink("truncate")}
+
+					{@render programBlock()}
+
+					{#if job.degrees || job.degree_area}
+						<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+							{@render degreesRow()}
+							{@render specializationRow()}
+						</div>
+					{/if}
+
+					<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+						{@render locationRow()}
+						{@render salaryChip()}
+						{@render ageChip()}
+					</div>
+					<JobApplyLink
+						applicationOnlineAddress={job.application_online_address}
+						email={job.email}
+						urlWebTitle={job.url_web_title}
+					/>
+				</div>
+				{@render statusShareCluster()}
 			</div>
 		</div>
 
-		{#if applyByLabel || !isStatic}
-			{@render deadlineActionBar("px-2.5 py-1.5 sm:px-4 md:hidden")}
+		{#if applyByLabel || adDateLabel}
+			{@render deadlineActionBar("px-2.5 py-1.5 sm:px-4")}
 		{/if}
 
 		{#if !isStatic && categoryTags.length}
@@ -526,31 +587,20 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<Card.Header class="gap-1 pb-1.5 sm:gap-1.5 sm:pb-2">
-			{#if recentAd || job.donor_name}
+			{#if job.donor_name}
 				<div class="mb-1 flex flex-wrap items-center gap-1.5">
-					{#if recentAd}
-						<span
-							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
-								? ''
-								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-						>
-							New
-						</span>
-					{/if}
-					{#if job.donor_name}
-						<span
-							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
-								? ''
-								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-						>
-							{job.donor_name}
-						</span>
-					{/if}
+					<span
+						class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+							? ''
+							: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+					>
+						{job.donor_name}
+					</span>
 				</div>
 			{/if}
 			<div class="flex flex-wrap items-start justify-between gap-2">
 				<Card.Title
-					class="flex flex-wrap items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground"
+					class="flex min-w-0 flex-1 flex-wrap items-start gap-1.5 text-base! font-semibold tracking-tight leading-snug text-foreground"
 				>
 					<a
 						{href}
@@ -573,7 +623,16 @@
 						<DisabilityIcon show={Boolean(job.disability_quota)} />
 					</span>
 				</Card.Title>
-				<div class="flex flex-wrap gap-1.5">
+				<div class="flex shrink-0 flex-wrap items-start justify-end gap-1.5">
+					{#if recentAd}
+						<span
+							class="inline-flex h-5 items-center rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800 dark:bg-green-950/70 dark:text-green-300 {isStatic
+								? ''
+								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+						>
+							New
+						</span>
+					{/if}
 					{#if expired}
 						<span
 							class="inline-flex h-5 items-center rounded-full bg-status-closed-bg px-2 text-xs font-medium text-status-closed"
@@ -596,6 +655,24 @@
 						>
 							{job.grade}
 						</Badge>
+					{/if}
+					{#if showViewAdBesideShare || !isStatic}
+						<div class="flex flex-col items-stretch gap-1.5">
+							{#if !isStatic}
+								<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+							{/if}
+							{#if showViewAdBesideShare}
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onclick={() => (adOpen = true)}
+								>
+									<ImageIcon data-icon="inline-start" />
+									View Ad
+								</Button>
+							{/if}
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -620,7 +697,7 @@
 				email={job.email}
 				urlWebTitle={job.url_web_title}
 			/>
-			{#if applyByLabel || !isStatic}
+			{#if applyByLabel || adDateLabel}
 				{@render deadlineActionBar("pt-1.5")}
 			{/if}
 			{#if !isStatic && categoryTags.length}

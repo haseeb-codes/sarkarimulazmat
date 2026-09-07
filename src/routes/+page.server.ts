@@ -3,6 +3,7 @@ import {
 	filtersAreActive,
 	countJobs,
 	getClosingOnDates,
+	getPostedOnDates,
 	listJobs,
 	parseJobFilters
 } from '$lib/server/jobs';
@@ -39,9 +40,14 @@ export const load: PageServerLoad = ({ url, locals }) => {
 			};
 		});
 
-	// Non-blocking: Closing On dropdown options stream after the shell paints.
+	// Non-blocking: Closing On / Posted On dropdown options stream after the shell paints.
 	const closingOnDates = getClosingOnDates().catch((err) => {
 		console.error('Failed to load closing-on dates', err);
+		return [] as string[];
+	});
+
+	const postedOnDates = getPostedOnDates().catch((err) => {
+		console.error('Failed to load posted-on dates', err);
 		return [] as string[];
 	});
 
@@ -57,6 +63,7 @@ export const load: PageServerLoad = ({ url, locals }) => {
 		resultCount,
 		listing,
 		closingOnDates,
+		postedOnDates,
 		topTags
 	};
 };

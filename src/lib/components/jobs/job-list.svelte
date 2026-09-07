@@ -170,9 +170,11 @@
 		};
 	});
 
-	/** Drop stale scroll state and highlights when the filter set changes. */
+	/** Drop stale scroll state when filters change or the user jumps to another page. */
 	$effect(() => {
 		void resultKey;
+		void filters.page;
+		appended = { key: '', groups: [] };
 		loadMoreError = null;
 		clearFreshHighlight();
 	});

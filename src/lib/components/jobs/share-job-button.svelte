@@ -58,7 +58,9 @@
 	type="button"
 	variant="outline"
 	{size}
-	class={className}
+	class="border-primary/35 bg-primary/10 text-primary hover:bg-primary/18 hover:text-primary {copied
+		? 'border-status-open/40 bg-status-open-bg text-status-open hover:bg-status-open-bg hover:text-status-open'
+		: ''} {className}"
 	onclick={share}
 	aria-label={copied ? 'Link copied' : `Share ${shareTitle}`}
 >

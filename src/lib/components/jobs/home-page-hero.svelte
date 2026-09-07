@@ -132,7 +132,14 @@
 								/>
 							</span>
 						{/if}
-						<span class="min-w-0 truncate">{portal.shortLabel}</span>
+						<span class="min-w-0 truncate">
+							{#if portal.slug === 'punjab-jobs-portal'}
+								<span class="md:hidden">{portal.shortLabel}</span>
+								<span class="hidden md:inline">{portal.label}</span>
+							{:else}
+								{portal.shortLabel}
+							{/if}
+						</span>
 						{#if countFor(portal.label) == null}
 							<Skeleton class="inline-block h-3 w-8 shrink-0 align-middle" />
 						{:else}

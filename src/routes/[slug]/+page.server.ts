@@ -8,6 +8,7 @@ import {
 	listJobs,
 	countJobs,
 	getClosingOnDates,
+	getPostedOnDates,
 	parseJobFilters,
 	type JobFilters
 } from '$lib/server/jobs';
@@ -174,6 +175,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		return [] as string[];
 	});
 
+	const postedOnDates = getPostedOnDates().catch((err) => {
+		console.error('Failed to load posted-on dates', err);
+		return [] as string[];
+	});
+
 	return {
 		kind: 'category' as const,
 		category: {
@@ -187,6 +193,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		filtered,
 		resultCount,
 		listing,
-		closingOnDates
+		closingOnDates,
+		postedOnDates
 	};
 };

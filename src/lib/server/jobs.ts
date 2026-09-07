@@ -418,6 +418,7 @@ const SEARCHABLE_TEXT_FIELDS = [
 
 let filterOptionsCache: { data: FilterOptions; expiresAt: number } | null = null;
 let closingOnDatesCache: { data: string[]; expiresAt: number } | null = null;
+let postedOnDatesCache: { data: string[]; expiresAt: number } | null = null;
 let browseCountsCache: { data: BrowseByCategoryData; expiresAt: number } | null = null;
 let portalCountsCache: { data: PortalJobCount[]; expiresAt: number } | null = null;
 
@@ -1299,6 +1300,32 @@ export async function getClosingOnDates(): Promise<string[]> {
 		.filter((key): key is string => key != null);
 
 	closingOnDatesCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
+	return data;
+}
+
+/**
+ * Unique `ad_date` values for active jobs (newest first).
+ * Cached briefly so the Posted On filter dropdown stays cheap.
+ */
+export async function getPostedOnDates(): Promise<string[]> {
+	const now = Date.now();
+	if (postedOnDatesCache && postedOnDatesCache.expiresAt > now) {
+		return postedOnDatesCache.data;
+	}
+
+	const rows = await db.jobPostings.groupBy({
+		by: ['ad_date'],
+		where: {
+			AND: [IS_ACTIVE_JOB, { ad_date: { not: null } }]
+		},
+		orderBy: { ad_date: 'desc' }
+	});
+
+	const data = rows
+		.map((row) => toDateKey(row.ad_date))
+		.filter((key): key is string => key != null);
+
+	postedOnDatesCache = { data, expiresAt: now + FILTER_OPTIONS_TTL_MS };
 	return data;
 }
 

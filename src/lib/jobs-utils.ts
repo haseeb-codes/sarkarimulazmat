@@ -69,9 +69,38 @@ export function daysUntilDate(value: string | Date | null | undefined): number |
 	return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function isClosingSoon(lastDate: string | Date | null | undefined, withinDays = 7): boolean {
+export function isClosingSoon(lastDate: string | Date | null | undefined, withinDays = 3): boolean {
 	const days = daysUntilDate(lastDate);
 	return days != null && days >= 0 && days <= withinDays;
+}
+
+/**
+ * Progress through the application window from post date to deadline.
+ * Uses inclusive calendar days so e.g. post 01 Sep → deadline 10 Sep on 07 Sep
+ * is 7/10 = 70% elapsed with 3 days left.
+ */
+export function applicationWindowProgress(
+	adDate: string | Date | null | undefined,
+	lastDate: string | Date | null | undefined
+): { progressPct: number; daysLeft: number; windowDays: number } | null {
+	const postKey = toDateKey(adDate);
+	const deadlineKey = toDateKey(lastDate);
+	if (!postKey || !deadlineKey) return null;
+
+	const post = new Date(`${postKey}T00:00:00.000Z`);
+	const deadline = new Date(`${deadlineKey}T00:00:00.000Z`);
+	if (Number.isNaN(post.getTime()) || Number.isNaN(deadline.getTime())) return null;
+	if (deadline.getTime() < post.getTime()) return null;
+
+	const msPerDay = 1000 * 60 * 60 * 24;
+	const windowDays = Math.floor((deadline.getTime() - post.getTime()) / msPerDay) + 1;
+	const today = startOfTodayUtc();
+	const elapsedRaw = Math.floor((today.getTime() - post.getTime()) / msPerDay) + 1;
+	const elapsedDays = Math.min(windowDays, Math.max(0, elapsedRaw));
+	const daysLeft = Math.max(0, Math.floor((deadline.getTime() - today.getTime()) / msPerDay));
+	const progressPct = Math.round((elapsedDays / windowDays) * 100);
+
+	return { progressPct, daysLeft, windowDays };
 }
 
 export type GenderKind = 'male' | 'female' | 'transgender';
@@ -268,6 +297,7 @@ export function expandGradeFilter(value: string): string[] {
 export type FilterParams = {
 	degree_areas?: string[];
 	education_level?: string | null;
+	/** Exact match on ad/posted date (YYYY-MM-DD). */
 	ad_date?: string | null;
 	/** Exact match on last date to apply (YYYY-MM-DD). */
 	closing_on?: string | null;
@@ -486,7 +516,7 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 	if (filters.ad_date) {
 		chips.push({
 			id: 'ad_date',
-			label: `Posted: ${filters.ad_date}`,
+			label: `Posted: ${formatDateLabel(filters.ad_date) ?? filters.ad_date}`,
 			clear: { ad_date: null }
 		});
 	}
@@ -945,6 +975,8 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		qualification_level: null,
 		degree_areas: [],
 		grade: null,
+		ad_date: null,
+		closing_on: null,
 		domicile: [],
 		domicile_region: [],
 		tag: [],
@@ -970,6 +1002,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(isQualificationFilterActive(filters) ? 1 : 0) +
 		(filters.degree_areas?.length ? 1 : 0) +
 		(filters.grade ? 1 : 0) +
+		(filters.ad_date ? 1 : 0) +
 		(filters.closing_on ? 1 : 0) +
 		(selectedDomicileRegions(filters).length ? 1 : 0) +
 		(selectedTags(filters).length ? 1 : 0) +
@@ -1027,6 +1060,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 			.map((v) => v.trim())
 			.filter(Boolean),
 		grade: normalizeGradeFilter(params.get('grade')),
+		ad_date: toDateKey(params.get('ad_date')),
 		closing_on: toDateKey(params.get('closing_on')),
 		domicile_region: selectedDomicileRegions({
 			domicile_region: params.getAll('domicile_region')
@@ -1072,8 +1106,11 @@ export function eligibilityFiltersActive(filters: FilterParams): boolean {
 	);
 }
 
-/** Format YYYY-MM-DD (or Date) as dd-MMM-yyyy, e.g. 04-Aug-2026. */
-export function formatDateLabel(value: string | Date | null | undefined): string | null {
+/** Format YYYY-MM-DD (or Date) as dd-MMM-yyyy, e.g. 04-Aug-2026. Omit year with includeYear: false → 04 Aug. */
+export function formatDateLabel(
+	value: string | Date | null | undefined,
+	options?: { includeYear?: boolean }
+): string | null {
 	if (!value) return null;
 	const months = [
 		'Jan',
@@ -1108,6 +1145,8 @@ export function formatDateLabel(value: string | Date | null | undefined): string
 		if (monthIndex < 0 || monthIndex > 11 || day < 1 || day > 31) return value;
 	}
 
+	const dayMonth = `${String(day).padStart(2, '0')} ${months[monthIndex]}`;
+	if (options?.includeYear === false) return dayMonth;
 	return `${String(day).padStart(2, '0')}-${months[monthIndex]}-${year}`;
 }
 

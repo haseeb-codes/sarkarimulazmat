@@ -26,7 +26,9 @@
 		countLoading = false,
 		listingLoading = false,
 		listingError = null,
+		totalPages = 1,
 		closingOnDates = null,
+		postedOnDates = null,
 		children
 	}: {
 		filters: FilterParams;
@@ -35,8 +37,11 @@
 		countLoading?: boolean;
 		listingLoading?: boolean;
 		listingError?: string | null;
+		totalPages?: number;
 		/** Unique last-date-to-apply values for Closing On (streamed promise or resolved). */
 		closingOnDates?: Promise<string[]> | string[] | null;
+		/** Unique ad_date values for Posted On (streamed promise or resolved). */
+		postedOnDates?: Promise<string[]> | string[] | null;
 		children?: Snippet;
 	} = $props();
 
@@ -212,6 +217,7 @@
 				filters={displayFilters}
 				options={STATIC_DRAWER_FILTER_OPTIONS}
 				{closingOnDates}
+				{postedOnDates}
 				idPrefix="sidebar-"
 			/>
 		</div>
@@ -291,8 +297,8 @@
 												</div>
 											</div>
 										<Drawer.Description>
-											Narrow jobs by closing date, age, qualification, degree specialization, BPS
-											grade, regular jobs, and domicile.
+											Narrow jobs by posted date, closing date, age, qualification, degree
+											specialization, BPS grade, regular jobs, and domicile.
 										</Drawer.Description>
 									</Drawer.Header>
 									<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -300,6 +306,7 @@
 											filters={displayFilters}
 											options={STATIC_DRAWER_FILTER_OPTIONS}
 											{closingOnDates}
+											{postedOnDates}
 											idPrefix="drawer-"
 										/>
 									</div>
@@ -321,6 +328,7 @@
 				countLoading={countLoading}
 				loading={listingLoading}
 				error={listingError}
+				{totalPages}
 			/>
 		</div>
 
