@@ -65,12 +65,12 @@ export async function getJobsPostedLast7Days(): Promise<TrendPoint[]> {
 	const start = addUtcDays(today, -6);
 
 	const rows = await db.jobPostings.groupBy({
-		by: ['file_creation_date'],
+		by: ['ad_date'],
 		where: {
 			AND: [
 				IS_ACTIVE_JOB,
 				{
-					file_creation_date: {
+					ad_date: {
 						gte: start,
 						lte: today
 					}
@@ -82,7 +82,7 @@ export async function getJobsPostedLast7Days(): Promise<TrendPoint[]> {
 
 	const byDate = new Map<string, number>();
 	for (const row of rows) {
-		const key = toDateKey(row.file_creation_date);
+		const key = toDateKey(row.ad_date);
 		if (key) byDate.set(key, row._count._all);
 	}
 
