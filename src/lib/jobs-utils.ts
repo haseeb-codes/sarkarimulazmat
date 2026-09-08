@@ -360,6 +360,20 @@ export type FilterParams = {
 	has_salary?: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only?: boolean;
+	/**
+	 * Match listings to the signed-in user's profile (age, education, interests).
+	 * Requires Google sign-in; anonymous users are prompted to authenticate.
+	 */
+	personalized?: boolean;
+	/**
+	 * Internal (not URL-driven): when personalized + male profile, hide female-only jobs.
+	 */
+	exclude_female_only?: boolean;
+	/**
+	 * Internal (not URL-driven): fuzzy degree terms from profile title/specialization.
+	 * Matched against JobPostings `degree_area` and `degrees`.
+	 */
+	personalized_degree_terms?: string[];
 	/** Only women-eligible jobs (`gender` contains “Female”). */
 	women_only?: boolean;
 	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
@@ -452,6 +466,7 @@ export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 		params.set('has_salary', '1');
 	}
 	if (filters.permanent_only) params.set('permanent', '1');
+	if (filters.personalized) params.set('personalized', '1');
 	if (filters.women_only) params.set('women', '1');
 	if (filters.transgender_applicable) params.set('transgender', '1');
 	if (filters.disability_quota) params.set('disability', '1');
@@ -713,6 +728,14 @@ export function activeFilterChips(filters: FilterParams): ActiveFilterChip[] {
 			id: 'permanent',
 			label: 'Regular',
 			clear: { permanent_only: false }
+		});
+	}
+
+	if (filters.personalized) {
+		chips.push({
+			id: 'personalized',
+			label: 'Personalized',
+			clear: { personalized: false }
 		});
 	}
 
@@ -999,6 +1022,7 @@ export function clearDrawerFilterPatch(): Partial<FilterParams> {
 		portal: null,
 		has_salary: false,
 		permanent_only: false,
+		personalized: false,
 		women_only: false,
 		transgender_applicable: false,
 		disability_quota: false,
@@ -1024,6 +1048,7 @@ export function drawerFilterActiveCount(filters: FilterParams): number {
 		(isCollarFilterActive(filters) ? 1 : 0) +
 		(filters.portal ? 1 : 0) +
 		(filters.permanent_only ? 1 : 0) +
+		(filters.personalized ? 1 : 0) +
 		(filters.women_only ? 1 : 0) +
 		(filters.transgender_applicable ? 1 : 0) +
 		(filters.disability_quota ? 1 : 0) +
@@ -1089,6 +1114,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 		min_salary: null,
 		has_salary: params.get('has_salary') === '1',
 		permanent_only: params.get('permanent') === '1',
+		personalized: params.get('personalized') === '1',
 		women_only: params.get('women') === '1',
 		transgender_applicable: params.get('transgender') === '1',
 		disability_quota: params.get('disability') === '1',

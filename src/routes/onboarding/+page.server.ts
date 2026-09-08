@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const userId = session.user.id;
 
 	if (await isProfileComplete(userId)) {
-		redirect(303, '/profile');
+		redirect(303, '/?personalized=1');
 	}
 
 	const [profile, jobInterests, filterOptions] = await Promise.all([
@@ -204,6 +204,6 @@ export const actions: Actions = {
 			});
 		}
 
-		redirect(303, '/profile?saved=1');
+		return { stage: 3, success: true, completed: true };
 	}
 };

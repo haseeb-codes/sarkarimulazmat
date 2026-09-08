@@ -25,7 +25,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	}
 
 	if (session?.user?.id && profileComplete && url.pathname === '/onboarding') {
-		redirect(303, '/profile');
+		redirect(303, '/?personalized=1');
 	}
 
 	return {

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -24,6 +26,11 @@
 	let keywords = $state<string[]>([...data.jobInterests]);
 	let religion = $state(data.values.religion ?? DEFAULT_PROFILE_RELIGION);
 	let hasDisability = $state(data.values.hasDisability ?? false);
+	let onboardingComplete = $state(false);
+	let redirectSeconds = $state(5);
+	let redirectTimer: ReturnType<typeof setInterval> | null = null;
+
+	const HOME_PERSONALIZED_HREF = '/?personalized=1';
 
 	const stageMeta = {
 		1: { title: 'About you', description: 'Basic details we use for job matching.' },
@@ -37,7 +44,18 @@
 		}
 	} as const;
 
-	const dobValue = $derived(form?.dateOfBirth ?? data.values.dateOfBirth);
+	/** Native date pickers open on the current value; default empty DOB to 15 years ago. */
+	function yearsAgoDateInput(years: number): string {
+		const date = new Date();
+		date.setFullYear(date.getFullYear() - years);
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	const defaultDob = yearsAgoDateInput(15);
+	const dobValue = $derived((form?.dateOfBirth ?? data.values.dateOfBirth) || defaultDob);
 	const genderValue = $derived(form?.gender ?? data.values.gender);
 	const whatsappValue = $derived(form?.whatsappNumber ?? data.values.whatsappNumber);
 	const educationValue = $derived(form?.highestDegree ?? data.values.highestDegree);
@@ -60,6 +78,24 @@
 			if (typeof form.hasDisability === 'boolean') hasDisability = form.hasDisability;
 		}
 	});
+
+	onDestroy(() => {
+		if (redirectTimer) clearInterval(redirectTimer);
+	});
+
+	function startHomeRedirectCountdown() {
+		onboardingComplete = true;
+		redirectSeconds = 5;
+		if (redirectTimer) clearInterval(redirectTimer);
+		redirectTimer = setInterval(() => {
+			redirectSeconds -= 1;
+			if (redirectSeconds <= 0) {
+				if (redirectTimer) clearInterval(redirectTimer);
+				redirectTimer = null;
+				void goto(HOME_PERSONALIZED_HREF);
+			}
+		}, 1000);
+	}
 
 	function addKeyword() {
 		const value = keywordInput.trim();
@@ -97,44 +133,66 @@
 </svelte:head>
 
 <article class="mx-auto max-w-lg space-y-6">
-	<div class="space-y-2">
-		<h1>Complete your profile</h1>
-		<p class="text-sm leading-relaxed text-muted-foreground">
-			Step {stage} of 3 — {stageMeta[stage].description}
-		</p>
-		<div class="flex gap-2" aria-hidden="true">
-			{#each [1, 2, 3] as step (step)}
-				<div
-					class="h-1.5 flex-1 rounded-full transition-colors {step <= stage
-						? 'bg-primary'
-						: 'bg-muted'}"
-				></div>
-			{/each}
-		</div>
-	</div>
-
-	<Card>
-		<CardHeader>
-			<CardTitle>{stageMeta[stage].title}</CardTitle>
-			<CardDescription>
-				{#if data.profile?.name}
-					Signed in as {data.profile.name}
-				{:else if data.profile?.email}
-					Signed in as {data.profile.email}
-				{/if}
-			</CardDescription>
-		</CardHeader>
-		<CardContent>
-			{#if form?.error}
+	{#if onboardingComplete}
+		<Card>
+			<CardHeader>
+				<CardTitle>Profile saved</CardTitle>
+				<CardDescription>
+					Your profile is ready. Personalized job matching is turned on for you.
+				</CardDescription>
+			</CardHeader>
+			<CardContent class="space-y-4">
 				<p
-					class="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-					role="alert"
+					class="rounded-lg border border-emerald-600/30 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+					role="status"
+					aria-live="polite"
 				>
-					{form.error}
+					You will be redirected to the home page in
+					<span class="font-semibold tabular-nums">{redirectSeconds}</span>
+					second{redirectSeconds === 1 ? '' : 's'} with Personalized Jobs turned on.
 				</p>
-			{/if}
+				<Button href={HOME_PERSONALIZED_HREF} class="w-full">Go to personalized jobs now</Button>
+			</CardContent>
+		</Card>
+	{:else}
+		<div class="space-y-2">
+			<h1>Complete your profile</h1>
+			<p class="text-sm leading-relaxed text-muted-foreground">
+				Step {stage} of 3 — {stageMeta[stage].description}
+			</p>
+			<div class="flex gap-2" aria-hidden="true">
+				{#each [1, 2, 3] as step (step)}
+					<div
+						class="h-1.5 flex-1 rounded-full transition-colors {step <= stage
+							? 'bg-primary'
+							: 'bg-muted'}"
+					></div>
+				{/each}
+			</div>
+		</div>
 
-			{#if stage === 1}
+		<Card>
+			<CardHeader>
+				<CardTitle>{stageMeta[stage].title}</CardTitle>
+				<CardDescription>
+					{#if data.profile?.name}
+						Signed in as {data.profile.name}
+					{:else if data.profile?.email}
+						Signed in as {data.profile.email}
+					{/if}
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				{#if form?.error}
+					<p
+						class="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+						role="alert"
+					>
+						{form.error}
+					</p>
+				{/if}
+
+				{#if stage === 1}
 				<form
 					method="POST"
 					action="?/stage1"
@@ -276,9 +334,17 @@
 					class="space-y-4"
 					use:enhance={() => {
 						submitting = true;
-						return async ({ update }) => {
-							await update();
+						return async ({ result, update }) => {
 							submitting = false;
+							if (result.type === 'success' && result.data && result.data.completed) {
+								// Skip invalidate/load so layout does not redirect before the countdown.
+								startHomeRedirectCountdown();
+								return;
+							}
+							await update();
+							if (result.type === 'failure' && result.data && 'stage' in result.data) {
+								stage = result.data.stage as OnboardingStage;
+							}
 						};
 					}}
 				>
@@ -355,4 +421,5 @@
 			{/if}
 		</CardContent>
 	</Card>
+	{/if}
 </article>

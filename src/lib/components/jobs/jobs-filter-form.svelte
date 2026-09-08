@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { signIn } from '@auth/sveltekit/client';
 	import { onDestroy } from 'svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
@@ -87,6 +90,7 @@
 	let debouncedSpecializationSearch = $state('');
 	let specializationOpen = $state(false);
 	let permanentOnlyDraft = $state(false);
+	let personalizedDraft = $state(false);
 	let womenOnlyDraft = $state(false);
 	let transgenderApplicableDraft = $state(false);
 	let disabilityQuotaDraft = $state(false);
@@ -95,6 +99,10 @@
 	let collarDraft = $state<CollarLevel[]>([...COLLAR_LEVELS]);
 	let openCollarInfo = $state<CollarLevel | null>(null);
 	let failedPortalLogos = $state<Set<string>>(new Set());
+	let signInDialogOpen = $state(false);
+	let signingIn = $state(false);
+
+	const isSignedIn = $derived(Boolean(page.data.session?.user));
 
 	const tagOptions = $derived(options.tags ?? []);
 	const tagLabelBySlug = $derived.by(() => {
@@ -160,6 +168,7 @@
 		tagsDraft = selectedTags(filters);
 		degreeAreasDraft = [...(filters.degree_areas ?? [])];
 		permanentOnlyDraft = Boolean(filters.permanent_only);
+		personalizedDraft = Boolean(filters.personalized) && isSignedIn;
 		womenOnlyDraft = Boolean(filters.women_only);
 		transgenderApplicableDraft = Boolean(filters.transgender_applicable);
 		disabilityQuotaDraft = Boolean(filters.disability_quota);
@@ -310,6 +319,25 @@
 		navigate({ permanent_only: next });
 	}
 
+	function personalizedCallbackUrl(): string {
+		return filtersToHref({ ...filters, personalized: true, page: 1 }, page.url.pathname);
+	}
+
+	function setPersonalized(next: boolean) {
+		if (next && !isSignedIn) {
+			personalizedDraft = false;
+			signInDialogOpen = true;
+			return;
+		}
+		personalizedDraft = next;
+		navigate({ personalized: next });
+	}
+
+	function handleGoogleSignIn() {
+		signingIn = true;
+		signIn('google', { callbackUrl: personalizedCallbackUrl() });
+	}
+
 	function setWomenOnly(next: boolean) {
 		womenOnlyDraft = next;
 		navigate({ women_only: next });
@@ -357,6 +385,14 @@
 	function switchClass(on: boolean): string {
 		return `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
 			on ? 'bg-primary' : 'bg-input'
+		}`;
+	}
+
+	function personalizedSwitchClass(on: boolean): string {
+		return `relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+			on
+				? 'bg-emerald-600 focus-visible:ring-emerald-600'
+				: 'bg-red-500 focus-visible:ring-red-500'
 		}`;
 	}
 
@@ -474,6 +510,42 @@
 {/snippet}
 
 <div class="space-y-5">
+	<div
+		class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors {personalizedDraft
+			? 'border-emerald-600/40 bg-emerald-50 dark:bg-emerald-950/30'
+			: 'border-red-500/40 bg-red-50 dark:bg-red-950/30'}"
+	>
+		<div class="min-w-0 space-y-0.5">
+			<Label
+				for="{idPrefix}filter-personalized"
+				class="cursor-pointer text-xs font-semibold lg:text-sm {personalizedDraft
+					? 'text-emerald-800 dark:text-emerald-300'
+					: 'text-red-800 dark:text-red-300'}"
+				>Personalized Jobs</Label
+			>
+			<p
+				class="text-xs {personalizedDraft
+					? 'text-emerald-700/80 dark:text-emerald-400/80'
+					: 'text-red-700/80 dark:text-red-400/80'}"
+			>
+				Match jobs to your age, education, degree, and gender from your profile.
+			</p>
+		</div>
+		<button
+			id="{idPrefix}filter-personalized"
+			type="button"
+			role="switch"
+			aria-label="Personalized Jobs"
+			aria-checked={personalizedDraft}
+			onclick={() => setPersonalized(!personalizedDraft)}
+			class={personalizedSwitchClass(personalizedDraft)}
+		>
+			<span aria-hidden="true" class={switchThumbClass(personalizedDraft)}></span>
+		</button>
+	</div>
+
+	<Separator />
+
 	<div class="flex items-center justify-between gap-3">
 		<div class="min-w-0 space-y-0.5">
 			<Label for="{idPrefix}filter-permanent" class="cursor-pointer text-xs lg:text-sm"
@@ -957,3 +1029,29 @@
 		</button>
 	</div>
 </div>
+
+<Dialog.Root bind:open={signInDialogOpen}>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Sign in for Personalized Jobs</Dialog.Title>
+			<Dialog.Description>
+				Use your Google account so we can match government jobs to your profile and interests.
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer class="gap-2 sm:justify-end">
+			<Button
+				type="button"
+				variant="outline"
+				disabled={signingIn}
+				onclick={() => {
+					signInDialogOpen = false;
+				}}
+			>
+				Cancel
+			</Button>
+			<Button type="button" disabled={signingIn} onclick={handleGoogleSignIn}>
+				{signingIn ? 'Redirecting…' : 'Continue with Google'}
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

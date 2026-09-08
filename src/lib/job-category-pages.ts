@@ -88,6 +88,44 @@ export const HUMAN_RESOURCE_TERMS = [
 	'HR'
 ] as const;
 
+/** Terms for Artificial Intelligence / ML / data roles (matched in title and degree_area). */
+export const ARTIFICIAL_INTELLIGENCE_TERMS = [
+	'Artificial Intelligence',
+	'Machine Learning',
+	'Deep Learning',
+	'Natural Language Processing',
+	'Computer Vision',
+	'Neural Network',
+	'Neural Networks',
+	'Generative AI',
+	'Large Language Model',
+	'Large Language Models',
+	'Data Science',
+	'Data Scientist',
+	'Data Scientists',
+	'Data Analyst',
+	'Data Analysts',
+	'Data Analytics',
+	'Data Engineer',
+	'Data Engineers',
+	'Data Mining',
+	'Big Data',
+	'Business Intelligence',
+	'Predictive Analytics',
+	'AI Engineer',
+	'ML Engineer',
+	'MLOps',
+	'Prompt Engineering',
+	'Reinforcement Learning',
+	'Chatbot',
+	'Analytics',
+	'NLP',
+	'LLM',
+	'GenAI',
+	'AI',
+	'ML'
+] as const;
+
 export const LATEST_POSTED_JOBS_SLUG = 'latest-jobs';
 export const CLOSING_SOON_JOBS_SLUG = 'closing-soon-jobs';
 /** Deadline window for the Closing Soon tag (today through +N days). */
@@ -514,6 +552,17 @@ export const JOB_CATEGORY_PAGES: JobCategoryPageDef[] = [
 		emptyMessage: 'No active data science job openings right now'
 	},
 	{
+		slug: 'artificial-intelligence-jobs',
+		column: 'is_data_science_job',
+		degree_area_terms: [...ARTIFICIAL_INTELLIGENCE_TERMS],
+		title_terms: [...ARTIFICIAL_INTELLIGENCE_TERMS],
+		title: 'Artificial Intelligence Government Jobs in Pakistan — Sarkari Mulazmat',
+		h1: 'Artificial intelligence government jobs in Pakistan',
+		metaDescription:
+			'Government AI, machine learning, data science, and analytics job openings in Pakistan.',
+		emptyMessage: 'No active artificial intelligence job openings right now'
+	},
+	{
 		slug: 'biology-jobs',
 		degree_area_terms: ['biology', 'biologist'],
 		title: 'Biology Government Jobs in Pakistan — Sarkari Mulazmat',
@@ -712,6 +761,7 @@ export const JOB_CATEGORY_LABELS: Record<string, string> = {
 	'acma-jobs': 'ACMA / CMA',
 	'statistician-jobs': 'Statistician',
 	'data-science-jobs': 'Data Science',
+	'artificial-intelligence-jobs': 'Artificial Intelligence',
 	'biology-jobs': 'Biology',
 	'mathematics-jobs': 'Mathematics',
 	'physics-jobs': 'Physics',
@@ -810,6 +860,7 @@ export const JOB_CARD_CATEGORY_SLUGS = [
 	'agriculture-jobs',
 	'environmental-sciences-jobs',
 	'statistician-jobs',
+	'artificial-intelligence-jobs',
 	'civil-engineer-jobs',
 	'mechanical-engineer-jobs',
 	'electrical-engineer-jobs',
@@ -845,7 +896,7 @@ function textMatchesTerm(text: string, term: string): boolean {
 	return haystack.includes(needle);
 }
 
-/** Allowlisted category tags for a job card (MBBS, Surgery/Surgeon, BDS & Dentistry, LLB, Pharmacist, Nursing, B.Ed/M.Ed, Communication Studies, Accounting & Finance, DAE, Islamic Studies, Computer Science, Information Technology, Computer Operator, Helper, Clerk, Sanitary Workers, Admin, Naib Qasid, Driver, MBA, Human Resource Management, Commerce M.COM/B.COM, ACCA, Biology, Mathematics, Physics, Chemistry, Library Science, English, Urdu, Physiology, Social Science, Agriculture, Environmental Sciences, Statistician, Civil Engineer, Mechanical Engineer, Electrical/Electronics, Chemical & Metallurgy, Mechatronics, Law Enforcement, Army Officer, Economist). */
+/** Allowlisted category tags for a job card (MBBS, Surgery/Surgeon, BDS & Dentistry, LLB, Pharmacist, Nursing, B.Ed/M.Ed, Communication Studies, Accounting & Finance, DAE, Islamic Studies, Computer Science, Information Technology, Computer Operator, Helper, Clerk, Sanitary Workers, Admin, Naib Qasid, Driver, MBA, Human Resource Management, Commerce M.COM/B.COM, ACCA, Biology, Mathematics, Physics, Chemistry, Library Science, English, Urdu, Physiology, Social Science, Agriculture, Environmental Sciences, Statistician, Artificial Intelligence, Civil Engineer, Mechanical Engineer, Electrical/Electronics, Chemical & Metallurgy, Mechatronics, Law Enforcement, Army Officer, Economist). */
 export function getJobCategoryTagsForJob(job: JobCategoryMatchInput): JobCategoryTagRef[] {
 	const tags: JobCategoryTagRef[] = [];
 

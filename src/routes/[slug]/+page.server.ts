@@ -13,6 +13,7 @@ import {
 	type JobFilters
 } from '$lib/server/jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
+import { applyPersonalizedFilters } from '$lib/server/personalized-jobs';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 import {
 	isAgeFilterActive,
@@ -53,10 +54,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		error(404, 'Category not found');
 	}
 
+	const session = await locals.auth();
 	const preset = (category.filters ?? {}) as Partial<JobFilters>;
 	const urlFilters = parseJobFilters(url);
 
-	const filters: JobFilters = {
+	const merged: JobFilters = {
 		...urlFilters,
 		degree_areas: preset.degree_areas?.length ? preset.degree_areas : urlFilters.degree_areas,
 		education_level: preset.education_level ?? urlFilters.education_level,
@@ -103,6 +105,9 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		program: urlFilters.program,
 		has_salary: urlFilters.has_salary,
 		permanent_only: urlFilters.permanent_only,
+		personalized: urlFilters.personalized,
+		exclude_female_only: false,
+		personalized_degree_terms: [],
 		women_only: urlFilters.women_only,
 		transgender_applicable: urlFilters.transgender_applicable,
 		disability_quota: urlFilters.disability_quota,
@@ -111,6 +116,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		salary_from: urlFilters.salary_from,
 		salary_to: urlFilters.salary_to
 	};
+
+	const filters = await applyPersonalizedFilters(merged, session?.user?.id);
 
 	const filtered = Boolean(
 		urlFilters.ad_date ||
@@ -128,6 +135,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			urlFilters.collar.length ||
 			urlFilters.has_salary ||
 			urlFilters.permanent_only ||
+			urlFilters.personalized ||
 			urlFilters.women_only ||
 			urlFilters.transgender_applicable ||
 			urlFilters.disability_quota ||
@@ -142,7 +150,10 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 			urlFilters.show_expired
 	);
 
-	const filtersSnapshot = jobFiltersSnapshot(filters);
+	const filtersSnapshot = jobFiltersSnapshot({
+		...merged,
+		personalized: Boolean(filters.personalized)
+	});
 	const tracking = {
 		...jobQueryTrackingFromLocals(locals, url.pathname + url.search),
 		log: filtered

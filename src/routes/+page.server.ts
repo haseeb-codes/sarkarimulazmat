@@ -9,11 +9,17 @@ import {
 } from '$lib/server/jobs';
 import { getTopTagCounts } from '$lib/server/job-category-jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
+import { applyPersonalizedFilters } from '$lib/server/personalized-jobs';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 
-export const load: PageServerLoad = ({ url, locals }) => {
-	const filters = parseJobFilters(url);
-	const snapshot = jobFiltersSnapshot(filters);
+export const load: PageServerLoad = async ({ url, locals }) => {
+	const session = await locals.auth();
+	const urlFilters = parseJobFilters(url);
+	const filters = await applyPersonalizedFilters(urlFilters, session?.user?.id);
+	const snapshot = jobFiltersSnapshot({
+		...urlFilters,
+		personalized: Boolean(filters.personalized)
+	});
 	const filtered = filtersAreActive(filters);
 	const tracking = jobQueryTrackingFromLocals(locals, url.pathname + url.search);
 

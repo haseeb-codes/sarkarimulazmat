@@ -70,6 +70,10 @@ export type JobFilters = FilterParams & {
 	has_salary: boolean;
 	/** Only permanent jobs (`employment_type` = Permanent). */
 	permanent_only: boolean;
+	/** Personalized mode: hide jobs open only to females / women-only flag. */
+	exclude_female_only: boolean;
+	/** Personalized mode: fuzzy terms from profile degree title / specialization. */
+	personalized_degree_terms: string[];
 	/** Only women-eligible jobs (`gender` contains “Female”). */
 	women_only: boolean;
 	/** Only transgender-applicable jobs (`gender` contains “Transgender”). */
@@ -539,6 +543,9 @@ export function parseJobFilters(url: URL): JobFilters {
 		q: firstParam(url, 'q'),
 		has_salary: url.searchParams.get('has_salary') === '1',
 		permanent_only: url.searchParams.get('permanent') === '1',
+		personalized: url.searchParams.get('personalized') === '1',
+		exclude_female_only: false,
+		personalized_degree_terms: [],
 		women_only: url.searchParams.get('women') === '1',
 		transgender_applicable: url.searchParams.get('transgender') === '1',
 		disability_quota: url.searchParams.get('disability') === '1',
@@ -580,6 +587,7 @@ export function filtersAreActive(filters: JobFilters): boolean {
 			filters.q ||
 			filters.has_salary ||
 			filters.permanent_only ||
+			filters.personalized ||
 			filters.women_only ||
 			filters.transgender_applicable ||
 			filters.disability_quota ||
@@ -711,6 +719,22 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 			);
 		}
 		and.push({ OR: degreeOr });
+	}
+
+	// Personalized fuzzy degree match (profile degree_title / degree_specialization)
+	if (filters.personalized_degree_terms.length) {
+		const fuzzyOr: Prisma.JobPostingsWhereInput[] = [];
+		for (const term of filters.personalized_degree_terms) {
+			const phrase = term.trim();
+			if (!phrase) continue;
+			fuzzyOr.push(
+				{ degree_area: { contains: phrase, mode: 'insensitive' } },
+				{ degrees: { contains: phrase, mode: 'insensitive' } }
+			);
+		}
+		if (fuzzyOr.length) {
+			and.push({ OR: fuzzyOr });
+		}
 	}
 
 	// Education level — free-text with casing variance; contains is more reliable than exact
@@ -874,6 +898,34 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 
 	if (filters.permanent_only) {
 		and.push({ employment_type: { equals: 'Permanent', mode: 'insensitive' } });
+	}
+
+	// Male profile (personalized): hide female-only / women-only postings; keep male, both, or unspecified.
+	if (filters.exclude_female_only) {
+		const maleEligible = genderMatchWhere('male');
+		and.push({
+			AND: [
+				{
+					OR: [{ is_women_only_job: null }, { is_women_only_job: { not: 1 } }]
+				},
+				{
+					OR: [
+						{ gender: null },
+						{ gender: { equals: '' } },
+						...(Array.isArray(maleEligible.OR) ? maleEligible.OR : [maleEligible]),
+						{
+							AND: [
+								{ NOT: { gender: { contains: 'female', mode: 'insensitive' } } },
+								{ NOT: { gender: { equals: 'f', mode: 'insensitive' } } },
+								{ NOT: { gender: { startsWith: 'f,', mode: 'insensitive' } } },
+								{ NOT: { gender: { contains: ', f', mode: 'insensitive' } } },
+								{ NOT: { gender: { contains: 'trans', mode: 'insensitive' } } }
+							]
+						}
+					]
+				}
+			]
+		});
 	}
 
 	if (filters.women_only) {
@@ -1395,6 +1447,9 @@ function browseBaseFilters(partial: Partial<JobFilters> = {}): JobFilters {
 		q: null,
 		has_salary: false,
 		permanent_only: false,
+		personalized: false,
+		exclude_female_only: false,
+		personalized_degree_terms: [],
 		women_only: false,
 		transgender_applicable: false,
 		disability_quota: false,

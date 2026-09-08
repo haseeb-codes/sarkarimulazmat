@@ -32,6 +32,7 @@ export function jobFiltersSnapshot(filters: JobFilters) {
 		q: filters.q,
 		has_salary: filters.has_salary,
 		permanent_only: filters.permanent_only,
+		personalized: Boolean(filters.personalized),
 		women_only: filters.women_only,
 		transgender_applicable: filters.transgender_applicable,
 		disability_quota: filters.disability_quota,
