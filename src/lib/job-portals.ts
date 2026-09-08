@@ -10,9 +10,13 @@ export type JobPortal = {
 	logoSrc: string;
 	/**
 	 * Substring matched against `url_web_title` for portal filters/counts.
-	 * Defaults to `label` when omitted.
+	 * Defaults to `label` when omitted. Ignored when `postedByMatch` is set.
 	 */
 	urlWebTitleMatch?: string;
+	/**
+	 * Exact `posted_by` value for portal filters/counts (preferred over `url_web_title`).
+	 */
+	postedByMatch?: string;
 };
 
 export const JOB_PORTALS: JobPortal[] = [
@@ -92,7 +96,8 @@ export const JOB_PORTALS: JobPortal[] = [
 		shortLabel: 'PPSC',
 		slug: 'ppsc',
 		website: 'https://ppsc.gop.pk',
-		logoSrc: '/portals/ppsc.png'
+		logoSrc: '/portals/ppsc.png',
+		postedByMatch: 'PPSC'
 	},
 	{
 		label: 'SIBA Testing Services (STS)',

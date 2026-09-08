@@ -743,9 +743,13 @@ export function buildJobWhere(filters: JobFilters): Prisma.JobPostingsWhereInput
 	}
 
 	if (filters.portal) {
-		const portalMatch =
-			JOB_PORTAL_BY_LABEL.get(filters.portal)?.urlWebTitleMatch ?? filters.portal;
-		and.push({ url_web_title: { contains: portalMatch, mode: 'insensitive' } });
+		const portal = JOB_PORTAL_BY_LABEL.get(filters.portal);
+		if (portal?.postedByMatch) {
+			and.push({ posted_by: { equals: portal.postedByMatch } });
+		} else {
+			const portalMatch = portal?.urlWebTitleMatch ?? filters.portal;
+			and.push({ url_web_title: { contains: portalMatch, mode: 'insensitive' } });
+		}
 	}
 
 	if (filters.gender) {

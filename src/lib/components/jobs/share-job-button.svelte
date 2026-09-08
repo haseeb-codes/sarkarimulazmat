@@ -9,12 +9,15 @@
 		title,
 		text = null,
 		size = 'sm',
+		/** Icon-only (mobile / narrow grid cards); label stays in the tooltip. */
+		compact = false,
 		class: className = ''
 	}: {
 		url: string;
 		title: string | null;
 		text?: string | null;
 		size?: ButtonSize;
+		compact?: boolean;
 		class?: string;
 	} = $props();
 
@@ -69,10 +72,14 @@
 	>
 		{#if copied}
 			<CheckIcon />
-			<span class="hidden sm:inline">Copied</span>
+			{#if !compact}
+				<span class="hidden sm:inline">Copied</span>
+			{/if}
 		{:else}
 			<Share2Icon />
-			<span class="hidden sm:inline">Share</span>
+			{#if !compact}
+				<span class="hidden sm:inline">Share</span>
+			{/if}
 		{/if}
 	</Button>
 </PortalTooltip>

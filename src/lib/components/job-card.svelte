@@ -429,7 +429,7 @@
 	</div>
 {/snippet}
 
-{#snippet viewAdButton(extraClass = "")}
+{#snippet viewAdButton(extraClass = "", compact = false)}
 	<PortalTooltip label="View ad" class={extraClass}>
 		<Button
 			type="button"
@@ -438,8 +438,12 @@
 			onclick={() => (adOpen = true)}
 		>
 			<ImageIcon data-icon="inline-start" />
-			<span class="sm:hidden">Ad</span>
-			<span class="hidden sm:inline">View Ad</span>
+			{#if compact}
+				Ad
+			{:else}
+				<span class="sm:hidden">Ad</span>
+				<span class="hidden sm:inline">View Ad</span>
+			{/if}
 		</Button>
 	</PortalTooltip>
 {/snippet}
@@ -643,10 +647,15 @@
 					{#if showViewAdBesideShare || !isStatic}
 						<div class="flex flex-row items-center gap-1">
 							{#if !isStatic}
-								<ShareJobButton url={shareUrl} title={job.title} text={job.department} />
+								<ShareJobButton
+									url={shareUrl}
+									title={job.title}
+									text={job.department}
+									compact
+								/>
 							{/if}
 							{#if showViewAdBesideShare}
-								{@render viewAdButton()}
+								{@render viewAdButton("", true)}
 							{/if}
 						</div>
 					{/if}
