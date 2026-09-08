@@ -50,7 +50,7 @@ export const JOB_PORTALS: JobPortal[] = [
 	},
 	{
 		label: 'IWork4Sindh (IW4S)',
-		shortLabel: 'IW4S',
+		shortLabel: 'IWork4Sindh',
 		slug: 'iwork4sindh',
 		website: 'https://www.iwork4sindh.com.pk',
 		logoSrc: '/portals/iwork4sindh.png',
