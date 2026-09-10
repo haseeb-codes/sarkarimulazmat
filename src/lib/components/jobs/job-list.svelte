@@ -6,7 +6,13 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { browseShownCount, browseLoadedPage, browseViewMode, initBrowseViewModeForViewport } from '$lib/browse-view-mode';
+	import {
+		browseShownCount,
+		browseLoadedPage,
+		browseViewMode,
+		FRESH_CARD_HIGHLIGHT_MS,
+		initBrowseViewModeForViewport
+	} from '$lib/browse-view-mode';
 	import {
 		filtersToSearchParams,
 		urlHasSearchParams,
@@ -82,8 +88,6 @@
 	let freshIds = $state<Set<string>>(new Set());
 	let freshClearTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const HIGHLIGHT_MS = 2800;
-
 	/** Identity of the active filter set — mirrors URL search params, ignores page. */
 	const resultKey = $derived(
 		filtersToSearchParams({ ...filters, page: 1 }).toString()
@@ -152,7 +156,7 @@
 		freshClearTimer = setTimeout(() => {
 			freshIds = new Set();
 			freshClearTimer = null;
-		}, HIGHLIGHT_MS);
+		}, FRESH_CARD_HIGHLIGHT_MS);
 	}
 
 	$effect(() => {

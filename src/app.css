@@ -234,83 +234,65 @@
 	animation: job-card-fresh 2.8s ease-out forwards;
 }
 
-/* Nudge attention to the mobile Filters control when scroll advances the page.
-   Amber light travels around the border — distinct from blue fresh-card rings. */
-@property --filter-shine-angle {
-	syntax: '<angle>';
-	inherits: false;
-	initial-value: 0deg;
-}
-
-@keyframes filter-btn-shine-hold {
+/* After fresh job-card borders clear, blink the mobile Filters border three times.
+   Amber (chart-4) — distinct from the blue primary used on fresh cards. */
+@keyframes filter-btn-border-blink {
 	0%,
-	78% {
-		border-color: color-mix(in oklch, var(--chart-4) 35%, var(--border));
-		background-color: color-mix(in oklch, var(--chart-4) 12%, var(--background));
-		color: color-mix(in oklch, var(--chart-4) 40%, var(--foreground));
-		box-shadow: 0 0 10px 0 color-mix(in oklch, var(--chart-4) 22%, transparent);
-	}
 	100% {
-		border-color: var(--border);
-		background-color: var(--background);
-		color: var(--foreground);
-		box-shadow: 0 0 0 0 transparent;
+		box-shadow:
+			0 0 0 0 transparent,
+			0 0 0 0 transparent;
+		filter: brightness(1);
+	}
+	/* Blink 1 */
+	4%,
+	14% {
+		box-shadow:
+			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
+			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
+		filter: brightness(1.15);
+	}
+	18% {
+		box-shadow:
+			0 0 0 0 transparent,
+			0 0 0 0 transparent;
+		filter: brightness(1);
+	}
+	/* Blink 2 */
+	22%,
+	32% {
+		box-shadow:
+			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
+			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
+		filter: brightness(1.15);
+	}
+	36% {
+		box-shadow:
+			0 0 0 0 transparent,
+			0 0 0 0 transparent;
+		filter: brightness(1);
+	}
+	/* Blink 3 */
+	40%,
+	50% {
+		box-shadow:
+			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
+			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
+		filter: brightness(1.15);
+	}
+	54%,
+	100% {
+		box-shadow:
+			0 0 0 0 transparent,
+			0 0 0 0 transparent;
+		filter: brightness(1);
 	}
 }
 
-@keyframes filter-btn-shine-orbit {
-	from {
-		--filter-shine-angle: 0deg;
-		opacity: 1;
-	}
-	88% {
-		opacity: 1;
-	}
-	100% {
-		--filter-shine-angle: 900deg;
-		opacity: 0;
-	}
-}
-
-.filter-btn-shine {
+.filter-btn-blink {
 	position: relative;
-	isolation: isolate;
 	overflow: visible;
-	animation: filter-btn-shine-hold 5.5s ease-out forwards;
-}
-
-/* Border-only revolving highlight (mask keeps the button face clear). */
-.filter-btn-shine::before {
-	content: '';
-	pointer-events: none;
-	position: absolute;
-	inset: -1.5px;
-	z-index: 1;
-	border-radius: inherit;
-	padding: 2px;
-	background: conic-gradient(
-		from var(--filter-shine-angle),
-		transparent 0%,
-		transparent 62%,
-		color-mix(in oklch, var(--chart-4) 30%, transparent) 72%,
-		color-mix(in oklch, var(--chart-4) 80%, white) 84%,
-		white 91%,
-		color-mix(in oklch, var(--chart-4) 75%, white) 95%,
-		transparent 100%
-	);
-	-webkit-mask:
-		linear-gradient(#fff 0 0) content-box,
-		linear-gradient(#fff 0 0);
-	mask:
-		linear-gradient(#fff 0 0) content-box,
-		linear-gradient(#fff 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	animation: filter-btn-shine-orbit 5.5s linear forwards;
-}
-
-.filter-btn-shine::after {
-	content: none;
+	animation: filter-btn-border-blink 2.4s ease-in-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -321,18 +303,10 @@
 			0 0 0 5px color-mix(in oklch, var(--primary) 18%, transparent);
 	}
 
-	.filter-btn-shine {
+	.filter-btn-blink {
 		animation: none;
-		border-color: color-mix(in oklch, var(--chart-4) 80%, var(--border));
-		background-color: color-mix(in oklch, var(--chart-4) 18%, var(--background));
-		color: color-mix(in oklch, var(--chart-4) 50%, var(--foreground));
 		box-shadow:
-			0 0 0 2px color-mix(in oklch, var(--chart-4) 60%, transparent),
-			0 0 12px 0 color-mix(in oklch, var(--chart-4) 30%, transparent);
-	}
-
-	.filter-btn-shine::before {
-		animation: none;
-		content: none;
+			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
+			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
 	}
 }

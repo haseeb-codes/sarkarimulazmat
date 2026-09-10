@@ -24,6 +24,9 @@ export const browseShownCount = writable(0);
 /** Furthest page loaded via infinite scroll — drives the sticky page input. */
 export const browseLoadedPage = writable(1);
 
+/** How long infinite-scroll “fresh” card borders stay visible (keep in sync with `.job-card-fresh`). */
+export const FRESH_CARD_HIGHLIGHT_MS = 2800;
+
 export function setBrowseViewMode(next: BrowseViewMode) {
 	browseViewMode.set(next);
 	try {

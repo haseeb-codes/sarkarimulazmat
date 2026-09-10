@@ -8,7 +8,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
-	import { browseLoadedPage } from '$lib/browse-view-mode';
+	import { browseLoadedPage, FRESH_CARD_HIGHLIGHT_MS } from '$lib/browse-view-mode';
 	import { STATIC_DRAWER_FILTER_OPTIONS } from '$lib/filter-static-options';
 	import {
 		drawerFilterActiveCount,
@@ -56,11 +56,14 @@
 	let resultsMinHeight = $state<number | null>(null);
 	/** Measured sticky chrome height for scroll-margin. */
 	let searchChromeHeight = $state(0);
-	/** Mobile filter control shine when infinite scroll advances the page. */
-	let filterBtnShine = $state(false);
-	let filterShinePrimed = false;
-	let lastShinedPage = 1;
-	let filterShineTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Mobile filter control blink after fresh card borders clear. */
+	let filterBtnBlink = $state(false);
+	let filterBlinkPrimed = false;
+	let lastBlinkedPage = 1;
+	let filterBlinkDelayTimer: ReturnType<typeof setTimeout> | null = null;
+	let filterBlinkEndTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Three border blinks after the fresh-card highlight ends. */
+	const FILTER_BORDER_BLINK_MS = 2400;
 
 	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
 		return (
@@ -124,40 +127,50 @@
 		return () => ro.disconnect();
 	});
 
-	/** Shine the mobile Filters button whenever scroll advances the loaded page. */
+	/** After fresh job borders fade, blink the mobile Filters border three times. */
 	$effect(() => {
 		const pageNum = $browseLoadedPage;
 
-		if (!filterShinePrimed) {
-			filterShinePrimed = true;
-			lastShinedPage = pageNum;
+		if (!filterBlinkPrimed) {
+			filterBlinkPrimed = true;
+			lastBlinkedPage = pageNum;
 			return;
 		}
 
-		const advanced = pageNum > lastShinedPage;
-		lastShinedPage = pageNum;
+		const advanced = pageNum > lastBlinkedPage;
+		lastBlinkedPage = pageNum;
 		if (!advanced) return;
 		if (untrack(() => open)) return;
 		if (typeof window === 'undefined') return;
 		if (!window.matchMedia('(max-width: 1023px)').matches) return;
 
 		let cancelled = false;
-		filterBtnShine = false;
-		void tick().then(() => {
-			if (cancelled) return;
-			filterBtnShine = true;
-			if (filterShineTimer) clearTimeout(filterShineTimer);
-			filterShineTimer = setTimeout(() => {
-				filterBtnShine = false;
-				filterShineTimer = null;
-			}, 5500);
-		});
+		filterBtnBlink = false;
+		if (filterBlinkDelayTimer) clearTimeout(filterBlinkDelayTimer);
+		if (filterBlinkEndTimer) clearTimeout(filterBlinkEndTimer);
+
+		filterBlinkDelayTimer = setTimeout(() => {
+			filterBlinkDelayTimer = null;
+			if (cancelled || untrack(() => open)) return;
+			void tick().then(() => {
+				if (cancelled) return;
+				filterBtnBlink = true;
+				filterBlinkEndTimer = setTimeout(() => {
+					filterBtnBlink = false;
+					filterBlinkEndTimer = null;
+				}, FILTER_BORDER_BLINK_MS);
+			});
+		}, FRESH_CARD_HIGHLIGHT_MS);
 
 		return () => {
 			cancelled = true;
-			if (filterShineTimer) {
-				clearTimeout(filterShineTimer);
-				filterShineTimer = null;
+			if (filterBlinkDelayTimer) {
+				clearTimeout(filterBlinkDelayTimer);
+				filterBlinkDelayTimer = null;
+			}
+			if (filterBlinkEndTimer) {
+				clearTimeout(filterBlinkEndTimer);
+				filterBlinkEndTimer = null;
 			}
 		};
 	});
@@ -308,7 +321,7 @@
 					<div class="shrink-0">
 						{#if !sidebarVisible}
 							<Button
-								variant="outline"
+								variant={hasSearchParams ? 'outline' : 'default'}
 								size="sm"
 								class="hidden h-9 w-9 px-0 lg:inline-flex {hasSearchParams
 									? 'border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive'
@@ -323,11 +336,11 @@
 						<div class="lg:hidden">
 							<Drawer.Root bind:open direction="left" handleOnly shouldScaleBackground={false}>
 								<Button
-									variant="outline"
+									variant={hasSearchParams ? 'outline' : 'default'}
 									size="sm"
 									class="h-9 w-9 px-0 {hasSearchParams
 										? 'border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive'
-										: ''} {filterBtnShine ? 'filter-btn-shine' : ''}"
+										: ''} {filterBtnBlink ? 'filter-btn-blink' : ''}"
 									onclick={() => (open = true)}
 									aria-label={filtersLabel}
 								>
