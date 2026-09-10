@@ -235,7 +235,7 @@
 }
 
 /* After fresh job-card borders clear, blink the mobile Filters border three times.
-   Amber (chart-4) — distinct from the blue primary used on fresh cards. */
+   Bright cyan — high contrast vs primary icon (light) and destructive icon (red). */
 @keyframes filter-btn-border-blink {
 	0%,
 	100% {
@@ -245,42 +245,42 @@
 		filter: brightness(1);
 	}
 	/* Blink 1 */
-	4%,
-	14% {
+	3%,
+	16% {
 		box-shadow:
-			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
-			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
-		filter: brightness(1.15);
+			0 0 0 2px oklch(0.78 0.16 205),
+			0 0 14px 1px oklch(0.78 0.16 205 / 0.75);
+		filter: brightness(1.18);
 	}
-	18% {
+	20% {
 		box-shadow:
 			0 0 0 0 transparent,
 			0 0 0 0 transparent;
 		filter: brightness(1);
 	}
 	/* Blink 2 */
-	22%,
-	32% {
+	24%,
+	37% {
 		box-shadow:
-			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
-			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
-		filter: brightness(1.15);
+			0 0 0 2px oklch(0.78 0.16 205),
+			0 0 14px 1px oklch(0.78 0.16 205 / 0.75);
+		filter: brightness(1.18);
 	}
-	36% {
+	41% {
 		box-shadow:
 			0 0 0 0 transparent,
 			0 0 0 0 transparent;
 		filter: brightness(1);
 	}
 	/* Blink 3 */
-	40%,
-	50% {
+	45%,
+	58% {
 		box-shadow:
-			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
-			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
-		filter: brightness(1.15);
+			0 0 0 2px oklch(0.78 0.16 205),
+			0 0 14px 1px oklch(0.78 0.16 205 / 0.75);
+		filter: brightness(1.18);
 	}
-	54%,
+	62%,
 	100% {
 		box-shadow:
 			0 0 0 0 transparent,
@@ -292,7 +292,7 @@
 .filter-btn-blink {
 	position: relative;
 	overflow: visible;
-	animation: filter-btn-border-blink 2.4s ease-in-out forwards;
+	animation: filter-btn-border-blink 4.2s ease-in-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -306,7 +306,7 @@
 	.filter-btn-blink {
 		animation: none;
 		box-shadow:
-			0 0 0 2px color-mix(in oklch, var(--chart-4) 90%, transparent),
-			0 0 12px 0 color-mix(in oklch, var(--chart-4) 45%, transparent);
+			0 0 0 2px oklch(0.78 0.16 205),
+			0 0 14px 1px oklch(0.78 0.16 205 / 0.75);
 	}
 }

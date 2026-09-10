@@ -63,7 +63,7 @@
 	let filterBlinkDelayTimer: ReturnType<typeof setTimeout> | null = null;
 	let filterBlinkEndTimer: ReturnType<typeof setTimeout> | null = null;
 	/** Three border blinks after the fresh-card highlight ends. */
-	const FILTER_BORDER_BLINK_MS = 2400;
+	const FILTER_BORDER_BLINK_MS = 4200;
 
 	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
 		return (
