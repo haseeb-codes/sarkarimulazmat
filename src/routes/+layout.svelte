@@ -19,10 +19,11 @@
 
 	let { data, children } = $props();
 
-	/** Shareable snapshot and social-image pages — no site chrome. */
+	/** Shareable snapshot, social-image, and admin pages — no public site chrome. */
 	const isShareSnapshot = $derived(isJobCategoryShareSlug(page.url.pathname.slice(1)));
 	const isSocialImageRoute = $derived(page.url.pathname.startsWith('/social/'));
-	const isBarePage = $derived(isShareSnapshot || isSocialImageRoute);
+	const isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
+	const isBarePage = $derived(isShareSnapshot || isSocialImageRoute || isAdminRoute);
 	const isJobsPage = $derived(
 		page.route.id === '/' || page.route.id === '/[slug]' || page.route.id === '/jobs/[slug]'
 	);

@@ -21,6 +21,7 @@ declare global {
 			browserVersion?: string;
 			os?: string;
 			deviceType?: string;
+			adminAuthenticated?: boolean;
 		}
 		interface PageData {
 			session?: import('@auth/sveltekit').Session | null;

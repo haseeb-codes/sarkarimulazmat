@@ -1,9 +1,15 @@
 import type { Handle } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { handle as authHandle } from './auth';
 import db from '$lib/server/db';
 import { parseClientDevice } from '$lib/server/request-context';
 import { linkVisitorToUser } from '$lib/server/user-profile';
+import {
+	isAdminLoginPath,
+	isAdminPath,
+	readAdminAuthenticated
+} from '$lib/server/admin-auth';
 
 const VISITOR_COOKIE = 'visitor_id';
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
@@ -21,6 +27,27 @@ function getClientIp(event: Parameters<Handle>[0]['event']): string | undefined 
 	}
 }
 
+const adminHandle: Handle = async ({ event, resolve }) => {
+	const { pathname } = event.url;
+	if (!isAdminPath(pathname)) {
+		return resolve(event);
+	}
+
+	const authenticated = readAdminAuthenticated(event.cookies);
+	event.locals.adminAuthenticated = authenticated;
+
+	if (isAdminLoginPath(pathname)) {
+		return resolve(event);
+	}
+
+	if (!authenticated) {
+		const redirectTo = pathname === '/admin' ? '/admin' : pathname;
+		redirect(303, `/admin/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+	}
+
+	return resolve(event);
+};
+
 const visitorHandle: Handle = async ({ event, resolve }) => {
 	const ip = getClientIp(event);
 	event.locals.clientIp = ip;
@@ -31,6 +58,8 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 	event.locals.browserVersion = device.browserVersion;
 	event.locals.os = device.os;
 	event.locals.deviceType = device.deviceType;
+
+	const skipTracking = isAdminPath(event.url.pathname);
 
 	let visitorId = event.cookies.get(VISITOR_COOKIE);
 
@@ -49,7 +78,7 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 				data: { id: visitorId, ip_address: ip }
 			})
 			.catch(() => {});
-	} else {
+	} else if (!skipTracking) {
 		db.visitor
 			.update({
 				where: { id: visitorId },
@@ -64,17 +93,19 @@ const visitorHandle: Handle = async ({ event, resolve }) => {
 
 	event.locals.visitorId = visitorId;
 
-	db.pageView
-		.create({
-			data: {
-				visitor_id: visitorId,
-				ip_address: ip,
-				path: event.url.pathname,
-				query: event.url.search || null,
-				referrer: event.request.headers.get('referer') || null
-			}
-		})
-		.catch(() => {});
+	if (!skipTracking) {
+		db.pageView
+			.create({
+				data: {
+					visitor_id: visitorId,
+					ip_address: ip,
+					path: event.url.pathname,
+					query: event.url.search || null,
+					referrer: event.request.headers.get('referer') || null
+				}
+			})
+			.catch(() => {});
+	}
 
 	return resolve(event);
 };
@@ -84,10 +115,10 @@ const linkVisitorHandle: Handle = async ({ event, resolve }) => {
 	if (session?.user?.id) {
 		event.locals.userId = session.user.id;
 	}
-	if (session?.user?.id && event.locals.visitorId) {
+	if (session?.user?.id && event.locals.visitorId && !isAdminPath(event.url.pathname)) {
 		linkVisitorToUser(event.locals.visitorId, session.user.id).catch(() => {});
 	}
 	return resolve(event);
 };
 
-export const handle = sequence(authHandle, visitorHandle, linkVisitorHandle);
+export const handle = sequence(authHandle, adminHandle, visitorHandle, linkVisitorHandle);

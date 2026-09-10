@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import * as Drawer from '$lib/components/ui/drawer/index.js';
+	import { browseLoadedPage } from '$lib/browse-view-mode';
 	import { STATIC_DRAWER_FILTER_OPTIONS } from '$lib/filter-static-options';
 	import {
 		drawerFilterActiveCount,
@@ -17,6 +18,7 @@
 	} from '$lib/jobs-utils';
 	import { setLatestPostedDay } from '$lib/latest-posted-day';
 	import type { Snippet } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import FilterIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import PanelLeftCloseIcon from '@lucide/svelte/icons/panel-left-close';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -54,6 +56,11 @@
 	let resultsMinHeight = $state<number | null>(null);
 	/** Measured sticky chrome height for scroll-margin. */
 	let searchChromeHeight = $state(0);
+	/** Mobile filter control shine when infinite scroll advances the page. */
+	let filterBtnShine = $state(false);
+	let filterShinePrimed = false;
+	let lastShinedPage = 1;
+	let filterShineTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function isPromise<T>(value: T | Promise<T>): value is Promise<T> {
 		return (
@@ -115,6 +122,44 @@
 		const ro = new ResizeObserver(update);
 		ro.observe(el);
 		return () => ro.disconnect();
+	});
+
+	/** Shine the mobile Filters button whenever scroll advances the loaded page. */
+	$effect(() => {
+		const pageNum = $browseLoadedPage;
+
+		if (!filterShinePrimed) {
+			filterShinePrimed = true;
+			lastShinedPage = pageNum;
+			return;
+		}
+
+		const advanced = pageNum > lastShinedPage;
+		lastShinedPage = pageNum;
+		if (!advanced) return;
+		if (untrack(() => open)) return;
+		if (typeof window === 'undefined') return;
+		if (!window.matchMedia('(max-width: 1023px)').matches) return;
+
+		let cancelled = false;
+		filterBtnShine = false;
+		void tick().then(() => {
+			if (cancelled) return;
+			filterBtnShine = true;
+			if (filterShineTimer) clearTimeout(filterShineTimer);
+			filterShineTimer = setTimeout(() => {
+				filterBtnShine = false;
+				filterShineTimer = null;
+			}, 5500);
+		});
+
+		return () => {
+			cancelled = true;
+			if (filterShineTimer) {
+				clearTimeout(filterShineTimer);
+				filterShineTimer = null;
+			}
+		};
 	});
 
 	function isBrowsePath(pathname: string): boolean {
@@ -282,7 +327,7 @@
 									size="sm"
 									class="h-9 w-9 px-0 {hasSearchParams
 										? 'border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive'
-										: ''}"
+										: ''} {filterBtnShine ? 'filter-btn-shine' : ''}"
 									onclick={() => (open = true)}
 									aria-label={filtersLabel}
 								>

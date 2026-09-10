@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { getProfileById, isProfileComplete } from '$lib/server/user-profile';
 
-const PROFILE_EXEMPT_PREFIXES = ['/auth', '/login', '/privacy', '/terms'];
+const PROFILE_EXEMPT_PREFIXES = ['/auth', '/login', '/privacy', '/terms', '/admin'];
 
 function isProfileExemptPath(pathname: string): boolean {
 	if (pathname === '/onboarding') return true;
