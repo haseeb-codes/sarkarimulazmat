@@ -28,10 +28,21 @@ export type AdminSearchFilterChip = {
 	category: string;
 };
 
+/** One query param as used in the search URL (for admin replay). */
+export type AdminSearchParam = {
+	key: string;
+	value: string;
+	label: string;
+};
+
 export type AdminSearchRow = {
 	id: string;
 	result_count: number;
 	path: string | null;
+	/** Repaired / reconstructed href to replay the search. */
+	href: string | null;
+	/** Query params exactly as in the replay URL. */
+	params: AdminSearchParam[];
 	device_type: string | null;
 	browser: string | null;
 	browser_version: string | null;

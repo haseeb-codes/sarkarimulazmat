@@ -1,13 +1,154 @@
 import {
 	activeFilterChips,
+	filtersToHref,
+	repairDegreeAreasHtmlCorruption,
 	type FilterParams
 } from '$lib/jobs-utils';
-import type { AdminSearchFilterChip } from '$lib/admin-types';
+import type { AdminSearchFilterChip, AdminSearchParam } from '$lib/admin-types';
 
 function asString(value: unknown): string | null {
 	if (typeof value !== 'string') return null;
 	const trimmed = value.trim();
 	return trimmed ? trimmed : null;
+}
+
+/**
+ * Recover tag + degree_areas when a tag value absorbed mangled `&degree_areas`
+ * (stored as `tag°ree_areas=Area°ree_areas=Other`).
+ */
+function repairAbsorbedDegreeAreas(value: string): { head: string; degree_areas: string[] } {
+	if (!value.includes('°ree_areas=')) {
+		return { head: repairDegreeAreasHtmlCorruption(value), degree_areas: [] };
+	}
+	const parts = value.split('°ree_areas=');
+	const head = (parts[0] ?? '').trim();
+	const degree_areas = parts
+		.slice(1)
+		.map((part) => part.trim())
+		.filter(Boolean);
+	return { head, degree_areas };
+}
+
+/** Fix search-log filter JSON corrupted by HTML `&deg` → `°` entity decoding. */
+export function repairSearchLogFilters(filters: unknown): unknown {
+	if (!filters || typeof filters !== 'object' || Array.isArray(filters)) {
+		return filters;
+	}
+
+	const record = { ...(filters as Record<string, unknown>) };
+	const tags = asStringArray(record.tag);
+	const existingDegrees = asStringArray(record.degree_areas);
+	const repairedTags: string[] = [];
+	const degree_areas = [...existingDegrees];
+
+	for (const tag of tags) {
+		const { head, degree_areas: extracted } = repairAbsorbedDegreeAreas(tag);
+		if (head) repairedTags.push(head);
+		for (const area of extracted) {
+			if (!degree_areas.some((d) => d.toLowerCase() === area.toLowerCase())) {
+				degree_areas.push(area);
+			}
+		}
+	}
+
+	const repairedDegrees = degree_areas.flatMap((area) => {
+		if (!area.includes('°ree_areas')) return [area];
+		const { head, degree_areas: extracted } = repairAbsorbedDegreeAreas(area);
+		return [head, ...extracted].filter(Boolean);
+	});
+
+	record.tag = repairedTags;
+	record.degree_areas = repairedDegrees;
+	return record;
+}
+
+/** Safe clickable href for a logged search (repaired path / reconstructed filters). */
+export function searchLogHref(path: string | null, filters: unknown): string | null {
+	const pathname =
+		path && path.startsWith('/') && !path.startsWith('//')
+			? repairDegreeAreasHtmlCorruption(path).split('?')[0] || '/'
+			: '/';
+	const params = searchLogFiltersToParams(repairSearchLogFilters(filters));
+	const fromFilters = filtersToHref(params, pathname);
+	if (fromFilters !== pathname) return fromFilters;
+
+	if (!path || !path.startsWith('/') || path.startsWith('//')) return null;
+	const repaired = repairDegreeAreasHtmlCorruption(path);
+	return repaired;
+}
+
+/** Query params as key=value pairs for admin display (exactly as in the replay URL). */
+export function searchLogParamEntries(path: string | null, filters: unknown): AdminSearchParam[] {
+	const href = searchLogHref(path, filters);
+	const filterParams = searchLogFiltersToParams(filters);
+	const fromFilters = paramsFromFilterParams(filterParams);
+	if (fromFilters.length) return fromFilters;
+
+	if (!href || !href.includes('?')) return [];
+	const qs = href.slice(href.indexOf('?') + 1);
+	const params = new URLSearchParams(qs);
+	const entries: AdminSearchParam[] = [];
+	for (const [key, value] of params.entries()) {
+		// Expand comma-joined multi-values for readable admin chips.
+		if ((key === 'degree_areas' || key === 'domicile' || key === 'tag') && value.includes(',')) {
+			for (const part of value.split(',').map((p) => p.trim()).filter(Boolean)) {
+				entries.push({ key, value: part, label: `${key}=${part}` });
+			}
+			continue;
+		}
+		entries.push({ key, value, label: `${key}=${value}` });
+	}
+	return entries;
+}
+
+function appendParamEntries(
+	entries: AdminSearchParam[],
+	key: string,
+	values: Array<string | number | boolean | null | undefined>
+) {
+	for (const value of values) {
+		if (value == null || value === '') continue;
+		const text = String(value);
+		entries.push({ key, value: text, label: `${key}=${text}` });
+	}
+}
+
+function paramsFromFilterParams(filters: FilterParams): AdminSearchParam[] {
+	const entries: AdminSearchParam[] = [];
+	appendParamEntries(entries, 'degree_areas', filters.degree_areas ?? []);
+	appendParamEntries(entries, 'education_level', [filters.education_level]);
+	appendParamEntries(entries, 'ad_date', [filters.ad_date]);
+	appendParamEntries(entries, 'closing_on', [filters.closing_on]);
+	appendParamEntries(entries, 'posted_by', [filters.posted_by]);
+	appendParamEntries(entries, 'donor_name', [filters.donor_name]);
+	appendParamEntries(entries, 'portal', [filters.portal]);
+	appendParamEntries(entries, 'gender', [filters.gender]);
+	appendParamEntries(entries, 'qualification', filters.qualification ?? []);
+	appendParamEntries(entries, 'grade', [filters.grade]);
+	appendParamEntries(entries, 'age', [filters.age]);
+	appendParamEntries(entries, 'place_of_posting', [filters.place_of_posting]);
+	appendParamEntries(entries, 'domicile', filters.domicile ?? []);
+	appendParamEntries(entries, 'domicile_region', filters.domicile_region ?? []);
+	appendParamEntries(entries, 'tag', filters.tag ?? []);
+	appendParamEntries(entries, 'department', [filters.department]);
+	appendParamEntries(entries, 'collar', filters.collar ?? []);
+	if (filters.province != null) appendParamEntries(entries, 'province', [filters.province ? '1' : '0']);
+	appendParamEntries(entries, 'program', [filters.program]);
+	appendParamEntries(entries, 'keyword', [filters.keyword]);
+	appendParamEntries(entries, 'q', [filters.q]);
+	if (filters.has_salary) appendParamEntries(entries, 'has_salary', ['1']);
+	if (filters.salary_from != null) appendParamEntries(entries, 'salary_from', [filters.salary_from]);
+	if (filters.salary_to != null) appendParamEntries(entries, 'salary_to', [filters.salary_to]);
+	if (filters.permanent_only) appendParamEntries(entries, 'permanent', ['1']);
+	if (filters.personalized) appendParamEntries(entries, 'personalized', ['1']);
+	if (filters.women_only) appendParamEntries(entries, 'women', ['1']);
+	if (filters.transgender_applicable) appendParamEntries(entries, 'transgender', ['1']);
+	if (filters.disability_quota) appendParamEntries(entries, 'disability', ['1']);
+	if (filters.minority_quota) appendParamEntries(entries, 'minority', ['1']);
+	if (filters.show_expired) appendParamEntries(entries, 'show_expired', ['1']);
+	if (filters.sort && filters.sort !== 'newest') appendParamEntries(entries, 'sort', [filters.sort]);
+	if (filters.page && filters.page > 1) appendParamEntries(entries, 'page', [filters.page]);
+	return entries;
 }
 
 function asBoolean(value: unknown): boolean | undefined {
@@ -46,11 +187,12 @@ function asNumberArray(value: unknown): number[] {
 
 /** Coerce search-log JSON into FilterParams for chip labeling. */
 export function searchLogFiltersToParams(filters: unknown): FilterParams {
-	if (!filters || typeof filters !== 'object' || Array.isArray(filters)) {
+	const repaired = repairSearchLogFilters(filters);
+	if (!repaired || typeof repaired !== 'object' || Array.isArray(repaired)) {
 		return {};
 	}
 
-	const record = filters as Record<string, unknown>;
+	const record = repaired as Record<string, unknown>;
 
 	return {
 		degree_areas: asStringArray(record.degree_areas),

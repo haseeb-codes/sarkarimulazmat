@@ -11,6 +11,7 @@ import { getTopTagCounts } from '$lib/server/job-category-jobs';
 import { jobFiltersSnapshot } from '$lib/server/filters-snapshot';
 import { applyPersonalizedFilters } from '$lib/server/personalized-jobs';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
+import { repairedPathnameSearch } from '$lib/jobs-utils';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const session = await locals.auth();
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		personalized: Boolean(filters.personalized)
 	});
 	const filtered = filtersAreActive(filters);
-	const tracking = jobQueryTrackingFromLocals(locals, url.pathname + url.search);
+	const tracking = jobQueryTrackingFromLocals(locals, repairedPathnameSearch(url));
 
 	// Stream count and listings independently — shell renders immediately for both.
 	const resultCount = countJobs(filters).catch((err) => {

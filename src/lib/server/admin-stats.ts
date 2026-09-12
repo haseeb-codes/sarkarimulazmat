@@ -4,8 +4,11 @@ import type { AdminEmailRow, AdminOverview, AdminSearchRow } from '$lib/admin-ty
 import {
 	describeSearchLogFilters,
 	searchLogFiltersToParams,
-	searchLogKeyword
+	searchLogHref,
+	searchLogKeyword,
+	searchLogParamEntries
 } from '$lib/admin-search-filters';
+import { repairDegreeAreasHtmlCorruption } from '$lib/jobs-utils';
 
 export type { AdminEmailRow, AdminOverview, AdminSearchRow };
 
@@ -392,11 +395,16 @@ export async function getRecentSearches(limit = 40): Promise<AdminSearchRow[]> {
 	return rows.map((row) => {
 		const filterChips = describeSearchLogFilters(row.filters);
 		const params = searchLogFiltersToParams(row.filters);
+		const path = row.path ? repairDegreeAreasHtmlCorruption(row.path) : null;
+		const href = searchLogHref(row.path, row.filters);
+		const paramEntries = searchLogParamEntries(row.path, row.filters);
 
 		return {
 			id: row.id,
 			result_count: row.result_count,
-			path: row.path,
+			path,
+			href,
+			params: paramEntries,
 			device_type: row.device_type,
 			browser: row.browser,
 			browser_version: row.browser_version,
@@ -405,7 +413,7 @@ export async function getRecentSearches(limit = 40): Promise<AdminSearchRow[]> {
 			keyword: searchLogKeyword(row.filters),
 			sort: params.sort ?? null,
 			filters: filterChips,
-			filter_count: filterChips.length
+			filter_count: Math.max(filterChips.length, paramEntries.length)
 		};
 	});
 }

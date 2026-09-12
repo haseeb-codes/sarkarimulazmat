@@ -22,6 +22,7 @@ import {
 	clampAgeFilter,
 	selectedDomiciles,
 	selectedTags,
+	urlWithRepairedDegreeAreas,
 	type JobSort,
 	type FilterParams,
 	type GenderKind,
@@ -506,59 +507,60 @@ function parseQualificationLevels(url: URL): number[] {
 }
 
 export function parseJobFilters(url: URL): JobFilters {
-	const sortParam = firstParam(url, 'sort');
+	const effectiveUrl = urlWithRepairedDegreeAreas(url);
+	const sortParam = firstParam(effectiveUrl, 'sort');
 	const sort: JobSort =
 		sortParam === 'closing_soon' ? 'closing_soon' : sortParam === 'salary' ? 'salary' : 'newest';
-	const userAge = parseUserAge(url);
+	const userAge = parseUserAge(effectiveUrl);
 
 	return {
-		degree_areas: parseDegreeAreas(url),
-		education_level: firstParam(url, 'education_level'),
-		ad_date: toDateKey(firstParam(url, 'ad_date')),
-		closing_on: toDateKey(firstParam(url, 'closing_on')),
-		posted_by: firstParam(url, 'posted_by'),
-		donor_name: firstParam(url, 'donor_name'),
-		portal: firstParam(url, 'portal'),
-		gender: parseGenderFilter(firstParam(url, 'gender')),
-		qualification: parseQualificationLevels(url),
-		qualification_from: parseQualificationFrom(url),
-		qualification_to: parseQualificationTo(url),
-		grade: normalizeGradeFilter(firstParam(url, 'grade')),
+		degree_areas: parseDegreeAreas(effectiveUrl),
+		education_level: firstParam(effectiveUrl, 'education_level'),
+		ad_date: toDateKey(firstParam(effectiveUrl, 'ad_date')),
+		closing_on: toDateKey(firstParam(effectiveUrl, 'closing_on')),
+		posted_by: firstParam(effectiveUrl, 'posted_by'),
+		donor_name: firstParam(effectiveUrl, 'donor_name'),
+		portal: firstParam(effectiveUrl, 'portal'),
+		gender: parseGenderFilter(firstParam(effectiveUrl, 'gender')),
+		qualification: parseQualificationLevels(effectiveUrl),
+		qualification_from: parseQualificationFrom(effectiveUrl),
+		qualification_to: parseQualificationTo(effectiveUrl),
+		grade: normalizeGradeFilter(firstParam(effectiveUrl, 'grade')),
 		age: userAge,
 		age_from: null,
 		age_to: null,
 		include_no_max_age: true,
 		age_max: null,
-		place_of_posting: firstParam(url, 'place_of_posting'),
-		domicile: parseMultiParam(url, 'domicile'),
+		place_of_posting: firstParam(effectiveUrl, 'place_of_posting'),
+		domicile: parseMultiParam(effectiveUrl, 'domicile'),
 		domicile_region: selectedDomicileRegions({
-			domicile_region: url.searchParams.getAll('domicile_region')
+			domicile_region: effectiveUrl.searchParams.getAll('domicile_region')
 		}),
-		tag: selectedTags({ tag: url.searchParams.getAll('tag') }),
-		department: firstParam(url, 'department'),
-		collar: selectedCollars({ collar: url.searchParams.getAll('collar') }),
-		province: parseOptionalBoolean(firstParam(url, 'province')),
-		program: firstParam(url, 'program'),
-		keyword: firstParam(url, 'keyword'),
-		q: firstParam(url, 'q'),
-		has_salary: url.searchParams.get('has_salary') === '1',
-		permanent_only: url.searchParams.get('permanent') === '1',
-		personalized: url.searchParams.get('personalized') === '1',
+		tag: selectedTags({ tag: effectiveUrl.searchParams.getAll('tag') }),
+		department: firstParam(effectiveUrl, 'department'),
+		collar: selectedCollars({ collar: effectiveUrl.searchParams.getAll('collar') }),
+		province: parseOptionalBoolean(firstParam(effectiveUrl, 'province')),
+		program: firstParam(effectiveUrl, 'program'),
+		keyword: firstParam(effectiveUrl, 'keyword'),
+		q: firstParam(effectiveUrl, 'q'),
+		has_salary: effectiveUrl.searchParams.get('has_salary') === '1',
+		permanent_only: effectiveUrl.searchParams.get('permanent') === '1',
+		personalized: effectiveUrl.searchParams.get('personalized') === '1',
 		exclude_female_only: false,
 		personalized_degree_terms: [],
-		women_only: url.searchParams.get('women') === '1',
-		transgender_applicable: url.searchParams.get('transgender') === '1',
-		disability_quota: url.searchParams.get('disability') === '1',
-		minority_quota: url.searchParams.get('minority') === '1',
-		min_salary: parseOptionalPositiveInt(firstParam(url, 'min_salary')),
+		women_only: effectiveUrl.searchParams.get('women') === '1',
+		transgender_applicable: effectiveUrl.searchParams.get('transgender') === '1',
+		disability_quota: effectiveUrl.searchParams.get('disability') === '1',
+		minority_quota: effectiveUrl.searchParams.get('minority') === '1',
+		min_salary: parseOptionalPositiveInt(firstParam(effectiveUrl, 'min_salary')),
 		salary_from:
-			parseOptionalPositiveInt(firstParam(url, 'salary_from')) ??
-			parseOptionalPositiveInt(firstParam(url, 'min_salary')),
-		salary_to: parseOptionalPositiveInt(firstParam(url, 'salary_to')),
-		show_expired: url.searchParams.get('show_expired') === '1',
+			parseOptionalPositiveInt(firstParam(effectiveUrl, 'salary_from')) ??
+			parseOptionalPositiveInt(firstParam(effectiveUrl, 'min_salary')),
+		salary_to: parseOptionalPositiveInt(firstParam(effectiveUrl, 'salary_to')),
+		show_expired: effectiveUrl.searchParams.get('show_expired') === '1',
 		sort,
-		page: parsePositiveInt(firstParam(url, 'page'), 1),
-		pageSize: parsePositiveInt(firstParam(url, 'pageSize'), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
+		page: parsePositiveInt(firstParam(effectiveUrl, 'page'), 1),
+		pageSize: parsePositiveInt(firstParam(effectiveUrl, 'pageSize'), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
 	};
 }
 

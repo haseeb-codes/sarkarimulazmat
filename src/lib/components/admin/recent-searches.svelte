@@ -40,11 +40,6 @@
 		return [row.device_type, browser || null, row.os].filter(Boolean).join(' · ') || 'Unknown device';
 	}
 
-	function pathHref(path: string | null): string | null {
-		if (!path || !path.startsWith('/') || path.startsWith('//')) return null;
-		return path;
-	}
-
 	function toggle(id: string) {
 		expandedId = expandedId === id ? null : id;
 	}
@@ -54,8 +49,7 @@
 	<div class="border-b border-border px-4 py-3">
 		<h3 class="text-sm font-semibold">Recent searches</h3>
 		<p class="text-xs text-muted-foreground">
-			Latest searches with every applied filter shown as chips. Expand a row for device and path
-			details.
+			Latest searches with query params as used. Click a param to open that search.
 		</p>
 	</div>
 
@@ -75,25 +69,28 @@
 			<ul class="divide-y divide-border">
 				{#each rows as row (row.id)}
 					{@const open = expandedId === row.id}
-					{@const href = pathHref(row.path)}
+					{@const href = row.href}
 					<li class="px-3 py-3 sm:px-4">
-						<button
-							type="button"
-							class="flex w-full items-start gap-3 text-left"
-							onclick={() => toggle(row.id)}
-							aria-expanded={open}
-						>
-							<span
+						<div class="flex w-full items-start gap-3 text-left">
+							<button
+								type="button"
 								class="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground transition-transform {open
 									? 'rotate-180'
 									: ''}"
-								aria-hidden="true"
+								onclick={() => toggle(row.id)}
+								aria-expanded={open}
+								aria-label={open ? 'Collapse search details' : 'Expand search details'}
 							>
 								<ChevronDownIcon class="size-3.5" />
-							</span>
+							</button>
 
 							<div class="min-w-0 flex-1 space-y-2">
-								<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+								<button
+									type="button"
+									class="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-left"
+									onclick={() => toggle(row.id)}
+									aria-expanded={open}
+								>
 									<time
 										class="text-xs text-muted-foreground"
 										datetime={new Date(row.created_at).toISOString()}
@@ -110,29 +107,92 @@
 										{row.result_count.toLocaleString('en-PK')}
 										{row.result_count === 1 ? 'result' : 'results'}
 									</span>
-									{#if row.filter_count === 0}
+									{#if row.params.length === 0 && row.filter_count === 0}
 										<span class="text-xs text-muted-foreground">No filters (browse all)</span>
 									{:else}
 										<span class="text-xs text-muted-foreground">
-											{row.filter_count}
-											{row.filter_count === 1 ? 'filter' : 'filters'}
+											{row.params.length || row.filter_count}
+											{(row.params.length || row.filter_count) === 1 ? 'param' : 'params'}
 										</span>
 									{/if}
-								</div>
+								</button>
 
-								{#if row.filters.length}
+								{#if row.params.length}
+									<div class="flex flex-wrap gap-1.5" aria-label="Search params">
+										{#each row.params as param, i (`${param.key}:${param.value}:${i}`)}
+											{#if href}
+												<a
+													href={href}
+													class="inline-flex max-w-full"
+													target="_blank"
+													rel="noopener noreferrer"
+													title="Open search"
+												>
+													<Badge
+														variant="outline"
+														class="max-w-full truncate font-mono text-[11px] font-normal hover:border-primary hover:text-primary"
+													>
+														{param.label}
+													</Badge>
+												</a>
+											{:else}
+												<Badge
+													variant="outline"
+													class="max-w-full truncate font-mono text-[11px] font-normal"
+													title={param.key}
+												>
+													{param.label}
+												</Badge>
+											{/if}
+										{/each}
+										{#if href}
+											<a
+												href={href}
+												class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+												target="_blank"
+												rel="noopener noreferrer"
+												aria-label="Open full search"
+											>
+												Open
+												<ExternalLinkIcon class="size-3 shrink-0" />
+											</a>
+										{/if}
+									</div>
+								{:else if row.filters.length}
 									<div class="flex flex-wrap gap-1.5" aria-label="Applied filters">
 										{#each row.filters as chip (chip.id)}
-											<Badge variant="outline" class="max-w-full truncate font-normal" title={chip.category}>
-												{chip.label}
-											</Badge>
+											{#if href}
+												<a
+													href={href}
+													class="inline-flex max-w-full"
+													target="_blank"
+													rel="noopener noreferrer"
+													title="Open search"
+												>
+													<Badge
+														variant="outline"
+														class="max-w-full truncate font-normal hover:border-primary hover:text-primary"
+														title={chip.category}
+													>
+														{chip.label}
+													</Badge>
+												</a>
+											{:else}
+												<Badge
+													variant="outline"
+													class="max-w-full truncate font-normal"
+													title={chip.category}
+												>
+													{chip.label}
+												</Badge>
+											{/if}
 										{/each}
 									</div>
 								{:else}
 									<p class="text-sm text-muted-foreground">Default listing — no filters applied.</p>
 								{/if}
 							</div>
-						</button>
+						</div>
 
 						{#if open}
 							<div
@@ -161,11 +221,11 @@
 											target="_blank"
 											rel="noopener noreferrer"
 										>
-											<span class="break-all">{row.path}</span>
+											<span class="break-all font-mono">{href}</span>
 											<ExternalLinkIcon class="size-3 shrink-0" />
 										</a>
 									{:else}
-										<span>{row.path ?? '—'}</span>
+										<span class="font-mono">{row.path ?? '—'}</span>
 									{/if}
 								</p>
 								{#if row.filters.length}

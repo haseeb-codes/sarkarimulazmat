@@ -17,6 +17,7 @@ import { applyPersonalizedFilters } from '$lib/server/personalized-jobs';
 import { jobQueryTrackingFromLocals } from '$lib/server/request-context';
 import {
 	isAgeFilterActive,
+	repairedPathnameSearch,
 	selectedDomiciles,
 	selectedQualificationLevels,
 	toDateKey
@@ -155,7 +156,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 		personalized: Boolean(filters.personalized)
 	});
 	const tracking = {
-		...jobQueryTrackingFromLocals(locals, url.pathname + url.search),
+		...jobQueryTrackingFromLocals(locals, repairedPathnameSearch(url)),
 		log: filtered
 	};
 

@@ -5,6 +5,32 @@ import { getJobCategoryTagLabel, isJobCategoryShareSlug } from '$lib/job-categor
 
 export type JobSort = 'newest' | 'closing_soon' | 'salary';
 
+/**
+ * HTML named entity `&deg` (°) collides with query param `&degree_areas`.
+ * Unescaped HTML (and some crawlers) turn `&degree_areas` into `°ree_areas`.
+ * Repair both the raw degree sign and its UTF-8 percent-encoding.
+ */
+export function repairDegreeAreasHtmlCorruption(input: string): string {
+	return input
+		.replaceAll('%C2%B0ree_areas', '&degree_areas')
+		.replaceAll('%c2%b0ree_areas', '&degree_areas')
+		.replaceAll('°ree_areas', '&degree_areas');
+}
+
+/** Return a URL whose search string has degree_areas entity corruption repaired. */
+export function urlWithRepairedDegreeAreas(url: URL): URL {
+	const repairedSearch = repairDegreeAreasHtmlCorruption(url.search);
+	if (repairedSearch === url.search) return url;
+	const next = new URL(url.href);
+	next.search = repairedSearch;
+	return next;
+}
+
+/** pathname + search with degree_areas HTML-entity corruption repaired (for logging). */
+export function repairedPathnameSearch(url: URL): string {
+	return url.pathname + repairDegreeAreasHtmlCorruption(url.search);
+}
+
 /** Split comma-delimited multi-value fields consistently. */
 export function splitMultiValue(raw: string | null | undefined): string[] {
 	if (!raw) return [];
@@ -418,8 +444,10 @@ export function isAgeFilterActive(filters: FilterParams): boolean {
 
 export function filtersToSearchParams(filters: FilterParams): URLSearchParams {
 	const params = new URLSearchParams();
-	for (const area of filters.degree_areas ?? []) {
-		params.append('degree_areas', area);
+	// Single comma-separated value avoids repeated `&degree_areas` which HTML parsers
+	// turn into `°ree_areas` via the `&deg` named character reference.
+	if (filters.degree_areas?.length) {
+		params.set('degree_areas', filters.degree_areas.join(','));
 	}
 	if (filters.education_level) params.set('education_level', filters.education_level);
 	if (filters.ad_date) params.set('ad_date', filters.ad_date);
@@ -1097,8 +1125,7 @@ export function parseDrawerFiltersFromUrl(url: URL): Partial<FilterParams> {
 		qualification_level: null,
 		degree_areas: params
 			.getAll('degree_areas')
-			.map((v) => v.trim())
-			.filter(Boolean),
+			.flatMap((v) => splitMultiValue(v)),
 		grade: normalizeGradeFilter(params.get('grade')),
 		ad_date: toDateKey(params.get('ad_date')),
 		closing_on: toDateKey(params.get('closing_on')),

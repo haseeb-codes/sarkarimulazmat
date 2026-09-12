@@ -148,6 +148,8 @@
 	const showViewAdBesideShare = $derived(Boolean(adUrl));
 	const hideViewAdOnDesktop = $derived(layout === "list" && Boolean(adThumbUrl));
 	const categoryTags = $derived(job.tags ?? []);
+	const donorName = $derived(job.donor_name?.trim() || null);
+	const donorFundedLabel = $derived(donorName ? `Funded by ${donorName}` : null);
 	const cardAccentClass = $derived(
 		fresh
 			? "job-card-fresh ring-2 ring-primary/70"
@@ -497,7 +499,7 @@
 
 			<div class="flex min-w-0 flex-1 items-start gap-2">
 				<div class="min-w-0 flex-1 space-y-1.5">
-					{#if recentAd || job.donor_name}
+					{#if recentAd || donorName}
 						<div class="flex flex-wrap items-center gap-1.5">
 							{#if recentAd}
 								<span
@@ -508,13 +510,14 @@
 									New
 								</span>
 							{/if}
-							{#if job.donor_name}
-								<span
-									class="inline-flex h-5 max-w-[12rem] items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
-									title={job.donor_name}
-								>
-									{job.donor_name}
-								</span>
+							{#if donorFundedLabel}
+								<PortalTooltip label={donorFundedLabel} class="max-w-[12rem] shrink-0">
+									<span
+										class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300"
+									>
+										{donorName}
+									</span>
+								</PortalTooltip>
 							{/if}
 						</div>
 					{/if}
@@ -589,7 +592,7 @@
 		data-fresh={fresh ? "true" : undefined}
 	>
 		<Card.Header class="gap-1 pb-1.5 sm:gap-1.5 sm:pb-2">
-			{#if recentAd || job.donor_name}
+			{#if recentAd || donorName}
 				<div class="mb-1 flex flex-wrap items-center gap-1.5">
 					{#if recentAd}
 						<span
@@ -600,14 +603,16 @@
 							New
 						</span>
 					{/if}
-					{#if job.donor_name}
-						<span
-							class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
-								? ''
-								: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
-						>
-							{job.donor_name}
-						</span>
+					{#if donorFundedLabel}
+						<PortalTooltip label={donorFundedLabel} class="max-w-full shrink-0">
+							<span
+								class="inline-flex h-5 max-w-full items-center truncate rounded-full bg-blue-100 px-2 text-xs font-semibold text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 {isStatic
+									? ''
+									: 'animate-[pulse_0.5s_cubic-bezier(0.4,0,0.6,1)_infinite]'}"
+							>
+								{donorName}
+							</span>
+						</PortalTooltip>
 					{/if}
 				</div>
 			{/if}
