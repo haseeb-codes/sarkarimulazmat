@@ -43,6 +43,7 @@ export type AdminSearchRow = {
 	href: string | null;
 	/** Query params exactly as in the replay URL. */
 	params: AdminSearchParam[];
+	ip_address: string | null;
 	device_type: string | null;
 	browser: string | null;
 	browser_version: string | null;
